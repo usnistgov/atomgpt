@@ -1,4 +1,4 @@
-#mean_absolute_error: 54.10120434782608
+#mean_absolute_error: 64.72426134969325
 import json
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -12,8 +12,30 @@ from jarvis.io.vasp.inputs import Poscar
 from jarvis.db.figshare import data
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
-
+from chemnlp.utils.describe import atoms_describer
 # Load JSON data
+
+from pymatgen.core.structure import Structure
+from robocrys import StructureCondenser, StructureDescriber
+
+
+def get_robo(structure=None):
+#structure = Structure.from_file("POSCAR") # other file formats also supported
+
+# alternatively, uncomment the lines below to use the MPRester object
+# to fetch structures from the Materials Project database
+# from pymatgen import MPRester
+# structure = MPRester(API_KEY=None).get_structure_by_material_id("mp-856")
+
+ condenser = StructureCondenser()
+ describer = StructureDescriber()
+
+ #condensed_structure = condenser.condense_structure(structure)
+ #description = describer.describe(condensed_structure)
+ description = describer.describe(structure)
+ print(description)
+ return description
+
 def load_data_from_json(json_path):
     with open(json_path, 'r') as file:
         data = json.load(file)
@@ -32,7 +54,8 @@ def preprocess_data(dat,prop='',model='gpt2'):#, model_name):
     print(model)
     for entry in dat:
      try:
-        text=Poscar(Atoms.from_dict(entry['atoms'])).to_string()
+        text=get_robo(Atoms.from_dict(entry['atoms']).pymatgen_converter()) #Poscar(Atoms.from_dict(entry['atoms'])).to_string()
+        #text=json.dumps(atoms_describer(atoms=Atoms.from_dict(entry['atoms']))) #Poscar(Atoms.from_dict(entry['atoms'])).to_string()
         #text = entry['text']
         inputs = tokenizer(text, return_tensors="pt")
         with torch.no_grad():
@@ -58,7 +81,7 @@ def main():
     dat = data('dft_3d')
     dd=[]
     prop = 'formation_energy_peratom'#'exfoliation_energy'
-    #prop = 'exfoliation_energy'
+    prop = 'exfoliation_energy'
     for i in dat:
      if i[prop]!='na': #[0:10]
          dd.append(i)

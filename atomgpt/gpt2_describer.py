@@ -1,4 +1,4 @@
-#mean_absolute_error: 54.10120434782608
+#mean_absolute_error: 64.72426134969325
 import json
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -12,7 +12,7 @@ from jarvis.io.vasp.inputs import Poscar
 from jarvis.db.figshare import data
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
-
+from chemnlp.utils.describe import atoms_describer
 # Load JSON data
 def load_data_from_json(json_path):
     with open(json_path, 'r') as file:
@@ -32,7 +32,7 @@ def preprocess_data(dat,prop='',model='gpt2'):#, model_name):
     print(model)
     for entry in dat:
      try:
-        text=Poscar(Atoms.from_dict(entry['atoms'])).to_string()
+        text=json.dumps(atoms_describer(atoms=Atoms.from_dict(entry['atoms']))) #Poscar(Atoms.from_dict(entry['atoms'])).to_string()
         #text = entry['text']
         inputs = tokenizer(text, return_tensors="pt")
         with torch.no_grad():
@@ -58,7 +58,7 @@ def main():
     dat = data('dft_3d')
     dd=[]
     prop = 'formation_energy_peratom'#'exfoliation_energy'
-    #prop = 'exfoliation_energy'
+    prop = 'exfoliation_energy'
     for i in dat:
      if i[prop]!='na': #[0:10]
          dd.append(i)
