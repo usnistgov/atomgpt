@@ -1,37 +1,19 @@
-# conda activate chemnlp
-
-from dataclasses import dataclass
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Sequence
-from tqdm import tqdm
+"""Module for fin tuning LLM model for materials chemsitry."""
+from jarvis.db.figshare import data
 import transformers
 import torch
-from transformers import (
-    GPT2Tokenizer,
-    GPT2LMHeadModel,
-    GPT2Config,
-    Trainer,
-    TrainingArguments,
-)
+from jarvis.db.jsonutils import dumpjson
 import sys
 import argparse
 from torch.utils.data import DataLoader, Dataset
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error
 import numpy as np
 import os
 from jarvis.core.atoms import Atoms
-import glob
-import torch
-import pandas as pd
-from torch.utils.data import DataLoader, TensorDataset
-from jarvis.core.atoms import Atoms
-from tqdm import tqdm
-import transformers
+
+# from tqdm import tqdm
 import time
-from jarvis.db.figshare import data
-import json, zipfile
+import json
+import zipfile
 
 os.environ["WANDB_ANONYMOUS"] = "must"
 np.random.seed(42)
@@ -53,6 +35,7 @@ parser.add_argument(
     default="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae",
     help="Benchmarks available in jarvis_leaderboard/benchmarks/*/*.zip",
 )
+
 
 def get_crystal_string(atoms):
     lengths = atoms.lattice.abc  # structure.lattice.parameters[:3]
@@ -111,6 +94,7 @@ class AtomGPTDataset(Dataset):
 
 
 def run_atomgpt(
+    prefix="sample",
     model_name="gpt2",
     benchmark_file="AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip",
     root_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard",
@@ -137,12 +121,12 @@ def run_atomgpt(
     zp = zipfile.ZipFile(fname)
     bench = json.loads(zp.read(temp2))
 
-    train_atoms = []
-    val_atoms = []
-    test_atoms = []
-    train_targets = []
-    val_targets = []
-    test_targets = []
+    # train_atoms = []
+    # val_atoms = []
+    # test_atoms = []
+    # train_targets = []
+    # val_targets = []
+    # test_targets = []
     train_ids = list(bench["train"].keys())
     val_ids = list(bench["val"].keys())
     test_ids = list(bench["test"].keys())
@@ -253,20 +237,22 @@ def run_atomgpt(
         # pct_start=pct_start,
         pct_start=0.3,
     )
-    print("benchmark_file",benchmark_file)
+    print("benchmark_file", benchmark_file)
     print("train_data", len(train_texts))
     print("test_data", len(test_texts))
-    output_dir = "out_" + model_name + "_" + dataset + "_" + prop
+    output_dir = prefix + "_out_" + model_name + "_" + dataset + "_" + prop
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     best_loss = np.inf
     tot_time_start = time.time()
+    train_history = []
+    val_history = []
     for epoch in range(num_epochs):
         model.train()
         t1 = time.time()
         for batch in train_dataloader:
             train_loss = 0
-            train_result = []
+            # train_result = []
             input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
             predictions = (
                 model(input_ids.to(device)).logits.squeeze().mean(dim=-1)
@@ -286,9 +272,9 @@ def run_atomgpt(
         train_time = round(t2 - t1, 3)
         model.eval()
 
-        total_eval_mae_loss = 0
-        predictions_list = []
-        targets_list = []
+        # total_eval_mae_loss = 0
+        # predictions_list = []
+        # targets_list = []
         val_loss = 0
         t1 = time.time()
         for batch in val_dataloader:
@@ -303,6 +289,7 @@ def run_atomgpt(
                     predictions.squeeze(), targets.squeeze().to(device)
                 )
                 val_loss += loss.item()
+        saving_tag = ""
         if val_loss < best_loss:
             best_loss = val_loss
             best_model_name = "best_model.pt"
@@ -310,7 +297,8 @@ def run_atomgpt(
                 model.state_dict(),
                 os.path.join(output_dir, best_model_name),
             )
-            print("Saving model for epoch", epoch)
+            # print("Saving model for epoch", epoch)
+            saving_tag = " saving model:" + str(epoch)
         val_loss = val_loss / len(val_dataloader)
         t2 = time.time()
         val_time = round(t2 - t1, 3)
@@ -321,10 +309,18 @@ def run_atomgpt(
             val_loss,
             train_time,
             val_time,
+            saving_tag,
+        )
+        train_history.append(train_loss)
+        val_history.append(train_loss)
+        history = os.path.join(output_dir, "history.json")
+
+        dumpjson(
+            data={"train": train_history, "val": val_history}, filename=history
         )
     model.eval()
-    fname = "test_results_" + model_name + "_" + dataset + "_" + prop + ".csv"
-    f = open("test_results.csv", "w")
+    fname = os.path.join(output_dir, "test_results.csv")
+    f = open(fname, "w")
     f.write("id,target,predictions\n")
     for batch in test_dataloader:
         with torch.no_grad():
@@ -360,6 +356,4 @@ def run_atomgpt(
 if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     benchmark_file = args.benchmark_file
-    run_atomgpt(
-        benchmark_file=benchmark_file
-    )
+    run_atomgpt(benchmark_file=benchmark_file, num_epochs=2)
