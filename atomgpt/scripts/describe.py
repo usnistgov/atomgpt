@@ -76,7 +76,20 @@ def atoms_describer(
     }
     info["chemical_info"] = chem_info
     info["structure_info"] = struct_info
-    return info
+    line = ""
+    for i, j in info.items():
+        if not isinstance(j, dict):
+            line += "The " + i + " is " + j + ". "
+        else:
+            for ii, jj in j.items():
+                # tmp=''
+                # if isinstance(jj,dict):
+                #   for iii,jjj in jj.items():
+                #        tmp=iii+": "+str(jjj)
+                # else:
+                #   tmp=jj
+                line += "The " + ii + " is " + str(jj) + ". "
+    return line
 
 
 if __name__ == "__main__":
@@ -84,7 +97,11 @@ if __name__ == "__main__":
         get_jid_data(jid="JVASP-32", dataset="dft_3d")["atoms"]
     )
     info = atoms_describer(atoms=atoms)
-    pprint.pprint(info)
+    print(info)
+    import sys
+
+    sys.exit()
+    # pprint.pprint(info)
     from pygments import highlight
     from pygments.formatters.terminal256 import Terminal256Formatter
     from pygments.lexers.web import JsonLexer

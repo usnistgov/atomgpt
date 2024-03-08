@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="atomgpt",
-    version="2023.7.1",
+    version="2024.3.8",
     author="Kamal Choudhary",
     author_email="kamal.choudhary@nist.gov",
     description="chemnlp",
@@ -15,7 +15,7 @@ setuptools.setup(
         "jarvis-tools>=2021.07.19",
 
     ],
-    # scripts=["chemnlp/utils/run_chemnlp.py"],
+    scripts=["atomgpt/train_prop.py"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/usnistgov/atomgpt",
