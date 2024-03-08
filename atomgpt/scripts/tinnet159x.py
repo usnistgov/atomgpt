@@ -23,7 +23,7 @@ from jarvis.core.specie import Specie
 import pprint
 from collections import defaultdict
 
-# from tqdm import tqdm
+from tqdm import tqdm
 import time
 import json
 import zipfile
@@ -166,9 +166,11 @@ IGNORE_INDEX = -100
 device = "cpu"
 if torch.cuda.is_available():
     device = torch.device("cuda")
+#device = "cpu"
 parser = argparse.ArgumentParser(description="AtomGPT")
 parser.add_argument(
     "--benchmark_file",
+    #default="AI-SinglePropertyPrediction-Tc_supercon-dft_3d-test-mae.csv.zip",
     default="AI-SinglePropertyPrediction-PBE_gap-halide_peroskites-test-mae.csv.zip",
     # default="AI-SinglePropertyPrediction-ead-tinnet_N-test-mae.csv.zip",
     # default="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae",
@@ -294,7 +296,8 @@ class AtomGPTDataset(Dataset):
 def run_atomgpt(
     prefix="ss",
     model_name="gpt2",
-    benchmark_file="AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip",
+    benchmark_file="AI-SinglePropertyPrediction-Tc_supercon-dft_3d-test-mae.csv.zip",
+    #benchmark_file="AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip",
     root_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard",
     batch_size=8,
     max_length=512,
@@ -385,7 +388,7 @@ def run_atomgpt(
     test_targets = []
     test_ids_temp = []
 
-    for i in dft_3d:
+    for i in tqdm(dft_3d):
         if i[prop] != "na":
             atoms = Atoms.from_dict(i["atoms"])
             tmp = get_crystal_string_t(atoms)
@@ -753,6 +756,7 @@ if __name__ == "__main__":
     model_name = "stas/tiny-random-llama-2"
     model_name = "ahxt/llama2_xs_460M_experimental"
     model_name = "gpt2"
+    model_name = "unsloth/mistral-7b-bnb-4bit"
     run_atomgpt(
         model_name=model_name,
         benchmark_file=benchmark_file,

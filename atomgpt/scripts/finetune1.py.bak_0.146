@@ -32,12 +32,11 @@ if torch.cuda.is_available():
 parser = argparse.ArgumentParser(description="AtomGPT")
 parser.add_argument(
     "--benchmark_file",
-    default="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae",
+    default="AI-SinglePropertyPrediction-ead-tinnet_N-test-mae.csv.zip",
+    #default="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae",
     help="Benchmarks available in jarvis_leaderboard/benchmarks/*/*.zip",
 )
-
-
-def get_crystal_string(atoms):
+def get_crystal_string_old(atoms):
     lengths = atoms.lattice.abc  # structure.lattice.parameters[:3]
     angles = atoms.lattice.angles
     atom_ids = atoms.elements
@@ -56,6 +55,26 @@ def get_crystal_string(atoms):
         )
     )
 
+    return crystal_str
+
+def get_crystal_string(atoms):
+    lengths = atoms.lattice.abc  # structure.lattice.parameters[:3]
+    angles = atoms.lattice.angles
+    atom_ids = atoms.elements
+    frac_coords = atoms.frac_coords
+
+    crystal_str = (
+        " ".join(["{0:.1f}".format(x) for x in lengths])
+        + "\n"
+        + " ".join([str(int(x)) for x in angles])
+        + "\n"
+        + "\n".join(
+            [
+                str(t) + " " + " ".join(["{0:.1f}".format(x) for x in c])
+                for t, c in zip(atom_ids, frac_coords)
+            ]
+        )
+    )
     return crystal_str
 
 
@@ -94,20 +113,21 @@ class AtomGPTDataset(Dataset):
 
 
 def run_atomgpt(
-    prefix="sample",
+    prefix="ss",
     model_name="gpt2",
     benchmark_file="AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip",
     root_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard",
     batch_size=16,
-    max_length=128,
-    num_epochs=100,
+    max_length=512,
+    num_epochs=500,
+    latent_dim=512,
     learning_rate=5e-5,
 ):
     # Load pre-trained tokenizer
     # tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     # model = GPT2LMHeadModel.from_pretrained("gpt2")
 
-    dft_3d = data("dft_3d")
+    #dft_3d = data("dft_3d")
     # root_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard"
     # benchmark_file="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae.csv.zip"
     # benchmark_file = "AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip"
@@ -120,6 +140,12 @@ def run_atomgpt(
     fname = os.path.join(root_dir, "benchmarks", method, task, temp)
     zp = zipfile.ZipFile(fname)
     bench = json.loads(zp.read(temp2))
+    dft_3d = data(dataset)
+    id_tag="jid"
+    if "jid" in dft_3d[0]:
+       id_tag="jid"
+    else:
+       id_tag="id"
 
     # train_atoms = []
     # val_atoms = []
@@ -157,18 +183,18 @@ def run_atomgpt(
         if i[prop] != "na":
             atoms = Atoms.from_dict(i["atoms"])
             tmp = get_crystal_string(atoms)
-            if i["jid"] in train_ids:
+            if i[id_tag] in train_ids:
                 train_texts.append(tmp)
                 train_targets.append(i[prop])
-                train_ids_temp.append(i["jid"])
-            elif i["jid"] in val_ids:
+                train_ids_temp.append(i[id_tag])
+            elif i[id_tag] in val_ids:
                 val_texts.append(tmp)
                 val_targets.append(i[prop])
-                val_ids_temp.append(i["jid"])
-            elif i["jid"] in test_ids:
+                val_ids_temp.append(i[id_tag])
+            elif i[id_tag] in test_ids:
                 test_texts.append(tmp)
                 test_targets.append(i[prop])
-                test_ids_temp.append(i["jid"])
+                test_ids_temp.append(i[id_tag])
     """    
     ##############################
     ###Fast test###    
@@ -195,9 +221,8 @@ def run_atomgpt(
     if tokenizer.pad_token is None:
         tokenizer.add_special_tokens({"pad_token": "[PAD]"})
         model.resize_token_embeddings(len(tokenizer))
-    model.lm_head = torch.nn.Linear(
-        model.config.hidden_size, 1
-    )  # Single output for regression
+    model.lm_head = torch.nn.Sequential(torch.nn.Linear( model.config.hidden_size, latent_dim),torch.nn.Linear( latent_dim, latent_dim), torch.nn.Linear( latent_dim, 1) )  
+    #model.lm_head = torch.nn.Sequential(torch.nn.Linear( model.config.hidden_size, 256),torch.nn.SiLU(),torch.nn.Linear( 256, 1) )  
     model.to(device)
     optimizer = transformers.AdamW(model.parameters(), lr=learning_rate)
     # Prepare datasets and dataloaders with data collator
@@ -312,7 +337,7 @@ def run_atomgpt(
             saving_tag,
         )
         train_history.append(train_loss)
-        val_history.append(train_loss)
+        val_history.append(val_loss)
         history = os.path.join(output_dir, "history.json")
 
         dumpjson(
@@ -356,4 +381,4 @@ def run_atomgpt(
 if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     benchmark_file = args.benchmark_file
-    run_atomgpt(benchmark_file=benchmark_file, num_epochs=2)
+    run_atomgpt(benchmark_file=benchmark_file,num_epochs=300)
