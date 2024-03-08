@@ -35,7 +35,31 @@ parser.add_argument(
     help="Directory path with id_prop.csv and files",
 )
 
+parser.add_argument(
+    "--output_dir",
+    default="out_atomgpt",
+    # default="DataDir",
+    help="Directory path for saving models and outputs",
+)
 
+parser.add_argument(
+    "--batch_size",
+    default=8,
+    # default="DataDir",
+    help="Batch size",
+)
+parser.add_argument(
+    "--num_epochs",
+    default=1000,
+    # default="DataDir",
+    help="number of epochs",
+)
+parser.add_argument(
+    "--latent_dim",
+    default=1024,
+    # default="DataDir",
+    help="Latent dimension",
+)
 def set_seed(random_seed=42):
     os.environ["WANDB_ANONYMOUS"] = "must"
     # random_seed = 42
@@ -77,6 +101,7 @@ def run_atomgpt(
     val_ratio=0.1,
     test_ratio=0.1,
     keep_data_order=False,
+    output_dir="temp"
 ):
 
     print("benchmark_file", benchmark_file)
@@ -161,7 +186,7 @@ def run_atomgpt(
     )
     # print("train_data", len(train_texts))
     # print("test_data", len(test_texts))
-    output_dir = prefix + "_out_" + model_name
+    #output_dir = prefix + "_out_" + model_name
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     best_loss = np.inf
@@ -389,6 +414,9 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     benchmark_file = args.benchmark_file
     id_prop_path = args.id_prop_path
+    batch_size = args.batch_size
+    num_epochs = args.num_epochs
+    latent_dim=args.latent_dim
     # "AI-SinglePropertyPrediction-PBE_gap-halide_peroskites-test-mae.csv.zip"
     # id_prop_path = (
     #    "/wrk/knc6/Software/mini_alignn/alignn/alignn/examples/sample_data"
@@ -412,9 +440,8 @@ if __name__ == "__main__":
     model_name = "gpt2"
     run_atomgpt(
         model_name=model_name,
-        prefix="xyzx",
-        batch_size=2,
-        latent_dim=1024,
-        num_epochs=5000,
+        batch_size=int(batch_size),
+        latent_dim=int(latent_dim),
+        num_epochs=int(num_epochs),
         id_prop_path=id_prop_path,
     )
