@@ -755,8 +755,8 @@ if __name__ == "__main__":
     model_name = "meta-llama/Llama-2-7b-hf"
     model_name = "stas/tiny-random-llama-2"
     model_name = "ahxt/llama2_xs_460M_experimental"
-    model_name = "gpt2"
     model_name = "unsloth/mistral-7b-bnb-4bit"
+    model_name = "gpt2"
     run_atomgpt(
         model_name=model_name,
         benchmark_file=benchmark_file,

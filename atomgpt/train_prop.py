@@ -2,6 +2,7 @@
 """Module to train properties."""
 import transformers
 from atomgpt.data.dataset import data_from_benchmark_file, data_from_id_prop
+from atomgpt.config import TrainingPropConfig 
 import os
 import json
 import zipfile
@@ -16,49 +17,16 @@ import os
 from jarvis.db.jsonutils import loadjson, dumpjson
 import sys
 import argparse
-
+import pprint
 device = "cpu"
 if torch.cuda.is_available():
     device = torch.device("cuda")
 
 parser = argparse.ArgumentParser(description="AtomGPT")
 parser.add_argument(
-    "--benchmark_file",
-    default=None,
-    # default="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae",
-    help="Benchmarks available in jarvis_leaderboard/benchmarks/*/*.zip",
-)
-parser.add_argument(
-    "--id_prop_path",
-    default=None,
-    # default="DataDir",
-    help="Directory path with id_prop.csv and files",
-)
-
-parser.add_argument(
-    "--output_dir",
-    default="out_atomgpt",
-    # default="DataDir",
-    help="Directory path for saving models and outputs",
-)
-
-parser.add_argument(
-    "--batch_size",
-    default=8,
-    # default="DataDir",
-    help="Batch size",
-)
-parser.add_argument(
-    "--num_epochs",
-    default=1000,
-    # default="DataDir",
-    help="number of epochs",
-)
-parser.add_argument(
-    "--latent_dim",
-    default=1024,
-    # default="DataDir",
-    help="Latent dimension",
+    "--config_file",
+    default='config.json',
+    help="Config file",
 )
 def set_seed(random_seed=42):
     os.environ["WANDB_ANONYMOUS"] = "must"
@@ -81,30 +49,34 @@ def set_seed(random_seed=42):
 
 
 def run_atomgpt(
-    benchmark_file=None,
-    id_prop_path=None,
-    prefix="xyz",
-    model_name="gpt2",
-    leaderboard_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard",
-    batch_size=8,
-    max_length=512,
-    num_epochs=500,
-    latent_dim=512,
-    learning_rate=1e-3,
-    test_each_run=True,
-    pretrained_path="",
-    seed_val=42,
-    n_train=None,
-    n_val=None,
-    n_test=None,
-    train_ratio=None,
-    val_ratio=0.1,
-    test_ratio=0.1,
-    keep_data_order=False,
-    output_dir="temp"
+    config_file=""
 ):
-
-    print("benchmark_file", benchmark_file)
+    print("Running AtomGPT prop predictor.")
+    config=loadjson(config_file)
+    config=TrainingPropConfig(**config)
+    benchmark_file=config.benchmark_file
+    id_prop_path=config.id_prop_path
+    prefix=config.prefix
+    model_name=config.model_name
+    leaderboard_dir=config.leaderboard_dir
+    batch_size=config.batch_size
+    max_length=config.max_length
+    num_epochs=config.num_epochs
+    latent_dim=config.latent_dim
+    learning_rate=config.learning_rate
+    test_each_run=config.test_each_run
+    pretrained_path=config.pretrained_path
+    seed_val=config.seed_val
+    include_struct=config.include_struct
+    n_train=config.n_train
+    n_val=config.n_val
+    n_test=config.n_test
+    train_ratio=config.train_ratio
+    val_ratio=config.val_ratio
+    test_ratio=config.test_ratio
+    keep_data_order=config.keep_data_order
+    output_dir=config.output_dir
+    print("configs", pprint.pprint(config.dict()))
     set_seed(random_seed=seed_val)
     if "t5" in model_name:
         model = transformers.T5ForConditionalGeneration.from_pretrained(
@@ -147,6 +119,7 @@ def run_atomgpt(
             tokenizer=tokenizer,
             max_length=max_length,
             batch_size=batch_size,
+            include_struct=include_struct,
         )
     elif id_prop_path is not None:
         train_dataloader, val_dataloader, test_dataloader = data_from_id_prop(
@@ -162,6 +135,7 @@ def run_atomgpt(
             test_ratio=test_ratio,
             keep_data_order=keep_data_order,
             batch_size=batch_size,
+            include_struct=include_struct,
         )
     else:
         raise ValueError("Provide id_prop_path or benchmark_file")
@@ -412,12 +386,9 @@ if __name__ == "__main__":
     # import sys
     # sys.exit()
     args = parser.parse_args(sys.argv[1:])
-    benchmark_file = args.benchmark_file
-    id_prop_path = args.id_prop_path
-    batch_size = args.batch_size
-    num_epochs = args.num_epochs
-    latent_dim=args.latent_dim
+    config_file = args.config_file
     # "AI-SinglePropertyPrediction-PBE_gap-halide_peroskites-test-mae.csv.zip"
+    # "AI-SinglePropertyPrediction-Tc_supercon-dft_3d-test-mae.csv.zip"
     # id_prop_path = (
     #    "/wrk/knc6/Software/mini_alignn/alignn/alignn/examples/sample_data"
     # )
@@ -439,9 +410,5 @@ if __name__ == "__main__":
     model_name = "ahxt/llama2_xs_460M_experimental"
     model_name = "gpt2"
     run_atomgpt(
-        model_name=model_name,
-        batch_size=int(batch_size),
-        latent_dim=int(latent_dim),
-        num_epochs=int(num_epochs),
-        id_prop_path=id_prop_path,
+        config_file=config_file,
     )
