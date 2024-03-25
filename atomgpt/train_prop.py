@@ -2,7 +2,7 @@
 """Module to train properties."""
 import transformers
 from atomgpt.data.dataset import data_from_benchmark_file, data_from_id_prop
-from atomgpt.config import TrainingPropConfig 
+from atomgpt.config import TrainingPropConfig
 import os
 import json
 import zipfile
@@ -18,6 +18,7 @@ from jarvis.db.jsonutils import loadjson, dumpjson
 import sys
 import argparse
 import pprint
+
 device = "cpu"
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -25,9 +26,11 @@ if torch.cuda.is_available():
 parser = argparse.ArgumentParser(description="AtomGPT")
 parser.add_argument(
     "--config_file",
-    default='config.json',
+    default="config.json",
     help="Config file",
 )
+
+
 def set_seed(random_seed=42):
     os.environ["WANDB_ANONYMOUS"] = "must"
     # random_seed = 42
@@ -48,34 +51,32 @@ def set_seed(random_seed=42):
     torch.use_deterministic_algorithms(True)
 
 
-def run_atomgpt(
-    config_file=""
-):
+def run_atomgpt(config_file=""):
     print("Running AtomGPT prop predictor.")
-    config=loadjson(config_file)
-    config=TrainingPropConfig(**config)
-    benchmark_file=config.benchmark_file
-    id_prop_path=config.id_prop_path
-    prefix=config.prefix
-    model_name=config.model_name
-    leaderboard_dir=config.leaderboard_dir
-    batch_size=config.batch_size
-    max_length=config.max_length
-    num_epochs=config.num_epochs
-    latent_dim=config.latent_dim
-    learning_rate=config.learning_rate
-    test_each_run=config.test_each_run
-    pretrained_path=config.pretrained_path
-    seed_val=config.seed_val
-    include_struct=config.include_struct
-    n_train=config.n_train
-    n_val=config.n_val
-    n_test=config.n_test
-    train_ratio=config.train_ratio
-    val_ratio=config.val_ratio
-    test_ratio=config.test_ratio
-    keep_data_order=config.keep_data_order
-    output_dir=config.output_dir
+    config = loadjson(config_file)
+    config = TrainingPropConfig(**config)
+    benchmark_file = config.benchmark_file
+    id_prop_path = config.id_prop_path
+    prefix = config.prefix
+    model_name = config.model_name
+    leaderboard_dir = config.leaderboard_dir
+    batch_size = config.batch_size
+    max_length = config.max_length
+    num_epochs = config.num_epochs
+    latent_dim = config.latent_dim
+    learning_rate = config.learning_rate
+    test_each_run = config.test_each_run
+    pretrained_path = config.pretrained_path
+    seed_val = config.seed_val
+    include_struct = config.include_struct
+    n_train = config.n_train
+    n_val = config.n_val
+    n_test = config.n_test
+    train_ratio = config.train_ratio
+    val_ratio = config.val_ratio
+    test_ratio = config.test_ratio
+    keep_data_order = config.keep_data_order
+    output_dir = config.output_dir
     print("configs", pprint.pprint(config.dict()))
     set_seed(random_seed=seed_val)
     if "t5" in model_name:
@@ -136,6 +137,7 @@ def run_atomgpt(
             keep_data_order=keep_data_order,
             batch_size=batch_size,
             include_struct=include_struct,
+            calc_desc=False,
         )
     else:
         raise ValueError("Provide id_prop_path or benchmark_file")
@@ -160,7 +162,7 @@ def run_atomgpt(
     )
     # print("train_data", len(train_texts))
     # print("test_data", len(test_texts))
-    #output_dir = prefix + "_out_" + model_name
+    # output_dir = prefix + "_out_" + model_name
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     best_loss = np.inf

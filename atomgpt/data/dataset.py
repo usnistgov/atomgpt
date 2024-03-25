@@ -1,4 +1,9 @@
-from transformers import GPT2Tokenizer, GPT2Model, AdamW, get_linear_schedule_with_warmup
+from transformers import (
+    GPT2Tokenizer,
+    GPT2Model,
+    AdamW,
+    get_linear_schedule_with_warmup,
+)
 from jarvis.core.atoms import Atoms
 from jarvis.analysis.structure.spacegroup import Spacegroup3D
 from jarvis.analysis.diffraction.xrd import XRD
@@ -72,14 +77,14 @@ def atoms_describer(
         ),
         # "spg_number": spg.space_group_number,
         # "spg_symbol": spg.space_group_symbol,
-        #"top_k_xrd_peaks": ", ".join(
+        # "top_k_xrd_peaks": ", ".join(
         #    map(
         #        str,
         #        sorted(list(set([round(i, xrd_round) for i in theta])))[
         #            0:xrd_peaks
         #        ],
         #    )
-        #),
+        # ),
         "density": round(atoms.density, 3),
         # "crystal_system": spg.crystal_system,
         # "point_group": spg.point_group_symbol,
@@ -89,8 +94,8 @@ def atoms_describer(
         # "natoms_conventional": spg.conventional_standard_structure.num_atoms,
     }
     if include_xrd:
-       theta, d_hkls, intens = XRD().simulate(atoms=(atoms))
-       struct_info["top_k_xrd_peaks"]=", ".join(
+        theta, d_hkls, intens = XRD().simulate(atoms=(atoms))
+        struct_info["top_k_xrd_peaks"] = ", ".join(
             map(str, [round(j, 2) for j in atoms.lattice.angles])
         )
     if include_spg:
@@ -105,9 +110,9 @@ def atoms_describer(
         )
     info["chemical_info"] = chem_info
     info["structure_info"] = struct_info
-    line = "The number of atoms are: " + str(
-        atoms.num_atoms
-    )   +". " #, The elements are: "+",".join(atoms.elements)+". "
+    line = (
+        "The number of atoms are: " + str(atoms.num_atoms) + ". "
+    )  # , The elements are: "+",".join(atoms.elements)+". "
     for i, j in info.items():
         if not isinstance(j, dict):
             line += "The " + i + " is " + j + ". "
@@ -125,7 +130,9 @@ def atoms_describer(
     return line
 
 
-def get_crystal_string(atoms, include_struct=True,include_spg=True,include_xrd=True):
+def get_crystal_string(
+    atoms, include_struct=True, include_spg=True, include_xrd=True
+):
     lengths = atoms.lattice.abc  # structure.lattice.parameters[:3]
     angles = atoms.lattice.angles
     atom_ids = atoms.elements
@@ -150,9 +157,17 @@ def get_crystal_string(atoms, include_struct=True,include_spg=True,include_xrd=T
     # extra=atoms.composition.reduced_formula
     # crystal_str+="\n"+extra+"\n"+atoms.spacegroup()+"\n"
     if include_struct:
-        crystal_str = atoms_describer(atoms,include_spg=include_spg,include_xrd=include_xrd) + "\n*\n" + crystal_str
+        crystal_str = (
+            atoms_describer(
+                atoms, include_spg=include_spg, include_xrd=include_xrd
+            )
+            + "\n*\n"
+            + crystal_str
+        )
     else:
-        crystal_str = atoms_describer(atoms,include_spg=include_spg,include_xrd=include_xrd)  # + "\n*\n" + crystal_str
+        crystal_str = atoms_describer(
+            atoms, include_spg=include_spg, include_xrd=include_xrd
+        )  # + "\n*\n" + crystal_str
     return crystal_str
 
 
@@ -194,7 +209,7 @@ def data_from_benchmark_file(
     max_length=512,
     batch_size=8,
     include_struct=True,
-    include_spg=True
+    include_spg=True,
 ):
     print("benchmark_file", benchmark_file)
     method = benchmark_file.split("-")[0]
@@ -237,7 +252,9 @@ def data_from_benchmark_file(
     for i in tqdm(dft_3d):
         if i[prop] != "na":
             atoms = Atoms.from_dict(i["atoms"])
-            tmp = get_crystal_string(atoms, include_struct=include_struct,include_spg=include_spg)
+            tmp = get_crystal_string(
+                atoms, include_struct=include_struct, include_spg=include_spg
+            )
             if i[id_tag] in train_ids:
                 train_texts.append(tmp)
                 train_targets.append(i[prop])
@@ -363,7 +380,8 @@ def data_from_id_prop(
     keep_data_order=False,
     batch_size=5,
     include_struct=True,
-    include_spg=True
+    include_spg=True,
+    calc_desc=False,
 ):
     id_prop_dat = os.path.join(id_prop_path, "id_prop.csv")
     with open(id_prop_dat, "r") as f:
@@ -390,8 +408,14 @@ def data_from_id_prop(
             raise NotImplementedError(
                 "File format not implemented", file_format
             )
-        desc = get_crystal_string(atoms, include_struct=include_struct,include_spg=include_spg)
-        tmp = [float(j) for j in i[1:]]  # float(i[1])
+        if calc_desc:
+            desc = get_crystal_string(
+                atoms, include_struct=include_struct, include_spg=include_spg
+            )
+            tmp = [float(j) for j in i[1:]]  # float(i[1])
+        else:
+            desc = i[1]
+            tmp = [float(j) for j in i[2:]]
         if len(tmp) == 1:
             tmp = tmp[0]
         texts.append(desc)
