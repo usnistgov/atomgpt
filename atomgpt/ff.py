@@ -9,6 +9,7 @@ from transformers import (
 )
 import numpy as np
 import time
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -142,21 +143,21 @@ def train(
     )
 
     train_dataset = AtomGPTFFDataset(train_array)
-    print("Instance", train_dataset[0])
+    print("Instance train", train_dataset[0])
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         collate_fn=collate_fn,
     )
-    if val_array:
-        val_dataset = AtomGPTFFDataset(val_array)
-        val_dataloader = DataLoader(
-            val_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            collate_fn=collate_fn,
-        )
+    val_dataset = AtomGPTFFDataset(val_array)
+    print("Instance val", val_dataset[0])
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=collate_fn,
+    )
 
     if test_array:
         test_dataset = AtomGPTFFDataset(test_array)
@@ -175,6 +176,7 @@ def train(
         optimizer, num_warmup_steps=0, num_training_steps=total_steps
     )
     criterion = torch.nn.L1Loss()
+    best_loss = np.inf
     for epoch in range(num_epochs):
         t1 = time.time()
         model.train()
@@ -227,10 +229,10 @@ def train(
                 force_loss = (
                     force_weight * torch.mean(pred["forces"] - target_forces)
                 ) ** 2
-                stress_loss = (
-                    stress_weight * torch.mean(pred["stress"] - target_stress)
-                ) ** 2
-
+                # stress_loss = (
+                #    stress_weight * torch.mean(pred["stress"] - target_stress)
+                # ) ** 2
+                include_stress = False
                 if include_stress:
                     loss = energy_loss + force_loss + stress_loss
                 else:
@@ -241,6 +243,14 @@ def train(
             # optimizer.step()
             # scheduler.step()
         val_loss = val_loss / len(val_dataloader)
+        output_dir = "./"
+        if val_loss < best_loss:
+            best_loss = val_loss
+            best_model_name = "best_model.pt"
+            torch.save(
+                model.state_dict(),
+                os.path.join(output_dir, best_model_name),
+            )
         t2 = time.time()
         epoch_time = t2 - t1
         print(

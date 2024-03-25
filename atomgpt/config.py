@@ -1,7 +1,5 @@
 from typing import Optional
 from pydantic_settings import BaseSettings
-
-
 class TrainingPropConfig(BaseSettings):
     """Training config defaults and validation."""
 
