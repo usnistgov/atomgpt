@@ -194,10 +194,11 @@ def make_id_prop(
     minfo["n_val"] = len(val_ids)
     minfo["n_test"] = len(test_ids)
     minfo["id_prop_path"] = os.path.abspath(filename)
+    minfo["output_dir"] = os.path.abspath(output_dir)
 
     dumpjson(data=minfo, filename=filename_config)
     dumpjson(data=mem, filename=filename)
-
+    return output_dir
 
 ##
 os.environ["WANDB_ANONYMOUS"] = "must"
@@ -290,10 +291,9 @@ def run_atomgpt(config_file="config.json"):
     keep_data_order = config.keep_data_order
 
     f = open(os.path.join(config.output_dir, "config.json"), "w")
-    f.write(json.dumps(tmp, indent=4))
+    f.write(json.dumps(config.dict(), indent=4))
     f.close()
 
-    dumpjson(data=config.dict(), filename=fname)
     id_train, id_val, id_test = get_id_train_val_test(
         total_size=len(dat),
         split_seed=seed_val,
@@ -707,7 +707,7 @@ def run_atomgpt(config_file="config.json"):
 
 
 if __name__ == "__main__":
-    make_id_prop()
-    run_atomgpt(config_file="test_id_prop/config.json")
+    output_dir = make_id_prop()
+    run_atomgpt(config_file=output_dir+"/config.json")
     #    config_file="config.json"
     # )
