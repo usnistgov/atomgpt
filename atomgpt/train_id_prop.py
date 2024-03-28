@@ -33,7 +33,7 @@ class TrainingPropConfig(BaseSettings):
     id_prop_path: Optional[str] = "robo_desc.json.zip"
     prefix: str = "atomgpt_run"
     model_name: str = "gpt2"
-    batch_size: int = 8
+    batch_size: int = 16
     max_length: int = 512
     num_epochs: int = 500
     latent_dim: int = 1024
@@ -116,7 +116,8 @@ def get_id_train_val_test(
 def make_id_prop(
     benchmark_file="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae.csv.zip",
     desc_file="robo_desc.json.zip",
-    leaderboard_dir="/work/03943/kamalch/ls6/Software/atomgpt/jarvis_leaderboard/jarvis_leaderboard/",
+    leaderboard_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard",
+    # leaderboard_dir="/work/03943/kamalch/ls6/Software/atomgpt/jarvis_leaderboard/jarvis_leaderboard/",
     output_dir="test_id_prop",
 ):
     print("benchmark_file", benchmark_file)
@@ -147,7 +148,8 @@ def make_id_prop(
     print("Saving files in", output_dir)
     if ".zip" in desc_file:
         zp = zipfile.ZipFile(desc_file)
-        dat = json.loads(zp.read(desc_file.split(".zip")[0]))
+        dat = json.loads(zp.read(desc_file.split(".zip")[0].split("/")[-1]))
+
     else:
         dat = loadjson(desc_file)
 
@@ -199,6 +201,7 @@ def make_id_prop(
     dumpjson(data=minfo, filename=filename_config)
     dumpjson(data=mem, filename=filename)
     return output_dir
+
 
 ##
 os.environ["WANDB_ANONYMOUS"] = "must"
@@ -462,7 +465,7 @@ def run_atomgpt(config_file="config.json"):
         # pct_start=pct_start,
         pct_start=0.3,
     )
-    output_dir = prefix + "_out"  # + model_name + "_" + dataset + "_" + prop
+    # output_dir = prefix + "_out"  # + model_name + "_" + dataset + "_" + prop
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     best_loss = np.inf
@@ -708,6 +711,6 @@ def run_atomgpt(config_file="config.json"):
 
 if __name__ == "__main__":
     output_dir = make_id_prop()
-    run_atomgpt(config_file=output_dir+"/config.json")
+    run_atomgpt(config_file=output_dir + "/config.json")
     #    config_file="config.json"
     # )
