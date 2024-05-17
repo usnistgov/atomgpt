@@ -137,8 +137,8 @@ dependencies:
       - cycler==0.11.0
       - datasets==2.17.1
       - decorator==5.1.1
-      - dgl==1.1.2
-      - dgl-cu111==0.6.1
+      #- dgl==1.1.2
+      #- dgl-cu111==0.6.1
       - dill==0.3.8
       - dnspython==2.4.2
       - docstring-parser==0.15
@@ -252,7 +252,7 @@ dependencies:
       - pydocstyle==6.3.0
       - pyflakes==3.1.0
       - pygments==2.16.1
-      - pymatgen==2023.10.11
+      #- pymatgen==2023.10.11
       - pymdown-extensions==10.3
       - pymongo==4.5.0
       - pynacl==1.5.0
