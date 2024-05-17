@@ -1,4 +1,4 @@
-name: AtomGPT-github action
+name: AtomGPT github action
 on: [push, pull_request]
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         with:
           activate-environment: test
           environment-file: environment.yml
-          python-version: "3.9"
+          python-version: "3.10"
           auto-activate-base: false
       - shell: bash -l {0}
         run: |
@@ -35,6 +35,7 @@ jobs:
             find . -type f > before_test_files.txt
             conda env create -f environment.yml
             conda activate atomgpt
+            conda install pytest coverage codecov 
             #conda install pytest coverage codecov pandas numpy matplotlib phonopy scikit-learn jarvis-tools --quiet
             #export DGLBACKEND=pytorch
             #export CUDA_VISIBLE_DEVICES="-1"
