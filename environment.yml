@@ -111,7 +111,7 @@ dependencies:
       - aiohttp==3.9.3
       - aioitertools==0.11.0
       - aiosignal==1.3.1
-      - alignn==2023.8.1
+      #- alignn==2023.8.1
       - annotated-types==0.6.0
       - anyio==3.7.1
       - ase==3.22.1
@@ -245,7 +245,7 @@ dependencies:
       - pybtex==0.24.0
       - pycodestyle==2.11.0
       - pycparser==2.21
-      - pydantic==2.6.3
+      #- pydantic==2.6.3
       - pydantic-core==2.16.3
       - pydantic-settings==2.0.3
       - pydash==7.0.6
