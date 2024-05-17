@@ -190,8 +190,8 @@ dependencies:
       - mkdocs-material-extensions==1.2
       - mongogrant==0.3.3
       - mongomock==4.1.2
-      - monty==2021.3.3
-      - mp-api==0.37.5
+      #- monty==2021.3.3
+      #- mp-api==0.37.5
       - msgpack==1.0.7
       - multidict==6.0.5
       - multiprocess==0.70.16
