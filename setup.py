@@ -8,11 +8,16 @@ setuptools.setup(
     version="2024.3.8",
     author="Kamal Choudhary",
     author_email="kamal.choudhary@nist.gov",
-    description="chemnlp",
+    description="atomgpt",
     install_requires=[
         "numpy>=1.22.0",
         "scipy>=1.6.3",
         "jarvis-tools>=2021.07.19",
+        "transformers",
+        "peft",
+        "trl",
+        "triton",
+        "torch",
 
     ],
     scripts=["atomgpt/train_prop.py"],
