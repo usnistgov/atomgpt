@@ -1,4 +1,4 @@
-name: AtomGPT github action
+name: AtomGPT-github action
 on: [push, pull_request]
 
 jobs:
