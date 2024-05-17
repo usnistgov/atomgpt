@@ -188,6 +188,7 @@ dependencies:
   - rich=13.7.1=pyhd8ed1ab_0
   - s2n=1.4.13=he19d79f_0
   - safetensors=0.4.3=py310hcb5633a_0
+  - scikit-learn=1.4.2=py310h981052a_1
   - scipy=1.7.3=py310hfa59a62_0
   - setuptools=69.5.1=pyhd8ed1ab_0
   - shtab=1.7.1=pyhd8ed1ab_0
