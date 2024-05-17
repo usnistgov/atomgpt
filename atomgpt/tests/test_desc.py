@@ -1,9 +1,13 @@
 from jarvis.db.figshare import get_jid_data
 from jarvis.core.atoms import Atoms
 from atomgpt.data.dataset import get_crystal_string
+
+
 def test_desc():
  atoms=Atoms.from_dict(get_jid_data(jid='JVASP-1174',dataset='dft_3d')['atoms'])
  get_crystal_string(atoms)
+
+
 
 def get_ff():
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
