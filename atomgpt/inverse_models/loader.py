@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .llama import FastLlamaModel, logger
-from .mistral import FastMistralModel
-from .qwen2 import FastQwen2Model
+from atomgpt.inverse_models.llama import FastLlamaModel, logger
+from atomgpt.inverse_models.mistral import FastMistralModel
+from atomgpt.inverse_models.qwen2 import FastQwen2Model
 from transformers import AutoConfig
 from transformers import __version__ as transformers_version
 from peft import PeftConfig, PeftModel
-from .mapper import INT_TO_FLOAT_MAPPER, FLOAT_TO_INT_MAPPER
+from atomgpt.inverse_models.mapper import INT_TO_FLOAT_MAPPER, FLOAT_TO_INT_MAPPER
 import os
 
 # https://github.com/huggingface/transformers/pull/26037 allows 4 bit loading!
@@ -27,7 +27,7 @@ major, minor = int(major), int(minor)
 SUPPORTS_FOURBIT = (major > 4) or (major == 4 and minor >= 37)
 SUPPORTS_GEMMA   = (major > 4) or (major == 4 and minor >= 38)
 if SUPPORTS_GEMMA:
-    from .gemma import FastGemmaModel
+    from atomgpt.inverse_models.gemma import FastGemmaModel
 del major, minor
 
 
