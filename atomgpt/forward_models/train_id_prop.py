@@ -264,6 +264,8 @@ class AtomGPTDataset(Dataset):
 
 def run_atomgpt(config_file="config.json"):
     print("Running AtomGPT prop predictor.")
+    run_path = os.path.abspath(config_file).split("config.json")[0]
+    print('PATH', run_path)
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
     pprint.pprint(config)
@@ -281,7 +283,7 @@ def run_atomgpt(config_file="config.json"):
              info={} 
              info['id']=i[0]
              info['prop']=[float(j) for j in i[1:]]  # float(i[1])
-             with open(info['id'],"r") as f:
+             with open(os.path.join(run_path,info['id']),"r") as f:
                lines=f.read()
              info['desc']=lines
              dat.append(info)
