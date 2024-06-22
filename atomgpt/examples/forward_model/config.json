@@ -1,0 +1,22 @@
+{
+    "id_prop_path": "atomgpt/examples/forward_model/id_prop.csv",
+    "prefix": "atomgpt_run",
+    "model_name": "gpt2",
+    "batch_size": 5,
+    "max_length": 512,
+    "num_epochs": 3,
+    "latent_dim": 1024,
+    "learning_rate": 0.001,
+    "test_each_run": true,
+    "include_struct": false,
+    "pretrained_path": "",
+    "seed_val": 42,
+    "n_train": 40,
+    "n_val": 5,
+    "n_test": 5,
+    "output_dir": "atomgpt/examples/forward_model/out",
+    "train_ratio": null,
+    "val_ratio": 0.1,
+    "test_ratio": 0.1,
+    "keep_data_order": true
+}
