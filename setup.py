@@ -17,7 +17,7 @@ setuptools.setup(
         "pydantic_settings",
         "peft",
         "trl",
-        "alignn",
+        #"alignn",
         "triton",
         "torch",
 
