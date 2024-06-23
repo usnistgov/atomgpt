@@ -1,4 +1,4 @@
-name: atomgpt_pytest
+name: atomgpt
 channels:
   - pytorch
   - nvidia
@@ -363,4 +363,4 @@ dependencies:
       - triton==2.3.1
       - trl==0.8.6
       - tyro==0.8.4
-prefix: atomgpt_pytest
+prefix: atomgpt
