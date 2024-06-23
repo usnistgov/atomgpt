@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .cross_entropy_loss import fast_cross_entropy_loss
+from atomgpt.inverse_models.kernels.cross_entropy_loss import fast_cross_entropy_loss
 from .rms_layernorm import fast_rms_layernorm
 from .rope_embedding import fast_rope_embedding, inplace_rope_embedding
 from .swiglu import swiglu_fg_kernel, swiglu_DWf_DW_dfg_kernel
