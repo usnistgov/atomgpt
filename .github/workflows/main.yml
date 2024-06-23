@@ -57,6 +57,8 @@ jobs:
             ls atomgpt/examples/forward_model/ 
             python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
 
+            echo 'inverse model'
+            python atomgpt/examples/inverse_model/run.py            
             coverage run -m pytest
             coverage report -m -i
             codecov
