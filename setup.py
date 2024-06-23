@@ -20,6 +20,7 @@ setuptools.setup(
         #"alignn",
         "triton",
         "torch",
+        "sentencepiece"
 
     ],
     scripts=["atomgpt/train_prop.py"],

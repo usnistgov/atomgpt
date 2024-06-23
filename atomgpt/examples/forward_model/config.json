@@ -1,7 +1,7 @@
 {
     "id_prop_path": "atomgpt/examples/forward_model/id_prop.csv",
     "prefix": "atomgpt_run",
-    "model_name": "gpt2",
+    "model_name": "google/flan-t5-small",
     "batch_size": 2,
     "max_length": 512,
     "num_epochs": 1,
