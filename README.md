@@ -6,12 +6,15 @@ Large language models (LLMs) such as generative pretrained transformers (GPTs) h
 
 ## Forward model example (structure to property)
 
+```
 python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
+```
 
 ## Inverse model example (property to structure)
 
+```
 python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model/config.json
-
+```
 
 # Google colab/Jupyter notebook
 
@@ -22,5 +25,5 @@ python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/i
 
 (Documentation development is in progress...)
 
-![AtomGPT schematic](https://pubs.acs.org/cms/10.1021/acs.jpclett.4c01126/asset/images/large/jz4c01126_0001.jpeg)
+
 
