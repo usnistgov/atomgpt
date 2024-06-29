@@ -9,3 +9,5 @@ python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/f
 python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model/config.json
 
 #python atomgpt/examples/inverse_model/run.py
+
+(Documentation development is in progress...)
