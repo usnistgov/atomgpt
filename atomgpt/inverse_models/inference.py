@@ -1,4 +1,4 @@
-
+"""Module for inference."""
 from jarvis.db.jsonutils import loadjson
 from unsloth import FastLanguageModel
 import torch
