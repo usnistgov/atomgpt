@@ -2,8 +2,35 @@
 
 Large language models (LLMs) such as [ChatGPT](https://openai.com/chatgpt/) have shown immense potential for various commercial applications, but their applicability for materials design remains underexplored. In this work, AtomGPT is introduced as a model specifically developed for materials design based on transformer architectures, demonstrating capabilities for both atomistic property prediction and structure generation tasks. This study shows that a combination of chemical and structural text descriptions can efficiently predict material properties with accuracy comparable to graph neural network models, including formation energies, electronic bandgaps from two different methods, and superconducting transition temperatures. Furthermore, AtomGPT can generate atomic structures for tasks such as designing new superconductors, with the predictions validated through density functional theory calculations. This work paves the way for leveraging LLMs in forward and inverse materials design, offering an efficient approach to the discovery and optimization of materials.
 
+![AtomGPT layer schematic](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/data/schematic.jpeg)
 
 Both forward and inverse models take a config.json file as an input. Such a config file provides basic training parameters, and an `id_prop.csv` file path similar to the ALIGNN (https://github.com/usnistgov/alignn) model. See an example here: [id_prop.csv](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/examples/forward_model/id_prop.csv). 
+
+## Installation
+
+First create a conda environment:
+Install miniconda environment from https://conda.io/miniconda.html
+Based on your system requirements, you'll get a file something like 'Miniconda3-latest-XYZ'.
+
+Now,
+
+```
+bash Miniconda3-latest-Linux-x86_64.sh (for linux)
+bash Miniconda3-latest-MacOSX-x86_64.sh (for Mac)
+```
+Download 32/64 bit python 3.10 miniconda exe and install (for windows)
+
+```
+conda create --name my_atomgpt python=3.10
+conda activate my_atomgpt
+```
+
+```
+git clone https://github.com/usnistgov/atomgpt.git
+cd atomgpt
+pip install -q -r dev-requirements.txt
+pip install -q -e .
+```
 
 ## Forward model example (structure to property)
 
@@ -21,6 +48,8 @@ Inverse models are used for generating materials given property and description 
 python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model/config.json
 ```
 
+More detailed examples/case-studies would be added here soon.
+
 # Google colab/Jupyter notebook
 Examples for running AtomGPT is given in the [notebook](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
 [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
@@ -29,13 +58,14 @@ Examples for running AtomGPT is given in the [notebook](https://colab.research.g
 
 For other notebook example, see [here](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
 
-![AtomGPT layer schematic](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/data/schematic.jpeg)
+
 
 
 # Referenes:
 
 1. [AtomGPT: Atomistic Generative Pretrained Transformer for Forward and Inverse Materials Design](https://pubs.acs.org/doi/full/10.1021/acs.jpclett.4c01126)
 2. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
+3. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
 
 <a name="contrib"></a>
 How to contribute
