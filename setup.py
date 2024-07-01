@@ -23,7 +23,7 @@ setuptools.setup(
         "sentencepiece"
 
     ],
-    scripts=["atomgpt/train_prop.py"],
+    # scripts=["atomgpt/train_prop.py"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/usnistgov/atomgpt",

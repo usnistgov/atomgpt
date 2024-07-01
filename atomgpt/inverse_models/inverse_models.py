@@ -28,7 +28,7 @@ parser.add_argument(
     help="Name of the config file",
 )
 
-
+# Adapted from https://github.com/unslothai/unsloth
 class TrainingPropConfig(BaseSettings):
     """Training config defaults and validation."""
 
@@ -157,7 +157,7 @@ def formatting_prompts_func(examples):
 def text2atoms(response):
     tmp_atoms_array = response.strip("</s>").split("\n")
     # tmp_atoms_array= [element for element in tmp_atoms_array  if element != '']
-    print("tmp_atoms_array", tmp_atoms_array)
+    # print("tmp_atoms_array", tmp_atoms_array)
     lat_lengths = np.array(tmp_atoms_array[1].split(), dtype="float")
     lat_angles = np.array(tmp_atoms_array[2].split(), dtype="float")
 
