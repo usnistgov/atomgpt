@@ -25,5 +25,7 @@ python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/i
 
 (Documentation development is in progress...)
 
+![AtomGPT layer schematic](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/data/schematic.jpeg)
+
 
 
