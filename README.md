@@ -51,12 +51,20 @@ python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/i
 More detailed examples/case-studies would be added here soon.
 
 # Google colab/Jupyter notebook
-Examples for running AtomGPT is given in the [notebook](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
-[![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
+
+
+| Notebooks                                                                                                                                      | Google&nbsp;Colab                                                                                                                                        | Descriptions                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Forward/Inverse Model training](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                 | Example of installing AtomGPT, inverse model training for 5 sample materials, using the trained model for inference, relaxing structures with ALIGNN-FF, generating a database of atomic structures, train a forward prediction model.                                                                                                                                                                                                                                                                       |
+| [HuggingFace model inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                                                  | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                            | AtomGPT Structure Generation/Inference example with a model hosted on Huggingface.                                                                                                                                                                                                                                                                                                                                 |
+
 
 [Open in Google Colab]: https://colab.research.google.com/assets/colab-badge.svg
 
-For other notebook example, see [here](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
+
+
+
+For similar other notebook examples, see [JARVIS-Tools-Notebook Collection](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
 
 
 
@@ -66,7 +74,8 @@ For other notebook example, see [here](https://github.com/JARVIS-Materials-Desig
 1. [AtomGPT: Atomistic Generative Pretrained Transformer for Forward and Inverse Materials Design](https://pubs.acs.org/doi/full/10.1021/acs.jpclett.4c01126)
 2. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
 3. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
-
+4. [NIST-JARVIS Infrastructure](https://jarvis.nist.gov/)
+   
 <a name="contrib"></a>
 How to contribute
 -----------------
