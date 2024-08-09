@@ -66,7 +66,9 @@ More detailed examples/case-studies would be added here soon.
 
 For similar other notebook examples, see [JARVIS-Tools-Notebook Collection](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
 
+# HuggingFace link :hugs:
 
+https://huggingface.co/knc6
 
 
 # Referenes:
