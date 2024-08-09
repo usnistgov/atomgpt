@@ -32,6 +32,12 @@ pip install -q -r dev-requirements.txt
 pip install -q -e .
 ```
 
+As an alternate method, AtomGPT can also be installed using `pip` command as follows:
+```
+pip install atomgpt
+```
+
+
 ## Forward model example (structure to property)
 
 Forwards model are used for developing surrogate models for atomic structure to property predictions. It requires text input which can be either the raw POSCAR type files or a text description of the material. After that, we can use Google-T5/ OpenAI GPT2 etc. models with customizing langauage head for accomplishing such a task. The description of a material is generated with [ChemNLP/describer](https://github.com/usnistgov/jarvis/blob/master/jarvis/core/atoms.py#L1567) function. If you turn [`convert`](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/forward_models/forward_models.py#L277) to `False`, you can also train on bare POSCAR files.
@@ -51,14 +57,24 @@ python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/i
 More detailed examples/case-studies would be added here soon.
 
 # Google colab/Jupyter notebook
-Examples for running AtomGPT is given in the [notebook](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
-[![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
+
+
+| Notebooks                                                                                                                                      | Google&nbsp;Colab                                                                                                                                        | Descriptions                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Forward/Inverse Model training](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                 | Example of installing AtomGPT, inverse model training for 5 sample materials, using the trained model for inference, relaxing structures with ALIGNN-FF, generating a database of atomic structures, train a forward prediction model.                                                                                                                                                                                                                                                                       |
+| [HuggingFace model inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                                                  | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                            | AtomGPT Structure Generation/Inference example with a model hosted on Huggingface.                                                                                                                                                                                                                                                                                                                                 |
+
 
 [Open in Google Colab]: https://colab.research.google.com/assets/colab-badge.svg
 
-For other notebook example, see [here](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
 
 
+
+For similar other notebook examples, see [JARVIS-Tools-Notebook Collection](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
+
+# HuggingFace link :hugs:
+
+https://huggingface.co/knc6
 
 
 # Referenes:
@@ -66,7 +82,8 @@ For other notebook example, see [here](https://github.com/JARVIS-Materials-Desig
 1. [AtomGPT: Atomistic Generative Pretrained Transformer for Forward and Inverse Materials Design](https://pubs.acs.org/doi/full/10.1021/acs.jpclett.4c01126)
 2. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
 3. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
-
+4. [NIST-JARVIS Infrastructure](https://jarvis.nist.gov/)
+   
 <a name="contrib"></a>
 How to contribute
 -----------------
