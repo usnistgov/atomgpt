@@ -46,29 +46,6 @@ class TrainingPropConfig(BaseSettings):
     model_save_path: str = "lora_model_m"
 
 
-# dft_3d = data("dft_3d")
-
-
-# d = loadjson('dft_3d_Tc_supercon.json')
-
-
-# num_train = 2
-# num_val = 2
-# num_test = 2
-# run_path = "atomgpt/examples/inverse_model/"
-# id_prop_path = "id_prop.csv"
-# fourbit_models = [
-#    "unsloth/mistral-7b-bnb-4bit",
-#    "unsloth/mistral-7b-instruct-v0.2-bnb-4bit",
-#    "unsloth/llama-2-7b-bnb-4bit",
-#    "unsloth/llama-2-13b-bnb-4bit",
-#    "unsloth/codellama-34b-bnb-4bit",
-#    "unsloth/tinyllama-bnb-4bit",
-# ]  # More models at https://huggingface.co/unsloth
-
-# nm = "unsloth/mistral-7b-bnb-4bit"
-# nm = fourbit_models[-2]
-# nm = fourbit_models[0]
 
 
 instruction = "Below is a description of a superconductor material."
