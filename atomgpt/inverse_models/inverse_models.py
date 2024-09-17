@@ -46,8 +46,6 @@ class TrainingPropConfig(BaseSettings):
     model_save_path: str = "lora_model_m"
 
 
-
-
 instruction = "Below is a description of a superconductor material."
 # model_save_path = "lora_model_m"
 
@@ -346,8 +344,15 @@ def run_atomgpt_inverse(config_file="config.json"):
         print("target_mat", target_mat)
         print("genmat", gen_mat)
         # print(target_mat.composition.reduced_formula,gen_mat.composition.reduced_formula,target_mat.density,gen_mat.density )
-        # line = i['id']+","+Poscar(target_mat).to_string().replace('\n','\\n')+","+Poscar(gen_mat).to_string().replace('\n','\\n')+"\n"
-        # f.write(line)
+        line = (
+            i["id"]
+            + ","
+            + Poscar(target_mat).to_string().replace("\n", "\\n")
+            + ","
+            + Poscar(gen_mat).to_string().replace("\n", "\\n")
+            + "\n"
+        )
+        f.write(line)
         print()
     f.close()
 
