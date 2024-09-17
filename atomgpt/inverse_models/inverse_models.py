@@ -226,6 +226,7 @@ def run_atomgpt_inverse(config_file="config.json"):
     id_prop_path = config.id_prop_path
     num_train = config.num_train
     num_test = config.num_test
+    num_val = config.num_val
     id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
         reader = csv.reader(f)
@@ -245,13 +246,21 @@ def run_atomgpt_inverse(config_file="config.json"):
         dat.append(info)
 
     train_ids = ids[0:num_train]
-    test_ids = ids[num_train:]
+    val_ids = (
+        ids[-(num_val + num_test) : -num_test]
+        if num_test > 0
+        else ids[-(num_val + num_test) :]
+    )  # noqa:E203
+    test_ids = ids[-num_test:] if num_test > 0 else []
+    # test_ids = ids[num_train:]
 
     m_train = make_alpaca_json(dataset=dat, jids=train_ids, prop="prop")
     dumpjson(data=m_train, filename="alpaca_prop_train.json")
-
-    # m_val = make_alpaca_json(dataset=dft_3d, jids=val_ids, prop="Tc_supercon",include_jid=True)
-    # dumpjson(data=m_val, filename="alpaca_Tc_supercon_val.json")
+    if num_val > 0:
+        m_val = make_alpaca_json(
+            dataset=dat, jids=val_ids, prop="prop", include_jid=True
+        )
+        dumpjson(data=m_val, filename="alpaca_prop_val.json")
 
     m_test = make_alpaca_json(
         dataset=dat, jids=test_ids, prop="prop", include_jid=True
@@ -337,10 +346,10 @@ def run_atomgpt_inverse(config_file="config.json"):
     )
 
     trainer_stats = trainer.train()
-    model.save_pretrained(model_save_path)
+    model.save_pretrained(config.model_save_path)
 
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_save_path,  # YOUR MODEL YOU USED FOR TRAINING
+        model_name=config.model_save_path,  # YOUR MODEL YOU USED FOR TRAINING
         max_seq_length=max_seq_length,
         dtype=dtype,
         load_in_4bit=load_in_4bit,
