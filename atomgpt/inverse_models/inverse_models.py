@@ -19,6 +19,7 @@ import os
 from pydantic_settings import BaseSettings
 import sys
 import argparse
+
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
 )
@@ -27,6 +28,7 @@ parser.add_argument(
     default="alignn/examples/sample_data/config_example.json",
     help="Name of the config file",
 )
+
 
 # Adapted from https://github.com/unslothai/unsloth
 class TrainingPropConfig(BaseSettings):
@@ -50,27 +52,27 @@ class TrainingPropConfig(BaseSettings):
 # d = loadjson('dft_3d_Tc_supercon.json')
 
 
-num_train = 2
-num_val = 2
-num_test = 2
-run_path = "atomgpt/examples/inverse_model/"
-id_prop_path = "id_prop.csv"
-fourbit_models = [
-    "unsloth/mistral-7b-bnb-4bit",
-    "unsloth/mistral-7b-instruct-v0.2-bnb-4bit",
-    "unsloth/llama-2-7b-bnb-4bit",
-    "unsloth/llama-2-13b-bnb-4bit",
-    "unsloth/codellama-34b-bnb-4bit",
-    "unsloth/tinyllama-bnb-4bit",
-]  # More models at https://huggingface.co/unsloth
+# num_train = 2
+# num_val = 2
+# num_test = 2
+# run_path = "atomgpt/examples/inverse_model/"
+# id_prop_path = "id_prop.csv"
+# fourbit_models = [
+#    "unsloth/mistral-7b-bnb-4bit",
+#    "unsloth/mistral-7b-instruct-v0.2-bnb-4bit",
+#    "unsloth/llama-2-7b-bnb-4bit",
+#    "unsloth/llama-2-13b-bnb-4bit",
+#    "unsloth/codellama-34b-bnb-4bit",
+#    "unsloth/tinyllama-bnb-4bit",
+# ]  # More models at https://huggingface.co/unsloth
 
-nm = "unsloth/mistral-7b-bnb-4bit"
-nm = fourbit_models[-2]
-nm = fourbit_models[0]
+# nm = "unsloth/mistral-7b-bnb-4bit"
+# nm = fourbit_models[-2]
+# nm = fourbit_models[0]
 
 
 instruction = "Below is a description of a superconductor material."
-model_save_path = "lora_model_m"
+# model_save_path = "lora_model_m"
 
 alpaca_prompt1 = (
     '"""\n'
@@ -144,7 +146,7 @@ def formatting_prompts_func(examples):
     inputs = examples["input"]
     outputs = examples["output"]
     texts = []
-    EOS_TOKEN = '</s>'
+    EOS_TOKEN = "</s>"
     for instruction, input, output in zip(instructions, inputs, outputs):
         # Must add EOS_TOKEN, otherwise your generation will go on forever!
         text = alpaca_prompt.format(instruction, input, output) + EOS_TOKEN
@@ -187,7 +189,7 @@ def text2atoms(response):
     return atoms
 
 
-def gen_atoms(prompt="", max_new_tokens=512,model='',tokenizer=''):
+def gen_atoms(prompt="", max_new_tokens=512, model="", tokenizer=""):
     inputs = tokenizer(
         [
             alpaca_prompt.format(
@@ -211,6 +213,8 @@ def gen_atoms(prompt="", max_new_tokens=512,model='',tokenizer=''):
         print(exp)
         pass
     return atoms
+
+
 #######################################
 
 
@@ -220,8 +224,8 @@ def run_atomgpt_inverse(config_file="config.json"):
     config = TrainingPropConfig(**config)
     pprint.pprint(config)
     id_prop_path = config.id_prop_path
-    num_train=config.num_train
-    num_test=config.num_test
+    num_train = config.num_train
+    num_test = config.num_test
     id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
         reader = csv.reader(f)
@@ -234,7 +238,8 @@ def run_atomgpt_inverse(config_file="config.json"):
         info["id"] = i[0]
         ids.append(i[0])
         info["prop"] = float(i[1])  # [float(j) for j in i[1:]]  # float(i[1]
-        pth = os.path.join(run_path, info["id"])
+        # pth = os.path.join(run_path, info["id"])
+        pth = os.path.join(id_prop_path.split("id_prop.csv")[0], info["id"])
         atoms = Atoms.from_poscar(pth)
         info["atoms"] = atoms.to_dict()
         dat.append(info)
@@ -255,7 +260,9 @@ def run_atomgpt_inverse(config_file="config.json"):
     # m_test = make_alpaca_json(dataset=dft_3d, jids=test_ids, prop="Tc_supercon",include_jid=True)
     # dumpjson(data=m_val, filename="alpaca_Tc_supercon_test.json")
 
-    max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
+    max_seq_length = (
+        2048  # Choose any! We auto support RoPE Scaling internally!
+    )
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = (
         True  # Use 4bit quantization to reduce memory usage. Can be False.
@@ -263,7 +270,7 @@ def run_atomgpt_inverse(config_file="config.json"):
 
     # 4bit pre quantized models we support for 4x faster downloading + no OOMs.
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=nm,  # Choose ANY! eg teknium/OpenHermes-2.5-Mistral-7B
+        model_name=config.model_name,  # Choose ANY! eg teknium/OpenHermes-2.5-Mistral-7B
         max_seq_length=max_seq_length,
         dtype=dtype,
         load_in_4bit=load_in_4bit,
@@ -324,7 +331,7 @@ def run_atomgpt_inverse(config_file="config.json"):
             lr_scheduler_type="linear",
             seed=3407,
             output_dir="outputs",
-            num_train_epochs=5,
+            num_train_epochs=config.num_epochs,
             report_to="none",
         ),
     )
@@ -346,7 +353,9 @@ def run_atomgpt_inverse(config_file="config.json"):
     for i in tqdm(m_test):
         prompt = i["input"]
         print("prompt", prompt)
-        gen_mat = gen_atoms(prompt=i["input"],tokenizer=tokenizer,model=model)
+        gen_mat = gen_atoms(
+            prompt=i["input"], tokenizer=tokenizer, model=model
+        )
         target_mat = text2atoms("\n" + i["output"])
         print("target_mat", target_mat)
         print("genmat", gen_mat)
@@ -356,10 +365,15 @@ def run_atomgpt_inverse(config_file="config.json"):
         print()
     f.close()
 
-if __name__ == "__main__":
-    #output_dir = make_id_prop()
-    #output_dir="."
+
+def main():
     args = parser.parse_args(sys.argv[1:])
     run_atomgpt_inverse(config_file=args.config_name)
+
+
+if __name__ == "__main__":
+    # output_dir = make_id_prop()
+    # output_dir="."
     #    config_file="config.json"
     # )
+    main()

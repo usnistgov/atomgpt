@@ -30,6 +30,7 @@ import pprint
 import sys
 import argparse
 from alignn.pretrained import get_figshare_model
+
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
 )
@@ -38,6 +39,7 @@ parser.add_argument(
     default="alignn/examples/sample_data/config_example.json",
     help="Name of the config file",
 )
+
 
 class TrainingPropConfig(BaseSettings):
     """Training config defaults and validation."""
@@ -58,6 +60,8 @@ class TrainingPropConfig(BaseSettings):
     n_val: Optional[int] = None
     n_test: Optional[int] = None
     output_dir: str = "out_temp"
+    desc_type: str = "desc_3"
+    convert: bool = False  # raw files for false
     train_ratio: Optional[float] = None
     val_ratio: float = 0.1
     test_ratio: float = 0.1
@@ -274,39 +278,46 @@ class AtomGPTDataset(Dataset):
 # Example usage
 
 
-def run_atomgpt(config_file="config.json",convert=False):
+def run_atomgpt(config_file="config.json"):
     print("Running AtomGPT prop predictor.")
     run_path = os.path.abspath(config_file).split("config.json")[0]
-    print('PATH', run_path)
+    print("PATH", run_path)
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
     pprint.pprint(config)
     id_prop_path = config.id_prop_path
+    convert = config.convert
     if convert:
-                 model = get_figshare_model(model_name="jv_formation_energy_peratom_alignn")
+        model = get_figshare_model(
+            model_name="jv_formation_energy_peratom_alignn"
+        )
     if ".zip" in id_prop_path:
         zp = zipfile.ZipFile(id_prop_path)
         dat = json.loads(zp.read(id_prop_path.split(".zip")[0]))
     elif ".csv" in id_prop_path:
-         with open(id_prop_path, "r") as f:
-              reader = csv.reader(f)
-              dt = [row for row in reader]
-         
-         dat=[]
-         for i in tqdm(dt,total=len(dt)):
-             info={} 
-             info['id']=i[0]
-             info['prop']=[float(j) for j in i[1:]]  # float(i[1])
-             pth=os.path.join(run_path,info['id'])
-             if convert: 
-                 atoms=Atoms.from_poscar(pth) 
-                 lines=atoms.describe(model=model)['desc_3']
-             else:
-               with open(pth,"r") as f:
-                  lines=f.read()
-             info['desc']=lines
-             dat.append(info)
-             
+        with open(id_prop_path, "r") as f:
+            reader = csv.reader(f)
+            dt = [row for row in reader]
+
+        dat = []
+        for i in tqdm(dt, total=len(dt)):
+            info = {}
+            info["id"] = i[0]
+            info["prop"] = [float(j) for j in i[1:]]  # float(i[1])
+            # pth=os.path.join(run_path,info['id'])
+            pth = os.path.join(
+                id_prop_path.split("id_prop.csv")[0], info["id"]
+            )
+            if convert:
+                atoms = Atoms.from_poscar(pth)
+                lines = atoms.describe(model=model)[config.desc_type]
+            else:
+
+                with open(pth, "r") as f:
+                    lines = f.read()
+            info["desc"] = lines
+            dat.append(info)
+
     else:
         dat = loadjson(id_prop_path)
     print("len", len(dat))
@@ -747,10 +758,16 @@ def run_atomgpt(config_file="config.json",convert=False):
     print("tot_time", tot_time)
 
 
-if __name__ == "__main__":
-    #output_dir = make_id_prop()
-    #output_dir="."
+def main():
     args = parser.parse_args(sys.argv[1:])
     run_atomgpt(config_file=args.config_name)
+
+
+if __name__ == "__main__":
+    # output_dir = make_id_prop()
+    # output_dir="."
+    # args = parser.parse_args(sys.argv[1:])
+    # run_atomgpt(config_file=args.config_name)
     #    config_file="config.json"
     # )
+    main()
