@@ -43,7 +43,7 @@ pip install atomgpt
 Forwards model are used for developing surrogate models for atomic structure to property predictions. It requires text input which can be either the raw POSCAR type files or a text description of the material. After that, we can use Google-T5/ OpenAI GPT2 etc. models with customizing langauage head for accomplishing such a task. The description of a material is generated with [ChemNLP/describer](https://github.com/usnistgov/jarvis/blob/master/jarvis/core/atoms.py#L1567) function. If you turn [`convert`](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/forward_models/forward_models.py#L277) to `False`, you can also train on bare POSCAR files.
 
 ```
-python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
+atomgpt_forward --config_name atomgpt/examples/forward_model/config.json
 ```
 
 ## Inverse model example (property to structure)
@@ -51,7 +51,7 @@ python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/f
 Inverse models are used for generating materials given property and description such as chemical formula. Currently, we use Mistral model, but other models such as Gemma, Lllama etc. can also be easily used. After the structure generation, we can optimize the structure with ALIGNN-FF model (example [here](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/ALIGNN_Structure_Relaxation_Phonons_Interface.ipynb) and then subject to density functional theory calculations for a few selected candidates using JARVIS-DFT or similar workflow (tutorial for example [here](https://pages.nist.gov/jarvis/tutorials/). Note that currently, the inversely model training as well as conference requires GPUs.
 
 ```
-python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model/config.json
+atomgpt_inverse --config_name atomgpt/examples/inverse_model/config.json
 ```
 
 More detailed examples/case-studies would be added here soon.
