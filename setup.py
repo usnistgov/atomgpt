@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="atomgpt",
-    version="2024.9.8",
+    version="2024.9.18",
     author="Kamal Choudhary",
     author_email="kamal.choudhary@nist.gov",
     description="atomgpt",

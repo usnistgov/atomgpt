@@ -38,7 +38,7 @@ class TrainingPropConfig(BaseSettings):
     prefix: str = "atomgpt_run"
     model_name: str = "unsloth/mistral-7b-bnb-4bit"
     batch_size: int = 2
-    num_epochs: int = 2
+    num_epochs: int = 5
     seed_val: int = 42
     num_train: Optional[int] = 2
     num_val: Optional[int] = 2
@@ -179,7 +179,9 @@ def gen_atoms(prompt="", max_new_tokens=512, model="", tokenizer=""):
     outputs = model.generate(
         **inputs, max_new_tokens=max_new_tokens, use_cache=True
     )
-    response = tokenizer.batch_decode(outputs)[0].split("# Output:")[1]
+    response = tokenizer.batch_decode(outputs)
+    print("response", response)
+    response = response[0].split("# Output:")[1]
     atoms = None
     try:
         atoms = text2atoms(response)
