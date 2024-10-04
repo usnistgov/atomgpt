@@ -204,7 +204,7 @@ def run_atomgpt_inverse(config_file="config.json"):
     num_train = config.num_train
     num_test = config.num_test
     num_val = config.num_val
-    id_prop_path = os.path.join(run_path, id_prop_path)
+    # id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
         reader = csv.reader(f)
         dt = [row for row in reader]
