@@ -29,7 +29,6 @@ import csv
 import pprint
 import sys
 import argparse
-from alignn.pretrained import get_figshare_model
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -287,10 +286,10 @@ def run_atomgpt(config_file="config.json"):
     pprint.pprint(config)
     id_prop_path = config.id_prop_path
     convert = config.convert
-    if convert:
-        model = get_figshare_model(
-            model_name="jv_formation_energy_peratom_alignn"
-        )
+    # if convert:
+    #    model = get_figshare_model(
+    #        model_name="jv_formation_energy_peratom_alignn"
+    #    )
     if ".zip" in id_prop_path:
         zp = zipfile.ZipFile(id_prop_path)
         dat = json.loads(zp.read(id_prop_path.split(".zip")[0]))
@@ -310,7 +309,8 @@ def run_atomgpt(config_file="config.json"):
             )
             if convert:
                 atoms = Atoms.from_poscar(pth)
-                lines = atoms.describe(model=model)[config.desc_type]
+                lines = atoms.describe()[config.desc_type]
+                # lines = atoms.describe(model=model)[config.desc_type]
             else:
 
                 with open(pth, "r") as f:
@@ -529,7 +529,9 @@ def run_atomgpt(config_file="config.json"):
             train_loss = 0
             # train_result = []
             input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
+            # print('input_ids',input_ids.shape)
             if "t5" in model_name:
+                input_ids = batch[0]["input_ids"].squeeze(1)  # .squeeze(0)
                 predictions = (
                     model(
                         input_ids.to(device),
@@ -571,7 +573,8 @@ def run_atomgpt(config_file="config.json"):
         f.write("id,target,predictions\n")
         with torch.no_grad():
             for batch in val_dataloader:
-                input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
+                # input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
+                input_ids = batch[0]["input_ids"].squeeze(1)  # .squeeze(0)
                 ids = batch[1]
                 if "t5" in model_name:
                     predictions = (
@@ -645,6 +648,9 @@ def run_atomgpt(config_file="config.json"):
                 for batch in test_dataloader:
                     input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
                     if "t5" in model_name:
+                        input_ids = batch[0]["input_ids"].squeeze(
+                            1
+                        )  # .squeeze(0)
                         predictions = (
                             model(
                                 input_ids.to(device),
@@ -721,6 +727,7 @@ def run_atomgpt(config_file="config.json"):
         optimizer.zero_grad()
         input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
         if "t5" in model_name:
+            input_ids = batch[0]["input_ids"].squeeze(1)  # .squeeze(0)
             predictions = (
                 model(
                     input_ids.to(device),
