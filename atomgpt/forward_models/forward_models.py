@@ -727,6 +727,7 @@ def run_atomgpt(config_file="config.json"):
         optimizer.zero_grad()
         input_ids = batch[0]["input_ids"].squeeze()  # .squeeze(0)
         if "t5" in model_name:
+            input_ids = batch[0]["input_ids"].squeeze(1)  # .squeeze(0)
             predictions = (
                 model(
                     input_ids.to(device),
