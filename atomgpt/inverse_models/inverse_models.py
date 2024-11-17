@@ -2,6 +2,11 @@ from jarvis.db.jsonutils import loadjson
 from typing import Optional
 from atomgpt.inverse_models.loader import FastLanguageModel
 from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
+from atomgpt.inverse_models.utils import (
+    gen_atoms,
+    text2atoms,
+    get_crystal_string_t,
+)
 import torch
 from peft import PeftModel
 from datasets import load_dataset
@@ -38,7 +43,7 @@ parser.add_argument(
 class TrainingPropConfig(BaseSettings):
     """Training config defaults and validation."""
 
-    id_prop_path: Optional[str] = "id_prop.csv"
+    id_prop_path: Optional[str] = "atomgpt/examples/inverse_model/id_prop.csv"
     prefix: str = "atomgpt_run"
     model_name: str = "knc6/atomgpt_mistral_tc_supercon"
     batch_size: int = 2
@@ -84,29 +89,6 @@ alpaca_prompt = """Below is a description of a superconductor material..
 {}"""
 
 
-def get_crystal_string_t(atoms):
-    lengths = atoms.lattice.abc  # structure.lattice.parameters[:3]
-    angles = atoms.lattice.angles
-    atom_ids = atoms.elements
-    frac_coords = atoms.frac_coords
-
-    crystal_str = (
-        " ".join(["{0:.2f}".format(x) for x in lengths])
-        + "\n"
-        + " ".join([str(int(x)) for x in angles])
-        + "\n"
-        + "\n".join(
-            [
-                str(t) + " " + " ".join(["{0:.3f}".format(x) for x in c])
-                for t, c in zip(atom_ids, frac_coords)
-            ]
-        )
-    )
-
-    # crystal_str = atoms_describer(atoms) + "\n*\n" + crystal_str
-    return crystal_str
-
-
 def make_alpaca_json(
     dataset=[], jids=[], prop="Tc_supercon", include_jid=False
 ):
@@ -149,65 +131,6 @@ def formatting_prompts_func(examples):
     }
 
 
-def text2atoms(response):
-    tmp_atoms_array = response.strip("</s>").split("\n")
-    # tmp_atoms_array= [element for element in tmp_atoms_array  if element != '']
-    # print("tmp_atoms_array", tmp_atoms_array)
-    lat_lengths = np.array(tmp_atoms_array[1].split(), dtype="float")
-    lat_angles = np.array(tmp_atoms_array[2].split(), dtype="float")
-
-    lat = Lattice.from_parameters(
-        lat_lengths[0],
-        lat_lengths[1],
-        lat_lengths[2],
-        lat_angles[0],
-        lat_angles[1],
-        lat_angles[2],
-    )
-    elements = []
-    coords = []
-    for ii, i in enumerate(tmp_atoms_array):
-        if ii > 2 and ii < len(tmp_atoms_array):
-            # if ii>2 and ii<len(tmp_atoms_array)-1:
-            tmp = i.split()
-            elements.append(tmp[0])
-            coords.append([float(tmp[1]), float(tmp[2]), float(tmp[3])])
-
-    atoms = Atoms(
-        coords=coords,
-        elements=elements,
-        lattice_mat=lat.lattice(),
-        cartesian=False,
-    )
-    return atoms
-
-
-def gen_atoms(prompt="", max_new_tokens=512, model="", tokenizer=""):
-    inputs = tokenizer(
-        [
-            alpaca_prompt.format(
-                instruction,
-                prompt,  # input
-                "",  # output - leave this blank for generation!
-            )
-        ],
-        return_tensors="pt",
-    ).to("cuda")
-
-    outputs = model.generate(
-        **inputs, max_new_tokens=max_new_tokens, use_cache=True
-    )
-    response = tokenizer.batch_decode(outputs)[0].split("# Output:")[1]
-    atoms = None
-    try:
-        atoms = text2atoms(response)
-    except Exception as exp:
-
-        print(exp)
-        pass
-    return atoms
-
-
 #######################################
 
 
@@ -222,7 +145,7 @@ def run_atomgpt_inverse(config_file="config.json"):
     num_test = config.num_test
     model_name = config.model_name
     # loss_function = config.loss_function
-    id_prop_path = os.path.join(run_path, id_prop_path)
+    # id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
         reader = csv.reader(f)
         dt = [row for row in reader]
