@@ -63,8 +63,8 @@ def parse_structure(structure_str, num_bins=100, max_distance=10.0):
     angles = torch.tensor(
         [float(x) for x in lines[1].split()], requires_grad=True, device=device
     )
-    print("lattice_params", lattice_params)
-    print("angles", angles)
+    # print("lattice_params", lattice_params)
+    # print("angles", angles)
     # Parse atomic positions and chemical elements
     atomic_positions = []
     chemical_elements = []

@@ -10,6 +10,7 @@ from atomgpt.inverse_models.utils import (
 import torch
 from peft import PeftModel
 from datasets import load_dataset
+from functools import partial
 
 # from trl import SFTTrainer
 from transformers import TrainingArguments
@@ -26,8 +27,10 @@ import csv
 import os
 from pydantic_settings import BaseSettings
 import sys
+import json
 import argparse
 import torch.nn as nn
+from typing import Literal
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -64,6 +67,7 @@ class TrainingPropConfig(BaseSettings):
     output_dir: str = "outputs"
     model_save_path: str = "lora_model_m"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
+    chem_info: Literal["none", "formula", "element_list"] = "formula"
     max_seq_length: int = (
         2048  # Choose any! We auto support RoPE Scaling internally!
     )
@@ -73,24 +77,23 @@ class TrainingPropConfig(BaseSettings):
     load_in_4bit: bool = (
         True  # True  # Use 4bit quantization to reduce memory usage. Can be False.
     )
-
-
-instruction = "Below is a description of a superconductor material."
-
-alpaca_prompt = """Below is a description of a superconductor material..
-
-### Instruction:
-{}
-
-### Input:
-{}
-
-### Output:
-{}"""
+    instruction: str = "Below is a description of a superconductor material."
+    alpaca_prompt: str = (
+        "### Instruction:\n{}\n### Input:\n{}\n### Output:\n{}"
+    )
+    output_prompt: str = (
+        " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
+    )
 
 
 def make_alpaca_json(
-    dataset=[], jids=[], prop="Tc_supercon", include_jid=False
+    dataset=[],
+    jids=[],
+    prop="Tc_supercon",
+    instruction="",
+    include_jid=False,
+    chem_info="",
+    output_prompt="",
 ):
     mem = []
     for i in dataset:
@@ -100,23 +103,36 @@ def make_alpaca_json(
             if include_jid:
                 info["id"] = i["id"]
             info["instruction"] = instruction
+            if chem_info == "none":
+                prefix = ""
+            elif chem_info == "element_list":
+                prefix = (
+                    "The chemical elements are "
+                    + atoms.composition.search_string
+                    + " . "
+                )
+            elif chem_info == "formula":
+                prefix = (
+                    "The chemical formula is "
+                    + atoms.composition.reduced_formula
+                    + " . "
+                )
 
             info["input"] = (
-                "The chemical formula is "
-                + atoms.composition.reduced_formula
-                + ". The  "
+                prefix
+                + "The  "
                 + prop
                 + " is "
-                + str(round(i[prop], 3))
+                + i[prop]
                 + "."
-                + " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
+                + output_prompt
             )
             info["output"] = get_crystal_string_t(atoms)
             mem.append(info)
     return mem
 
 
-def formatting_prompts_func(examples):
+def formatting_prompts_func(examples, alpaca_prompt):
     instructions = examples["instruction"]
     inputs = examples["input"]
     outputs = examples["output"]
@@ -135,12 +151,18 @@ def formatting_prompts_func(examples):
 
 
 def run_atomgpt_inverse(config_file="config.json"):
-    run_path = os.path.abspath(config_file).split("config.json")[0]
+    # run_path = os.path.abspath(config_file).split(config_file)[0]
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
     pprint.pprint(config.dict())
-
+    if not os.path.exists(config.output_dir):
+        os.makedirs(config.output_dir)
+    tmp = config.dict()
+    f = open(os.path.join(config.output_dir, "config.json"), "w")
+    f.write(json.dumps(tmp, indent=4))
+    f.close()
     id_prop_path = config.id_prop_path
+    run_path = os.path.dirname(id_prop_path)
     num_train = config.num_train
     num_test = config.num_test
     model_name = config.model_name
@@ -156,7 +178,13 @@ def run_atomgpt_inverse(config_file="config.json"):
         info = {}
         info["id"] = i[0]
         ids.append(i[0])
-        info["prop"] = float(i[1])  # [float(j) for j in i[1:]]  # float(i[1]
+        if ";" in i[1]:
+            tmp = "\n".join([str(round(float(j), 2)) for j in i[1].split(";")])
+        else:
+            tmp = str(round(float(i[1]), 3))
+        info["prop"] = (
+            tmp  # float(i[1])  # [float(j) for j in i[1:]]  # float(i[1]
+        )
         pth = os.path.join(run_path, info["id"])
         atoms = Atoms.from_poscar(pth)
         info["atoms"] = atoms.to_dict()
@@ -165,14 +193,27 @@ def run_atomgpt_inverse(config_file="config.json"):
     train_ids = ids[0:num_train]
     test_ids = ids[num_train:]
 
-    m_train = make_alpaca_json(dataset=dat, jids=train_ids, prop="prop")
+    m_train = make_alpaca_json(
+        dataset=dat,
+        jids=train_ids,
+        prop="prop",
+        instruction=config.instruction,
+        chem_info=config.chem_info,
+        output_prompt=config.output_prompt,
+    )
     dumpjson(data=m_train, filename="alpaca_prop_train.json")
-
+    print("Sample:\n", m_train[0])
     # m_val = make_alpaca_json(dataset=dft_3d, jids=val_ids, prop="Tc_supercon",include_jid=True)
     # dumpjson(data=m_val, filename="alpaca_Tc_supercon_val.json")
 
     m_test = make_alpaca_json(
-        dataset=dat, jids=test_ids, prop="prop", include_jid=True
+        dataset=dat,
+        jids=test_ids,
+        prop="prop",
+        include_jid=True,
+        instruction=config.instruction,
+        chem_info=config.chem_info,
+        output_prompt=config.output_prompt,
     )
     dumpjson(data=m_test, filename="alpaca_prop_test.json")
     # m_test = make_alpaca_json(dataset=dft_3d, jids=test_ids, prop="Tc_supercon",include_jid=True)
@@ -213,8 +254,12 @@ def run_atomgpt_inverse(config_file="config.json"):
     dataset = load_dataset(
         "json", data_files="alpaca_prop_train.json", split="train"
     )
+    formatting_prompts_func_with_prompt = partial(
+        formatting_prompts_func, alpaca_prompt=config.alpaca_prompt
+    )
+
     dataset = dataset.map(
-        formatting_prompts_func,
+        formatting_prompts_func_with_prompt,
         batched=True,
     )
 
@@ -266,7 +311,11 @@ def run_atomgpt_inverse(config_file="config.json"):
             prompt = i["input"]
             print("prompt", prompt)
             gen_mat = gen_atoms(
-                prompt=i["input"], tokenizer=tokenizer, model=model
+                prompt=i["input"],
+                tokenizer=tokenizer,
+                model=model,
+                alpaca_prompt=config.alpaca_prompt,
+                instruction=config.instruction,
             )
             target_mat = text2atoms("\n" + i["output"])
             print("target_mat", target_mat)

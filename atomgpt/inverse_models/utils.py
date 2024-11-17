@@ -2,19 +2,6 @@ from jarvis.core.atoms import Atoms
 from jarvis.core.lattice import Lattice
 import numpy as np
 
-instruction = "Below is a description of a superconductor material."
-
-alpaca_prompt = """Below is a description of a superconductor material..
-
-### Instruction:
-{}
-
-### Input:
-{}
-
-### Output:
-{}"""
-
 
 def text2atoms(response):
     tmp_atoms_array = response.strip("</s>").split("\n")
@@ -49,7 +36,14 @@ def text2atoms(response):
     return atoms
 
 
-def gen_atoms(prompt="", model=None, tokenizer="", max_new_tokens=1024):
+def gen_atoms(
+    prompt="",
+    model=None,
+    tokenizer="",
+    max_new_tokens=1024,
+    alpaca_prompt="",
+    instruction="",
+):
     inputs = tokenizer(
         [
             alpaca_prompt.format(
