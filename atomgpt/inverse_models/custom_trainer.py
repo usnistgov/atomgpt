@@ -4,27 +4,196 @@ import torch.nn as nn
 from trl import SFTTrainer
 from atomgpt.inverse_models.utils import text2atoms
 
+from jarvis.core.specie import Specie
 
-def extract_atomic_structure(target_texts):
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def compute_rdf(
+    atomic_positions, lattice_params, num_bins=100, max_distance=10.0
+):
     """
-    Extracts the atomic structure description from a list of target texts.
-
-    :param target_texts: List of strings containing target texts with atomic structure details.
-    :return: List of strings with only the atomic structure descriptions.
+    Compute the Radial Distribution Function (RDF) for a given set of atomic positions.
     """
-    atomic_structures = []
+    num_atoms = atomic_positions.shape[0]
+    distances = []
 
-    for text in target_texts:
-        # Split the text at "### Output:"
-        if "### Output:" in text:
-            structure_part = text2atoms(
-                text.split("### Output:")[1]
-            )  # .strip()
-            atomic_structures.append(structure_part)
-        else:
-            print("No '### Output:' found in the text.")
+    # Compute pairwise distances considering periodic boundary conditions (PBC)
+    for i in range(num_atoms):
+        for j in range(i + 1, num_atoms):
+            delta = atomic_positions[i] - atomic_positions[j]
+            delta -= (
+                torch.round(delta / lattice_params) * lattice_params
+            )  # Apply PBC
+            distance = torch.norm(delta)
+            if distance < max_distance:
+                distances.append(distance.item())
 
-    return atomic_structures
+    # Histogram the distances
+    distances = torch.tensor(distances, device=atomic_positions.device)
+    hist = torch.histc(distances, bins=num_bins, min=0.0, max=max_distance)
+
+    # Normalize RDF
+    bin_edges = torch.linspace(
+        0, max_distance, steps=num_bins + 1, device=atomic_positions.device
+    )
+    bin_width = bin_edges[1] - bin_edges[0]
+    normalization = (
+        (4 / 3)
+        * torch.pi
+        * (torch.pow(bin_edges[1:], 3) - torch.pow(bin_edges[:-1], 3))
+    )
+    normalization *= num_atoms / (
+        torch.prod(lattice_params) * num_atoms * (num_atoms - 1) / 2
+    )
+
+    rdf = hist / normalization
+    return rdf, bin_edges[:-1]
+
+
+def parse_structure(structure_str, num_bins=100, max_distance=10.0):
+    """
+    Parse a structure string and compute relevant quantities, including RDF and atomic number differences.
+    """
+    lines = structure_str.split("\n")
+    lattice_params = torch.tensor(
+        [float(x) for x in lines[0].split()], requires_grad=True, device=device
+    )
+    angles = torch.tensor(
+        [float(x) for x in lines[1].split()], requires_grad=True, device=device
+    )
+    print("lattice_params", lattice_params)
+    print("angles", angles)
+    # Parse atomic positions and chemical elements
+    atomic_positions = []
+    chemical_elements = []
+    for line in lines[2:]:
+        if line.strip():  # Ignore empty lines
+            tokens = line.split()
+            chemical_elements.append(tokens[0])
+            atomic_positions.append([float(x) for x in tokens[1:]])
+    atomic_positions = torch.tensor(
+        atomic_positions, requires_grad=True, device=device
+    )
+
+    # Map chemical elements to atomic numbers
+    atomic_numbers = torch.tensor(
+        [Specie(el).Z for el in chemical_elements],
+        dtype=torch.float32,
+        device=device,
+    )
+
+    # Compute RDF
+    rdf, bin_edges = compute_rdf(
+        atomic_positions, lattice_params, num_bins, max_distance
+    )
+
+    return (
+        lattice_params,
+        angles,
+        atomic_positions,
+        chemical_elements,
+        atomic_numbers,
+        rdf,
+        bin_edges,
+    )
+
+
+def compute_losses(
+    target_data,
+    pred_data,
+    weights={
+        "atomic_numbers": 1.0,
+        "lattice_params": 1.0,
+        "angles": 0.001,
+        "coordinates": 1.0,
+        "rdf": 1.0,
+    },
+):
+    """
+    Compute weighted losses for atomic numbers, lattice parameters, angles, coordinates, and RDF.
+    """
+    # Unpack data
+    (
+        target_lattice_params,
+        target_angles,
+        target_coords,
+        _,
+        target_atomic_numbers,
+        target_rdf,
+        _,
+    ) = target_data
+    (
+        pred_lattice_params,
+        pred_angles,
+        pred_coords,
+        _,
+        pred_atomic_numbers,
+        pred_rdf,
+        _,
+    ) = pred_data
+
+    # Atomic number difference loss
+    atomic_number_loss = torch.mean(
+        (pred_atomic_numbers - target_atomic_numbers) ** 2
+    )
+
+    # Lattice parameters loss
+    lattice_params_loss = torch.mean(
+        (pred_lattice_params - target_lattice_params) ** 2
+    )
+
+    # Angles loss
+    angles_loss = torch.mean((pred_angles - target_angles) ** 2)
+
+    # Atomic coordinates loss
+    coordinates_loss = torch.mean((pred_coords - target_coords) ** 2)
+
+    # RDF loss
+    rdf_loss = torch.mean((pred_rdf - target_rdf) ** 2)
+
+    # Combine losses with weights
+    total_loss = (
+        weights["atomic_numbers"] * atomic_number_loss
+        + weights["lattice_params"] * lattice_params_loss
+        + weights["angles"] * angles_loss
+        + weights["coordinates"] * coordinates_loss
+        + weights["rdf"] * rdf_loss
+    )
+    # Return individual losses and total loss
+    p = {
+        "atomic_number_loss": atomic_number_loss.item(),
+        "lattice_params_loss": lattice_params_loss.item(),
+        "angles_loss": angles_loss.item(),
+        "coordinates_loss": coordinates_loss.item(),
+        "rdf_loss": rdf_loss.item(),
+        "total_loss": total_loss.item(),
+    }
+    # print('p',p)
+    return total_loss
+
+
+def a_compute_loss(target_structure, pred_structure):
+    target_lattice, target_angles, target_positions = parse_structure(
+        target_structure
+    )
+    pred_lattice, pred_angles, pred_positions = parse_structure(pred_structure)
+
+    # Loss for lattice parameters
+    lattice_loss = torch.nn.functional.mse_loss(pred_lattice, target_lattice)
+
+    # Loss for angles
+    angle_loss = torch.nn.functional.mse_loss(pred_angles, target_angles)
+
+    # Loss for atomic positions
+    position_loss = torch.nn.functional.mse_loss(
+        pred_positions, target_positions
+    )
+
+    # Combine losses (weighted sum)
+    total_loss = lattice_loss + angle_loss + position_loss
+    return total_loss
 
 
 class CustomSFTTrainer(SFTTrainer):
@@ -111,7 +280,7 @@ class CustomSFTTrainer(SFTTrainer):
             loss_fn = nn.L1Loss()
             target = labels.float()
             loss = loss_fn(logits.view(-1), target.view(-1))
-        elif self.loss_type == "density":
+        elif self.loss_type == "atomgpt_structure":
 
             if labels is not None:
                 # labels = labels.cpu().numpy()
@@ -130,7 +299,8 @@ class CustomSFTTrainer(SFTTrainer):
                 pred_texts = self.tokenizer.batch_decode(
                     logits.argmax(-1), skip_special_tokens=True
                 )
-
+                # print('target_texts',target_texts)
+                # print('pred_texts',pred_texts)
                 # Extract atomic structures (or manipulate the texts)
                 target_atomic_structures = self.extract_atomic_structure(
                     target_texts
@@ -138,84 +308,17 @@ class CustomSFTTrainer(SFTTrainer):
                 pred_atomic_structures = self.extract_atomic_structure(
                     pred_texts
                 )
-
-                # For demonstration, let's calculate the L1 loss between target and predicted atomic structures
-                # Assuming that the atomic structures are numerical or encoded in a way that we can directly compare
-                # For the sake of this example, let's assume you have a function to calculate density or other features
-                # Example: comparing the density (or other features) of the predicted and target atomic structures
-                target_densities = torch.tensor(
-                    [
-                        self.calculate_density(struct)
-                        for struct in target_atomic_structures
-                    ]
-                )
-                pred_densities = torch.tensor(
-                    [
-                        self.calculate_density(struct)
-                        for struct in pred_atomic_structures
-                    ]
-                )
-
-                # Ensure the tensors are on the correct device
-                target_densities = target_densities.to(logits.device)
-                pred_densities = pred_densities.to(logits.device)
-
-                # Custom loss: L1 loss between target and predicted densities
-                loss_fn = nn.L1Loss()
-                loss = loss_fn(pred_densities, target_densities)
-                print(loss)
-                return loss
-                import sys
-
-                sys.exit()
-                target_out = self.model.generate(
-                    input_ids=inputs["input_ids"],
-                    max_new_tokens=2024,
-                    use_cache=True,
-                )
-                # print("target_out", target_out)
-
-                # Decode the generated outputs for analysis or debugging
-                target_texts = self.tokenizer.batch_decode(
-                    target_out, skip_special_tokens=True
-                )
-                target_atom_texts = extract_atomic_structure(target_texts)
-                # print("Target Texts:", target_texts,target_atom_texts)
-
-                gen_out = self.model.generate(
-                    input_ids=labels,
-                    max_new_tokens=2024,
-                    use_cache=True,
-                )
-                # print("gen_out", gen_out)
-
-                # Decode the generated outputs for analysis or debugging
-                gen_texts = self.tokenizer.batch_decode(
-                    gen_out, skip_special_tokens=True
-                )
-                gen_atom_texts = extract_atomic_structure(gen_texts)
-                # print("Generated Texts:", gen_texts,gen_atom_texts)
-                loss_fn = nn.L1Loss()
-                target = torch.tensor(
-                    [i.density for i in target_atom_texts],
-                    device=labels.device,
-                    dtype=torch.float,
-                    requires_grad=False,
-                )
-                pred = torch.tensor(
-                    [i.density for i in gen_atom_texts],
-                    device=labels.device,
-                    dtype=torch.float,
-                    requires_grad=True,
-                )
-
-                # target = torch.tensor([i.density for i in target_atom_texts]).to(labels.device)
-                # pred = torch.tensor([i.density for i in gen_atom_texts]).to(labels.device)
-                loss = loss_fn(target, pred)
-                print("target", target)
-                print("pred", pred)
-                print("loss", loss)
-                return loss
+                # print('target_atomic_structures',target_atomic_structures)
+                # print('pred_atomic_structures',pred_atomic_structures)
+                total_loss = 0
+                for target, pred in zip(
+                    target_atomic_structures, pred_atomic_structures
+                ):
+                    total_loss += compute_losses(
+                        parse_structure(target), parse_structure(pred)
+                    )
+                # print('loss',total_loss)
+                return total_loss
 
         elif self.loss_type == "cross_entropy":
             loss_fn = nn.CrossEntropyLoss()
