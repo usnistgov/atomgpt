@@ -191,7 +191,8 @@ def run_atomgpt_inverse(config_file="config.json"):
         dat.append(info)
 
     train_ids = ids[0:num_train]
-    test_ids = ids[num_train:]
+    test_ids = ids[num_train : num_train + num_test]
+    # test_ids = ids[num_train:]
 
     m_train = make_alpaca_json(
         dataset=dat,
@@ -302,7 +303,7 @@ def run_atomgpt_inverse(config_file="config.json"):
         load_in_4bit=config.load_in_4bit,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-
+    print("Testing\n\n\n\n", len(m_test))
     f = open(config.csv_out, "w")
     f.write("id,target,prediction\n")
 
