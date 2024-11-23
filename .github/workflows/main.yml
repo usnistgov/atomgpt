@@ -61,7 +61,7 @@ jobs:
             #python atomgpt/examples/inverse_model/run.py            
             coverage run -m pytest
             coverage report -m -i
-            codecov
+            codecov --token="b493c988-5235-4f38-b60a-a2b670435968"
             #codecov --token="85bd9c5d-9e55-4f6d-bd69-350ee5e3bb41"
             
             find . -type f > after_test_files.txt
