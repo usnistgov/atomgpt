@@ -259,6 +259,7 @@ def batch_evaluate(
 def run_atomgpt_inverse(config_file="config.json"):
     figlet = get_figlet()
     print(figlet)
+    t1 = time.time()
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
     pprint.pprint(config.dict())
@@ -418,23 +419,23 @@ def run_atomgpt_inverse(config_file="config.json"):
         load_in_4bit=config.load_in_4bit,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-    batch_evaluate(
-        prompts=[i["input"] for i in m_test],
-        model=model,
-        tokenizer=tokenizer,
-        csv_out=config.csv_out,
-        config=config,
-    )
-    t1 = time.time()
-    batch_evaluate(
-        test_set=m_test,
-        model=model,
-        tokenizer=tokenizer,
-        csv_out=config.csv_out,
-        config=config,
-    )
-    t2 = time.time()
-    t1a = time.time()
+    # batch_evaluate(
+    #    prompts=[i["input"] for i in m_test],
+    #    model=model,
+    #    tokenizer=tokenizer,
+    #    csv_out=config.csv_out,
+    #    config=config,
+    # )
+    # t1 = time.time()
+    # batch_evaluate(
+    #    test_set=m_test,
+    #    model=model,
+    #    tokenizer=tokenizer,
+    #    csv_out=config.csv_out,
+    #    config=config,
+    # )
+    # t2 = time.time()
+    # t1a = time.time()
     evaluate(
         test_set=m_test,
         model=model,
@@ -442,8 +443,8 @@ def run_atomgpt_inverse(config_file="config.json"):
         csv_out=config.csv_out,
         config=config,
     )
-    t2a = time.time()
-    print(t2 - t1, t2a - t1a)
+    t2 = time.time()
+    print("Time taken:", t2 - t1)
 
 
 if __name__ == "__main__":
