@@ -6,13 +6,12 @@ from atomgpt.inverse_models.utils import (
     gen_atoms,
     text2atoms,
     get_crystal_string_t,
+    get_figlet,
 )
 import torch
 from peft import PeftModel
 from datasets import load_dataset
 from functools import partial
-
-# from trl import SFTTrainer
 from transformers import TrainingArguments
 from jarvis.core.atoms import Atoms
 from jarvis.db.figshare import data
@@ -31,6 +30,7 @@ import json
 import argparse
 import torch.nn as nn
 from typing import Literal
+import time
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -68,6 +68,7 @@ class TrainingPropConfig(BaseSettings):
     model_save_path: str = "lora_model_m"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
     chem_info: Literal["none", "formula", "element_list"] = "formula"
+    file_format: Literal["poscar", "xyz", "pdb"] = "poscar"
     max_seq_length: int = (
         2048  # Choose any! We auto support RoPE Scaling internally!
     )
@@ -147,11 +148,117 @@ def formatting_prompts_func(examples, alpaca_prompt):
     }
 
 
-#######################################
+def evaluate(
+    test_set=[], model="", tokenizer="", csv_out="out.csv", config=""
+):
+    print("Testing\n", len(test_set))
+    f = open(csv_out, "w")
+    f.write("id,target,prediction\n")
+
+    for i in tqdm(test_set, total=len(test_set)):
+        # try:
+        prompt = i["input"]
+        print("prompt", prompt)
+        gen_mat = gen_atoms(
+            prompt=i["input"],
+            tokenizer=tokenizer,
+            model=model,
+            alpaca_prompt=config.alpaca_prompt,
+            instruction=config.instruction,
+        )
+        target_mat = text2atoms("\n" + i["output"])
+        print("target_mat", target_mat)
+        print("genmat", gen_mat)
+        line = (
+            i["id"]
+            + ","
+            + Poscar(target_mat).to_string().replace("\n", "\\n")
+            + ","
+            + Poscar(gen_mat).to_string().replace("\n", "\\n")
+            + "\n"
+        )
+        f.write(line)
+        print()
+    # except Exception as exp:
+    #    print("Error", exp)
+    #    pass
+    f.close()
+
+
+def batch_evaluate(
+    test_set=[],
+    prompts=[],
+    model="",
+    tokenizer="",
+    csv_out="out.csv",
+    config="",
+):
+    print("Testing\n", len(test_set))
+    f = open(csv_out, "w")
+    if not prompts:
+        target_exists = True
+        prompts = [i["input"] for i in test_set]
+        ids = [i["id"] for i in test_set]
+    else:
+        target_exists = False
+        ids = ["id-" + str(i) for i in range(len(prompts))]
+    inputs = tokenizer(
+        [
+            config.alpaca_prompt.format(config.instruction, msg, "")
+            for msg in prompts
+        ],
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+    ).to("cuda")
+
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=config.max_seq_length,
+        use_cache=True,
+        # top_k=50,
+        # top_p=0.9,
+        # temperature=0.7,
+        # num_beams=5
+    )
+    outputs_decoded = tokenizer.batch_decode(outputs)
+    outputs_decoded = [
+        output.replace("<unk>", "").split("### Output:")[1]
+        for output in outputs_decoded
+    ]
+    print("outputs_decoded", outputs_decoded)
+    f.write("id,target,prediction\n")
+
+    for ii, i in tqdm(enumerate(test_set), total=len(test_set)):
+        # try:
+
+        gen_mat = (
+            Poscar(text2atoms(outputs_decoded[ii]))
+            .to_string()
+            .replace("\n", "\\n")
+        )
+        if target_exists:
+            target_mat = (
+                Poscar(text2atoms("\n" + i["output"]))
+                .to_string()
+                .replace("\n", "\\n")
+            )
+        else:
+            target_mat = ""
+        print("target_mat", target_mat)
+        print("genmat", gen_mat)
+        line = ids[ii] + "," + target_mat + "," + gen_mat + "\n"
+        f.write(line)
+        print()
+    # except Exception as exp:
+    #    print("Error", exp)
+    #    pass
+    f.close()
 
 
 def run_atomgpt_inverse(config_file="config.json"):
-    # run_path = os.path.abspath(config_file).split(config_file)[0]
+    figlet = get_figlet()
+    print(figlet)
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
     pprint.pprint(config.dict())
@@ -186,7 +293,15 @@ def run_atomgpt_inverse(config_file="config.json"):
             tmp  # float(i[1])  # [float(j) for j in i[1:]]  # float(i[1]
         )
         pth = os.path.join(run_path, info["id"])
-        atoms = Atoms.from_poscar(pth)
+        if config.file_format == "poscar":
+            atoms = Atoms.from_poscar(pth)
+        elif config.file_format == "xyz":
+            atoms = Atoms.from_xyz(pth)
+        elif config.file_format == "cif":
+            atoms = Atoms.from_cif(pth)
+        elif config.file_format == "pdb":
+            # not tested well
+            atoms = Atoms.from_pdb(pth)
         info["atoms"] = atoms.to_dict()
         dat.append(info)
 
@@ -204,8 +319,6 @@ def run_atomgpt_inverse(config_file="config.json"):
     )
     dumpjson(data=m_train, filename="alpaca_prop_train.json")
     print("Sample:\n", m_train[0])
-    # m_val = make_alpaca_json(dataset=dft_3d, jids=val_ids, prop="Tc_supercon",include_jid=True)
-    # dumpjson(data=m_val, filename="alpaca_Tc_supercon_val.json")
 
     m_test = make_alpaca_json(
         dataset=dat,
@@ -217,8 +330,6 @@ def run_atomgpt_inverse(config_file="config.json"):
         output_prompt=config.output_prompt,
     )
     dumpjson(data=m_test, filename="alpaca_prop_test.json")
-    # m_test = make_alpaca_json(dataset=dft_3d, jids=test_ids, prop="Tc_supercon",include_jid=True)
-    # dumpjson(data=m_val, filename="alpaca_Tc_supercon_test.json")
 
     # 4bit pre quantized models we support for 4x faster downloading + no OOMs.
     model, tokenizer = FastLanguageModel.from_pretrained(
@@ -229,6 +340,9 @@ def run_atomgpt_inverse(config_file="config.json"):
         # token = "hf_...", # use one if using gated models like meta-llama/Llama-2-7b-hf
     )
     if not isinstance(model, PeftModel):
+        # import sys
+        print("Not Peft model")
+        # sys.exit()
         model = FastLanguageModel.get_peft_model(
             model,
             r=16,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
@@ -251,7 +365,8 @@ def run_atomgpt_inverse(config_file="config.json"):
         )
 
     EOS_TOKEN = tokenizer.eos_token  # Must add EOS_TOKEN
-
+    # tokenizer.pad_token_id = tokenizer.eos_token_id
+    # model.resize_token_embeddings(len(tokenizer))
     dataset = load_dataset(
         "json", data_files="alpaca_prop_train.json", split="train"
     )
@@ -303,32 +418,32 @@ def run_atomgpt_inverse(config_file="config.json"):
         load_in_4bit=config.load_in_4bit,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-    print("Testing\n\n\n\n", len(m_test))
-    f = open(config.csv_out, "w")
-    f.write("id,target,prediction\n")
-
-    for i in tqdm(m_test):
-        try:
-            prompt = i["input"]
-            print("prompt", prompt)
-            gen_mat = gen_atoms(
-                prompt=i["input"],
-                tokenizer=tokenizer,
-                model=model,
-                alpaca_prompt=config.alpaca_prompt,
-                instruction=config.instruction,
-            )
-            target_mat = text2atoms("\n" + i["output"])
-            print("target_mat", target_mat)
-            print("genmat", gen_mat)
-            # print(target_mat.composition.reduced_formula,gen_mat.composition.reduced_formula,target_mat.density,gen_mat.density )
-            # line = i['id']+","+Poscar(target_mat).to_string().replace('\n','\\n')+","+Poscar(gen_mat).to_string().replace('\n','\\n')+"\n"
-            # f.write(line)
-            print()
-        except Exception as exp:
-            print("Error", exp)
-            pass
-    f.close()
+    batch_evaluate(
+        prompts=[i["input"] for i in m_test],
+        model=model,
+        tokenizer=tokenizer,
+        csv_out=config.csv_out,
+        config=config,
+    )
+    t1 = time.time()
+    batch_evaluate(
+        test_set=m_test,
+        model=model,
+        tokenizer=tokenizer,
+        csv_out=config.csv_out,
+        config=config,
+    )
+    t2 = time.time()
+    t1a = time.time()
+    evaluate(
+        test_set=m_test,
+        model=model,
+        tokenizer=tokenizer,
+        csv_out=config.csv_out,
+        config=config,
+    )
+    t2a = time.time()
+    print(t2 - t1, t2a - t1a)
 
 
 if __name__ == "__main__":

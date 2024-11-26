@@ -237,8 +237,6 @@ class CustomSFTTrainer(SFTTrainer):
         # self.use_bare_trainer = use_bare_trainer
 
     def calculate_density(self, atomic_structure):
-        # Example of a function to calculate density (or any other feature from atomic structure)
-        # You can implement this based on your domain knowledge.
         return len(
             atomic_structure
         )  # Placeholder: use actual calculation logic
@@ -259,8 +257,7 @@ class CustomSFTTrainer(SFTTrainer):
         Custom loss computation based on the selected loss type or the bare trainer.
         """
         if self.loss_type == "default":  # crossentropy
-            # if self.use_bare_trainer:
-            # Use the bare SFTTrainer's loss computation
+            # Currently recommneded to use default
             return super().compute_loss(model, inputs, return_outputs)
 
         # Custom loss computation
@@ -281,23 +278,31 @@ class CustomSFTTrainer(SFTTrainer):
             target = labels.float()
             loss = loss_fn(logits.view(-1), target.view(-1))
         elif self.loss_type == "atomgpt_structure":
-
+            print("Not tested, use with caution")
             if labels is not None:
                 # labels = labels.cpu().numpy()
                 # print("self.tokenizer", self.tokenizer)
                 # print("inputs", inputs,inputs['input_ids'].shape)
+                logits = logits.argmax(-1)  # .view(-1)
                 # print('logits',logits,logits.shape)
                 # print('labels1',labels,labels.shape)
                 # Need to make generalized
-                labels[labels == -100] = 0
+                # labels[labels == -100] = 0 #self.tokenizer.eos_token_id
                 # print('labels2',labels,labels.shape)
                 # Generate outputs
                 # Decode generated text (example for illustration)
+                # loss_fn = nn.CrossEntropyLoss()
+                loss_fn = nn.L1Loss()
+                # x = logits.view(-1, logits.size(-1))
+                # y = labels.view(-1)
+                loss = loss_fn(logits, labels)
+                return loss
+
                 target_texts = self.tokenizer.batch_decode(
                     labels, skip_special_tokens=True
                 )
                 pred_texts = self.tokenizer.batch_decode(
-                    logits.argmax(-1), skip_special_tokens=True
+                    logits, skip_special_tokens=True
                 )
                 # print('target_texts',target_texts)
                 # print('pred_texts',pred_texts)

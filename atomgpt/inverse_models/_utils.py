@@ -34,8 +34,9 @@ __version__ = "2024.5"
 # Get Flash Attention v2 if Ampere (RTX 30xx, A100)
 try:
     major_version, minor_version = torch.cuda.get_device_capability()
-    print("major_version major_version    major_version", major_version)
+    # print("major_version major_version    major_version", major_version)
 except Exception as exp:
+    print("Setting major version as 7")
     major_version = 7
     pass
 if major_version >= 8:
