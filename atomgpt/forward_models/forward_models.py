@@ -30,6 +30,8 @@ import pprint
 import sys
 import argparse
 from alignn.pretrained import get_figshare_model
+from atomgpt.inverse_models.utils import get_figlet
+
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -279,6 +281,8 @@ class AtomGPTDataset(Dataset):
 
 
 def main(config_file="config.json"):
+    figlet = get_figlet()
+    print(figlet)
     print("Running AtomGPT prop predictor.")
     # run_path = os.path.abspath(config_file).split("config.json")[0]
     config = loadjson(config_file)
@@ -772,6 +776,6 @@ if __name__ == "__main__":
     # output_dir = make_id_prop()
     # output_dir="."
     args = parser.parse_args(sys.argv[1:])
-    run_atomgpt(config_file=args.config_name)
+    main(config_file=args.config_name)
     #    config_file="config.json"
     # )

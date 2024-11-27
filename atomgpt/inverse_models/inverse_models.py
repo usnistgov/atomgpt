@@ -258,6 +258,8 @@ def batch_evaluate(
 
 
 def main(config_file="config.json"):
+    if not torch.cuda.is_available():
+        raise ValueError("Currently model training is possible with GPU only.")
     figlet = get_figlet()
     print(figlet)
     t1 = time.time()
@@ -464,6 +466,6 @@ if __name__ == "__main__":
     # output_dir = make_id_prop()
     # output_dir="."
     args = parser.parse_args(sys.argv[1:])
-    run_atomgpt_inverse(config_file=args.config_name)
+    main(config_file=args.config_name)
     #    config_file="config.json"
     # )
