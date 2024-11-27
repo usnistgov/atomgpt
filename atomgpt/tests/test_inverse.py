@@ -1,4 +1,4 @@
-from atomgpt.inverse_models.inverse_models import run_atomgpt_inverse
+from atomgpt.inverse_models.inverse_models import main
 import os
 import atomgpt
 
@@ -10,7 +10,7 @@ print("config", config)
 
 def run_inverse():
     try:
-        run_atomgpt_inverse(config)
+        main(config)
     except Exception as exp:
         print("exp", exp)
         pass

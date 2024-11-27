@@ -1,11 +1,11 @@
 import os
-from atomgpt.forward_models.forward_models import run_atomgpt
+from atomgpt.forward_models.forward_models import main
 
 
 def test_forward():
-    run_atomgpt("atomgpt/examples/forward_model/config.json")
+    main("atomgpt/examples/forward_model/config.json")
     # cmd='python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json'
     # os.system(cmd)
 
 
-# test_forward()
+#test_forward()
