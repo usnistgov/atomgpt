@@ -257,7 +257,7 @@ def batch_evaluate(
     f.close()
 
 
-def run_atomgpt_inverse(config_file="config.json"):
+def main(config_file="config.json"):
     figlet = get_figlet()
     print(figlet)
     t1 = time.time()

@@ -23,7 +23,7 @@ setuptools.setup(
         "protobuf",
         # "alignn",
     ],
-    # scripts=["atomgpt/train_prop.py"],
+    scripts=["atomgpt/train_prop.py"],
     entry_points={
         "console_scripts": [
             "atomgpt_forward=atomgpt.forward_models.forward_models:main",

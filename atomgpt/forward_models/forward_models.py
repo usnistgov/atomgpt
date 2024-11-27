@@ -278,7 +278,7 @@ class AtomGPTDataset(Dataset):
 # Example usage
 
 
-def run_atomgpt(config_file="config.json"):
+def main(config_file="config.json"):
     print("Running AtomGPT prop predictor.")
     # run_path = os.path.abspath(config_file).split("config.json")[0]
     config = loadjson(config_file)
