@@ -63,8 +63,9 @@ class TrainingPropConfig(BaseSettings):
     model_save_path: str = "lora_model_m"
     loss_type: str = "default"
     optim: str = "adamw_8bit"
+    id_tag: str = "id"
     lr_scheduler_type: str = "linear"
-    property_name: str = "prop"
+    prop: str = "Tc_supercon"
     output_dir: str = "outputs"
     model_save_path: str = "lora_model_m"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
@@ -88,47 +89,63 @@ class TrainingPropConfig(BaseSettings):
     )
 
 
+def get_input(config=None, chem="", val=10):
+    if config.chem_info == "none":
+        prefix = ""
+    elif config.chem_info == "element_list":
+        prefix = (
+            "The chemical elements are "
+            + chem  # atoms.composition.search_string
+            + " . "
+        )
+    elif config.chem_info == "formula":
+        prefix = (
+            "The chemical formula is "
+            + chem  # atoms.composition.reduced_formula
+            + " . "
+        )
+
+    inp = (
+        prefix
+        + "The  "
+        + config.prop
+        + " is "
+        + str(val)
+        + "."
+        + config.output_prompt
+    )
+    return inp
+
+
 def make_alpaca_json(
     dataset=[],
     jids=[],
-    prop="Tc_supercon",
-    instruction="",
+    # prop="Tc_supercon",
+    # instruction="",
     include_jid=False,
-    chem_info="",
-    output_prompt="",
+    # chem_info="",
+    # output_prompt="",
+    config=None,
 ):
     mem = []
+    print("config.prop", config.prop)
     for i in dataset:
-        if i[prop] != "na" and i["id"] in jids:
+        if i[config.prop] != "na" and i[config.id_tag] in jids:
             atoms = Atoms.from_dict(i["atoms"])
             info = {}
             if include_jid:
-                info["id"] = i["id"]
-            info["instruction"] = instruction
-            if chem_info == "none":
-                prefix = ""
-            elif chem_info == "element_list":
-                prefix = (
-                    "The chemical elements are "
-                    + atoms.composition.search_string
-                    + " . "
-                )
-            elif chem_info == "formula":
-                prefix = (
-                    "The chemical formula is "
-                    + atoms.composition.reduced_formula
-                    + " . "
-                )
+                info["id"] = i[config.id_tag]
+            info["instruction"] = config.instruction
+            if config.chem_info == "none":
+                chem = ""
+            elif config.chem_info == "element_list":
+                chem = atoms.composition.search_string
+            elif config.chem_info == "formula":
+                chem = atoms.composition.reduced_formula
 
-            info["input"] = (
-                prefix
-                + "The  "
-                + prop
-                + " is "
-                + i[prop]
-                + "."
-                + output_prompt
-            )
+            inp = get_input(config=config, val=i[config.prop], chem=chem)
+            info["input"] = inp
+
             info["output"] = get_crystal_string_t(atoms)
             mem.append(info)
     return mem
@@ -147,6 +164,22 @@ def formatting_prompts_func(examples, alpaca_prompt):
     return {
         "text": texts,
     }
+
+
+def load_model(path="", config=None):
+    if config is None:
+        config_file = os.path.join(path, "atomgpt_config.json")
+        config = loadjson(config_file)
+        config = TrainingPropConfig(**config)
+        pprint.pprint(config.dict())
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=path,
+        max_seq_length=config.max_seq_length,
+        dtype=config.dtype,
+        load_in_4bit=config.load_in_4bit,
+    )
+    FastLanguageModel.for_inference(model)
+    return model, tokenizer, config
 
 
 def evaluate(
@@ -179,7 +212,7 @@ def evaluate(
             + "\n"
         )
         f.write(line)
-        print()
+        # print()
     # except Exception as exp:
     #    print("Error", exp)
     #    pass
@@ -193,8 +226,9 @@ def batch_evaluate(
     tokenizer="",
     csv_out="out.csv",
     config="",
+    batch_size=None,
 ):
-    print("Testing\n", len(test_set))
+    gen_atoms = []
     f = open(csv_out, "w")
     if not prompts:
         target_exists = True
@@ -203,66 +237,82 @@ def batch_evaluate(
     else:
         target_exists = False
         ids = ["id-" + str(i) for i in range(len(prompts))]
-    inputs = tokenizer(
-        [
-            config.alpaca_prompt.format(config.instruction, msg, "")
-            for msg in prompts
-        ],
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-    ).to("cuda")
+    print("Testing\n", len(prompts))
+    if batch_size is None:
+        batch_size = len(prompts)
+    outputs_decoded = []
+    for batch_start in tqdm(range(0, len(prompts), batch_size)):
+        batch_end = min(batch_start + batch_size, len(prompts))
+        batch_prompts = prompts[batch_start:batch_end]
 
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=config.max_seq_length,
-        use_cache=True,
-        # top_k=50,
-        # top_p=0.9,
-        # temperature=0.7,
-        # num_beams=5
-    )
-    outputs_decoded = tokenizer.batch_decode(outputs)
-    outputs_decoded = [
-        output.replace("<unk>", "").split("### Output:")[1]
-        for output in outputs_decoded
-    ]
-    print("outputs_decoded", outputs_decoded)
+        # Tokenize and prepare inputs
+        inputs = tokenizer(
+            [
+                config.alpaca_prompt.format(config.instruction, msg, "")
+                for msg in batch_prompts
+            ],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        ).to("cuda")
+
+        # Generate outputs using the model
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=config.max_seq_length,
+            use_cache=True,
+        )
+
+        # Decode outputs
+        outputs_decoded_temp = tokenizer.batch_decode(outputs)
+        # print('outputs_decoded_temp',outputs_decoded_temp)
+        for output in outputs_decoded_temp:
+            outputs_decoded.append(
+                output.replace("<unk>", "")
+                .split("### Output:")[1]
+                .strip("</s>")
+            )
+
+    # print("outputs_decoded", outputs_decoded)
     f.write("id,target,prediction\n")
 
-    for ii, i in tqdm(enumerate(test_set), total=len(test_set)):
-        # try:
-
-        gen_mat = (
-            Poscar(text2atoms(outputs_decoded[ii]))
-            .to_string()
-            .replace("\n", "\\n")
-        )
-        if target_exists:
-            target_mat = (
-                Poscar(text2atoms("\n" + i["output"]))
-                .to_string()
-                .replace("\n", "\\n")
-            )
-        else:
-            target_mat = ""
-        print("target_mat", target_mat)
-        print("genmat", gen_mat)
-        line = ids[ii] + "," + target_mat + "," + gen_mat + "\n"
-        f.write(line)
-        print()
-    # except Exception as exp:
-    #    print("Error", exp)
-    #    pass
+    for ii, i in tqdm(enumerate(outputs_decoded), total=len(outputs_decoded)):
+        try:
+            # print("outputs_decoded[ii]",i)
+            atoms = text2atoms(i)
+            gen_mat = Poscar(atoms).to_string().replace("\n", "\\n")
+            gen_atoms.append(atoms.to_dict())
+            if target_exists:
+                target_mat = (
+                    Poscar(text2atoms("\n" + i["output"]))
+                    .to_string()
+                    .replace("\n", "\\n")
+                )
+            else:
+                target_mat = ""
+            # print("target_mat", target_mat)
+            # print("genmat", gen_mat)
+            line = ids[ii] + "," + target_mat + "," + gen_mat + "\n"
+            f.write(line)
+            # print()
+        except Exception as exp:
+            print("Error", exp)
+            pass
     f.close()
+    return gen_atoms
 
 
-def main(config_file="config.json"):
+def main(config_file=None):
+    if config_file is None:
+
+        args = parser.parse_args(sys.argv[1:])
+        config_file = args.config_name
     if not torch.cuda.is_available():
         raise ValueError("Currently model training is possible with GPU only.")
     figlet = get_figlet()
     print(figlet)
     t1 = time.time()
+    print("config_file", config_file)
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
     pprint.pprint(config.dict())
@@ -271,10 +321,10 @@ def main(config_file="config.json"):
     if not os.path.exists(config.model_save_path):
         os.makedirs(config.model_save_path)
     tmp = config.dict()
-    f = open(os.path.join(config.output_dir, "config.json"), "w")
+    f = open(os.path.join(config.output_dir, "atomgpt_config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
-    f = open(os.path.join(config.model_save_path, "config.json"), "w")
+    f = open(os.path.join(config.model_save_path, "atomgpt_config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
     id_prop_path = config.id_prop_path
@@ -295,7 +345,7 @@ def main(config_file="config.json"):
         info["id"] = i[0]
         ids.append(i[0])
         tmp = [float(j) for j in i[1:]]
-        print("tmp", tmp)
+        # print("tmp", tmp)
         if len(tmp) == 1:
             tmp = str(float(tmp[0]))
         else:
@@ -305,7 +355,7 @@ def main(config_file="config.json"):
         #    tmp = "\n".join([str(round(float(j), 2)) for j in i[1].split(";")])
         # else:
         #    tmp = str(round(float(i[1]), 3))
-        info["prop"] = (
+        info[config.prop] = (
             tmp  # float(i[1])  # [float(j) for j in i[1:]]  # float(i[1]
         )
         pth = os.path.join(run_path, info["id"])
@@ -328,10 +378,11 @@ def main(config_file="config.json"):
     m_train = make_alpaca_json(
         dataset=dat,
         jids=train_ids,
-        prop=config.property_name,
-        instruction=config.instruction,
-        chem_info=config.chem_info,
-        output_prompt=config.output_prompt,
+        config=config,
+        # prop=config.property_name,
+        # instruction=config.instruction,
+        # chem_info=config.chem_info,
+        # output_prompt=config.output_prompt,
     )
     dumpjson(data=m_train, filename="alpaca_prop_train.json")
     print("Sample:\n", m_train[0])
@@ -339,11 +390,12 @@ def main(config_file="config.json"):
     m_test = make_alpaca_json(
         dataset=dat,
         jids=test_ids,
-        prop="prop",
+        config=config,
+        # prop="prop",
         include_jid=True,
-        instruction=config.instruction,
-        chem_info=config.chem_info,
-        output_prompt=config.output_prompt,
+        # instruction=config.instruction,
+        # chem_info=config.chem_info,
+        # output_prompt=config.output_prompt,
     )
     dumpjson(data=m_test, filename="alpaca_prop_test.json")
 
@@ -434,12 +486,13 @@ def main(config_file="config.json"):
         load_in_4bit=config.load_in_4bit,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
+    model, tokenizer, config = load_model(path=config.model_save_path)
     # batch_evaluate(
-    #    prompts=[i["input"] for i in m_test],
-    #    model=model,
-    #    tokenizer=tokenizer,
-    #    csv_out=config.csv_out,
-    #    config=config,
+    #   prompts=[i["input"] for i in m_test],
+    #   model=model,
+    #   tokenizer=tokenizer,
+    #   csv_out=config.csv_out,
+    #   config=config,
     # )
     # t1 = time.time()
     # batch_evaluate(
@@ -469,3 +522,4 @@ if __name__ == "__main__":
     main(config_file=args.config_name)
     #    config_file="config.json"
     # )
+    # x=load_model(path="/wrk/knc6/Software/atomgpt_opt/atomgpt/lora_model_m/")

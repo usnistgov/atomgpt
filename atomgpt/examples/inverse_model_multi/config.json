@@ -21,6 +21,7 @@
     "csv_out": "AI-AtomGen-prop-dft_3d-test-rmse.csv",
     "chem_info": "formula",
     "max_seq_length": 2048,
+    "prop": "multival",
     "dtype": null,
     "load_in_4bit": true,
     "instruction": "",

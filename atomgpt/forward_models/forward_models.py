@@ -280,10 +280,15 @@ class AtomGPTDataset(Dataset):
 # Example usage
 
 
-def main(config_file="config.json"):
+def main(config_file=None):
     figlet = get_figlet()
     print(figlet)
     print("Running AtomGPT prop predictor.")
+    if config_file is None:
+
+        args = parser.parse_args(sys.argv[1:])
+        config_file = args.config_name
+
     # run_path = os.path.abspath(config_file).split("config.json")[0]
     config = loadjson(config_file)
     config = TrainingPropConfig(**config)
