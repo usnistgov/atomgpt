@@ -64,6 +64,7 @@ class TrainingPropConfig(BaseSettings):
     loss_type: str = "default"
     optim: str = "adamw_8bit"
     lr_scheduler_type: str = "linear"
+    property_name: str = "prop"
     output_dir: str = "outputs"
     model_save_path: str = "lora_model_m"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
@@ -265,8 +266,13 @@ def run_atomgpt_inverse(config_file="config.json"):
     pprint.pprint(config.dict())
     if not os.path.exists(config.output_dir):
         os.makedirs(config.output_dir)
+    if not os.path.exists(config.model_save_path):
+        os.makedirs(config.model_save_path)
     tmp = config.dict()
     f = open(os.path.join(config.output_dir, "config.json"), "w")
+    f.write(json.dumps(tmp, indent=4))
+    f.close()
+    f = open(os.path.join(config.model_save_path, "config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
     id_prop_path = config.id_prop_path
@@ -286,10 +292,17 @@ def run_atomgpt_inverse(config_file="config.json"):
         info = {}
         info["id"] = i[0]
         ids.append(i[0])
-        if ";" in i[1]:
-            tmp = "\n".join([str(round(float(j), 2)) for j in i[1].split(";")])
+        tmp = [float(j) for j in i[1:]]
+        print("tmp", tmp)
+        if len(tmp) == 1:
+            tmp = str(float(tmp[0]))
         else:
-            tmp = str(round(float(i[1]), 3))
+            tmp = "\n".join(map(str, tmp))
+
+        # if ";" in i[1]:
+        #    tmp = "\n".join([str(round(float(j), 2)) for j in i[1].split(";")])
+        # else:
+        #    tmp = str(round(float(i[1]), 3))
         info["prop"] = (
             tmp  # float(i[1])  # [float(j) for j in i[1:]]  # float(i[1]
         )
@@ -313,7 +326,7 @@ def run_atomgpt_inverse(config_file="config.json"):
     m_train = make_alpaca_json(
         dataset=dat,
         jids=train_ids,
-        prop="prop",
+        prop=config.property_name,
         instruction=config.instruction,
         chem_info=config.chem_info,
         output_prompt=config.output_prompt,
