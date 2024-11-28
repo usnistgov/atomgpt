@@ -244,7 +244,7 @@ def batch_evaluate(
     for batch_start in tqdm(range(0, len(prompts), batch_size)):
         batch_end = min(batch_start + batch_size, len(prompts))
         batch_prompts = prompts[batch_start:batch_end]
-
+        # print("batch_prompts",batch_prompts)
         # Tokenize and prepare inputs
         inputs = tokenizer(
             [
@@ -254,6 +254,7 @@ def batch_evaluate(
             return_tensors="pt",
             padding=True,
             truncation=True,
+            max_length=config.max_seq_length,
         ).to("cuda")
 
         # Generate outputs using the model
