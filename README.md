@@ -81,10 +81,11 @@ https://huggingface.co/knc6
 # Referenes:
 
 1. [AtomGPT: Atomistic Generative Pretrained Transformer for Forward and Inverse Materials Design](https://pubs.acs.org/doi/full/10.1021/acs.jpclett.4c01126)
-2. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
-3. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
-4. [NIST-JARVIS Infrastructure](https://jarvis.nist.gov/)
-5. [Unsloth AI](https://github.com/unslothai/unsloth)
+2. [DiffractGPT: Atomic Structure Determination from X-ray Diffraction Patterns using Generative Pre-trained Transformer](https://chemrxiv.org/engage/chemrxiv/article-details/673e6c3ff9980725cf1bdf22)
+3. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
+4. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
+5. [NIST-JARVIS Infrastructure](https://jarvis.nist.gov/)
+6. [Unsloth AI](https://github.com/unslothai/unsloth)
    
 <a name="contrib"></a>
 How to contribute
