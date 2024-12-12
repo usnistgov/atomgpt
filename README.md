@@ -84,6 +84,7 @@ https://huggingface.co/knc6
 2. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
 3. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
 4. [NIST-JARVIS Infrastructure](https://jarvis.nist.gov/)
+5. [Unsloth AI](https://github.com/unslothai/unsloth)
    
 <a name="contrib"></a>
 How to contribute
