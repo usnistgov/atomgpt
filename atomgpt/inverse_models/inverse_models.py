@@ -375,30 +375,38 @@ def main(config_file=None):
     train_ids = ids[0:num_train]
     test_ids = ids[num_train : num_train + num_test]
     # test_ids = ids[num_train:]
-
-    m_train = make_alpaca_json(
-        dataset=dat,
-        jids=train_ids,
-        config=config,
-        # prop=config.property_name,
-        # instruction=config.instruction,
-        # chem_info=config.chem_info,
-        # output_prompt=config.output_prompt,
-    )
-    dumpjson(data=m_train, filename="alpaca_prop_train.json")
+    if not os.path.exists("alpaca_prop_train.json"):
+        m_train = make_alpaca_json(
+            dataset=dat,
+            jids=train_ids,
+            config=config,
+            # prop=config.property_name,
+            # instruction=config.instruction,
+            # chem_info=config.chem_info,
+            # output_prompt=config.output_prompt,
+        )
+        dumpjson(data=m_train, filename="alpaca_prop_train.json")
+    else:
+        print("alpaca_prop_train.json exists")
+        m_train = loadjson("alpaca_prop_train.json")
     print("Sample:\n", m_train[0])
 
-    m_test = make_alpaca_json(
-        dataset=dat,
-        jids=test_ids,
-        config=config,
-        # prop="prop",
-        include_jid=True,
-        # instruction=config.instruction,
-        # chem_info=config.chem_info,
-        # output_prompt=config.output_prompt,
-    )
-    dumpjson(data=m_test, filename="alpaca_prop_test.json")
+    if not os.path.exists("alpaca_prop_train.json"):
+
+        m_test = make_alpaca_json(
+            dataset=dat,
+            jids=test_ids,
+            config=config,
+            # prop="prop",
+            include_jid=True,
+            # instruction=config.instruction,
+            # chem_info=config.chem_info,
+            # output_prompt=config.output_prompt,
+        )
+        dumpjson(data=m_test, filename="alpaca_prop_test.json")
+    else:
+        print("alpaca_prop_test.json exists")
+        m_test = loadjson("alpaca_prop_test.json")
 
     # 4bit pre quantized models we support for 4x faster downloading + no OOMs.
     model, tokenizer = FastLanguageModel.from_pretrained(
