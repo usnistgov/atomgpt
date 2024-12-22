@@ -375,7 +375,10 @@ def main(config_file=None):
     train_ids = ids[0:num_train]
     test_ids = ids[num_train : num_train + num_test]
     # test_ids = ids[num_train:]
-    if not os.path.exists("alpaca_prop_train.json"):
+    alpaca_prop_train_filename = os.path.join(
+        config.output_dir, "alpaca_prop_train.json"
+    )
+    if not os.path.exists(alpaca_prop_train_filename):
         m_train = make_alpaca_json(
             dataset=dat,
             jids=train_ids,
@@ -385,13 +388,16 @@ def main(config_file=None):
             # chem_info=config.chem_info,
             # output_prompt=config.output_prompt,
         )
-        dumpjson(data=m_train, filename="alpaca_prop_train.json")
+        dumpjson(data=m_train, filename=alpaca_prop_train_filename)
     else:
-        print("alpaca_prop_train.json exists")
-        m_train = loadjson("alpaca_prop_train.json")
+        print(alpaca_prop_train_filename, " exists")
+        m_train = loadjson(alpaca_prop_train_filename)
     print("Sample:\n", m_train[0])
 
-    if not os.path.exists("alpaca_prop_train.json"):
+    alpaca_prop_test_filename = os.path.join(
+        config.output_dir, "alpaca_prop_test.json"
+    )
+    if not os.path.exists(alpaca_prop_test_filename):
 
         m_test = make_alpaca_json(
             dataset=dat,
@@ -403,10 +409,10 @@ def main(config_file=None):
             # chem_info=config.chem_info,
             # output_prompt=config.output_prompt,
         )
-        dumpjson(data=m_test, filename="alpaca_prop_test.json")
+        dumpjson(data=m_test, filename=alpaca_prop_test_filename)
     else:
-        print("alpaca_prop_test.json exists")
-        m_test = loadjson("alpaca_prop_test.json")
+        print(alpaca_prop_test_filename, "exists")
+        m_test = loadjson(alpaca_prop_test_filename)
 
     # 4bit pre quantized models we support for 4x faster downloading + no OOMs.
     model, tokenizer = FastLanguageModel.from_pretrained(
