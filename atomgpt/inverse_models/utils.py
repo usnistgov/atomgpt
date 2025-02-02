@@ -181,3 +181,139 @@ def get_figlet():
 /_/    \_\__\___/|_| |_| |_|\_____|_|      |_|   
    """
     return x
+
+
+def main_spectra(
+    spectra=[],
+    formulas=[],
+    model=None,
+    tokenizer=None,
+    calculator=None,
+    device="cpu",
+    max_new_tokens=500,
+    intvl=0.3,
+    thetas=[0, 90],
+    filename=None,
+    panels=[
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+    ],
+    fmax=0.05,
+    nsteps=150,
+):
+    the_grid = GridSpec(len(spectra), 4)
+    plt.rcParams.update({"font.size": 18})
+    plt.figure(figsize=(16, 4 * len(spectra)))
+    count = 0
+    for ii, cccc in enumerate(spectra):
+
+        plt.subplot(the_grid[ii, 1])
+        # plt.plot(cccc,label='Target')
+        targ = spectra[ii][1]
+        cccc = targ
+        y_new_str = spectra[ii][0]
+        # atoms1 = Atoms.from_dict(
+        #     get_jid_data(jid=filename, dataset="dft_3d")["atoms"]
+        # )
+        # y_new_str,cccc = smooth_xrd(atoms=atoms1,intvl=0.3)
+
+        title = "(" + panels[count] + ") " + "Input XRD"
+        count += 1
+        plt.title(title)
+
+        plt.plot(cccc, c="red")
+        plt.ylim([-0.02, 1])
+        plt.xticks([0, 150, 300], [0, 45, 90])
+        plt.xlabel(r"$2\theta$")
+        plt.tight_layout()
+        formula = formulas[ii]  # atoms1.composition.reduced_formula
+
+        info = {}
+        info["instruction"] = "Below is a description of a material."
+        info["input"] = (
+            "The chemical formula is "
+            + formula
+            # + " The  "
+            + " The  "
+            + "XRD"
+            # "The chemical elements are "
+            # + Composition.from_string(formula).search_string
+            + " is "
+            + y_new_str
+            + "."
+            + " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
+        )
+        # print(info)
+        atoms = gen_atoms(
+            prompt=info["input"],
+            model=model,
+            tokenizer=tokenizer,
+            max_new_tokens=max_new_tokens,
+        )
+        print(atoms)
+        plt.subplot(the_grid[ii, 2])
+        y_new_str, cccc = smooth_xrd(atoms=atoms, intvl=intvl, thetas=thetas)
+        # x, d_hkls1, y = XRD().simulate(atoms=optim)
+        # y=np.array(y)/max(y)
+        # plt.bar(x,y,label='DiffractGPT+ALIGNN-FF')
+        # mae=round(stats.pearsonr(targ, cccc)[0], 2) #
+        mae = round(mean_absolute_error(targ, cccc), 3)
+        # plt.title('DiffractGPT'+str(mae))
+        plt.plot(cccc, c="blue")
+        plt.xticks([0, 150, 300], [0, 45, 90])
+        plt.ylim([-0.02, 1])
+
+        plt.xlabel(r"$2\theta$")
+        plt.tight_layout()
+        title = "(" + panels[count] + ") " + "DGPT" + " (" + str(mae) + ")"
+        count += 1
+        plt.title(title)
+        # plt.legend()
+        # from alignn.ff.ff import AlignnAtomwiseCalculator
+        # calculator = AlignnAtomwiseCalculator()
+        calculator = None
+        optim = relax_atoms(
+            atoms=atoms, calculator=calculator, fmax=fmax, nsteps=nsteps
+        )
+
+        # x, d_hkls1, y = XRD().simulate(atoms=atoms1)
+        # y=np.array(y)/max(y)
+        # plt.bar(x,y,label='Target')
+
+        plt.subplot(the_grid[ii, 3])
+        y_new_str, cccc = smooth_xrd(atoms=optim, intvl=intvl, thetas=thetas)
+        # x, d_hkls1, y = XRD().simulate(atoms=optim)
+        # y=np.array(y)/max(y)
+        # plt.bar(x,y,label='DiffractGPT+ALIGNN-FF')
+        # mae=round(stats.pearsonr(targ, cccc)[0], 2)
+        mae = round(mean_absolute_error(targ, cccc), 3)
+        # plt.title('DiffractGPT-A'+str(mae))
+        plt.plot(cccc, c="green")
+        plt.xticks([0, 150, 300], [0, 45, 90])
+        plt.xlabel(r"$2\theta$")
+        plt.ylim([-0.02, 1])
+
+        title = "(" + panels[count] + ") " + "DGPT+AFF" + " (" + str(mae) + ")"
+        count += 1
+        plt.title(title)
+        plt.tight_layout()
+    if filename is not None:
+        plt.savefig(filename)
+        plt.close()
+    # plt.xlim([0,90])
+    # plt.legend()
