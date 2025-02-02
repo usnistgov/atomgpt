@@ -161,7 +161,11 @@ def get_crystal_string_t(atoms):
 
 
 def gen_atoms_batch(
-    prompts=[], max_new_tokens=2048, model=None, tokenizer=None
+    prompts=[],
+    max_new_tokens=2048,
+    model=None,
+    tokenizer=None,
+    alpaca_prompt="",
 ):
     # Ensure CUDA is available for GPU usage
     if not prompts:
@@ -244,6 +248,7 @@ def main_spectra(
     ],
     fmax=0.05,
     nsteps=150,
+    alpaca_prompt="",
 ):
     the_grid = GridSpec(len(spectra), 4)
     plt.rcParams.update({"font.size": 18})
@@ -291,6 +296,7 @@ def main_spectra(
         atoms = gen_atoms(
             prompt=info["input"],
             model=model,
+            alpaca_prompt=alpaca_prompt,
             tokenizer=tokenizer,
             max_new_tokens=max_new_tokens,
         )
