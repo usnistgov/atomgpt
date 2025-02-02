@@ -2,6 +2,7 @@ from jarvis.core.atoms import Atoms
 from jarvis.core.lattice import Lattice
 import numpy as np
 from matplotlib.gridspec import GridSpec
+import matplotlib.pyplot as plt
 
 
 def text2atoms(response):
