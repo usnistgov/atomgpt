@@ -3,6 +3,8 @@ from jarvis.core.lattice import Lattice
 import numpy as np
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
+from jarvis.analysis.diffraction.xrd import smooth_xrd
+from sklearn.metrics import mean_absolute_error
 
 
 def text2atoms(response):
@@ -223,7 +225,7 @@ def main_spectra(
     tokenizer=None,
     calculator=None,
     device="cpu",
-    max_new_tokens=500,
+    max_new_tokens=1024,
     intvl=0.3,
     thetas=[0, 90],
     filename=None,
