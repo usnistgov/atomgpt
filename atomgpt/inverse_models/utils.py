@@ -1,6 +1,7 @@
 from jarvis.core.atoms import Atoms
 from jarvis.core.lattice import Lattice
 import numpy as np
+from matplotlib.gridspec import GridSpec
 
 
 def text2atoms(response):
@@ -70,6 +71,33 @@ def text2atoms_old(response):
         cartesian=False,
     )
     return atoms
+
+
+def relax_atoms(
+    atoms=None,
+    calculator=None,
+    fmax=0.05,
+    nsteps=150,
+    constant_volume=False,
+):
+    from ase.optimize.fire import FIRE
+    from ase.constraints import ExpCellFilter
+
+    if calculator is None:
+        return atoms
+
+    t1 = time.time()
+    ase_atoms = atoms.ase_converter()
+    ase_atoms.calc = calculator
+
+    ase_atoms = ExpCellFilter(ase_atoms, constant_volume=constant_volume)
+    # TODO: Make it work with any other optimizer
+    dyn = FIRE(ase_atoms)
+    dyn.run(fmax=fmax, steps=nsteps)
+    en = ase_atoms.atoms.get_potential_energy()
+    final_atoms = ase_to_atoms(ase_atoms.atoms)
+    t2 = time.time()
+    return final_atoms
 
 
 def gen_atoms(
