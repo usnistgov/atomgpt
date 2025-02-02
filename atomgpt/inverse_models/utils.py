@@ -78,7 +78,8 @@ def gen_atoms(
     tokenizer="",
     max_new_tokens=1024,
     alpaca_prompt="",
-    instruction="",
+    instruction="Below is a description of a material.",
+    device="cuda",
 ):
     inputs = tokenizer(
         [
@@ -89,12 +90,14 @@ def gen_atoms(
             )
         ],
         return_tensors="pt",
-    ).to("cuda")
+    ).to(device)
 
     outputs = model.generate(
         **inputs, max_new_tokens=max_new_tokens, use_cache=True
     )
-    response = tokenizer.batch_decode(outputs)[0].split("# Output:")[1]
+    response = (
+        tokenizer.batch_decode(outputs)[0].split("# Output:")[1].strip("</s>")
+    )
     atoms = None
     try:
         atoms = text2atoms(response)
