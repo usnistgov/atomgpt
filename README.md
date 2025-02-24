@@ -48,24 +48,50 @@ Inverse models are used for generating materials given property and description 
 python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model/config.json
 ```
 
+
+## DiffractGPT model example (spectral property to structure)
+
+Inverse models are also used for generating materials given spectra/multi value property such as X-ray diffraction and description such as chemical formula. 
+
+```
+python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model_multi/config.json
+```
+
 More detailed examples/case-studies would be added here soon.
 
 # Google colab/Jupyter notebook
-Examples for running AtomGPT is given in the [notebook](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
-[![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
+
+
+| Notebooks                                                                                                                                      | Google&nbsp;Colab                                                                                                                                        | Descriptions                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Forward Model training](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_forward_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_forward_example.ipynb)                                 | Example of forward model training for exfoliation energy.                                                                                                                                                                                                                                                                       |
+| [Inverse Model training](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                 | Example of installing AtomGPT, inverse model training for 5 sample materials, using the trained model for inference, relaxing structures with ALIGNN-FF, generating a database of atomic structures.                                                                                                                                                                                                                                                                       |
+ [HuggingFace AtomGPT model inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                                                  | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                            | AtomGPT Structure Generation/Inference example with a model hosted on Huggingface.                                                                                                  | 
+ [Inverse Model DiffractGPT inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/DiffractGPT_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/DiffractGPT_example.ipynb)                                 | Example of predicting crystal structure from X-ray diffraction data.                                                                                                                                                                                                                       |                                                                                                                                  |
+
 
 [Open in Google Colab]: https://colab.research.google.com/assets/colab-badge.svg
 
-For other notebook example, see [here](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
 
 
+
+For similar other notebook examples, see [JARVIS-Tools-Notebook Collection](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
+
+# HuggingFace link :hugs:
+
+https://huggingface.co/knc6
 
 
 # Referenes:
 
 1. [AtomGPT: Atomistic Generative Pretrained Transformer for Forward and Inverse Materials Design](https://pubs.acs.org/doi/full/10.1021/acs.jpclett.4c01126)
-2. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
-3. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
+2. [DiffractGPT: Atomic Structure Determination from X-ray Diffraction Patterns using Generative Pre-trained Transformer](https://chemrxiv.org/engage/chemrxiv/article-details/673e6c3ff9980725cf1bdf22)
+3. [ChemNLP: A Natural Language Processing based Library for Materials Chemistry Text Data](https://github.com/usnistgov/chemnlp)
+4. [JARVIS-Leaderboard](https://pages.nist.gov/jarvis_leaderboard)
+5. [NIST-JARVIS Infrastructure](https://jarvis.nist.gov/)
+6. [Unsloth AI](https://github.com/unslothai/unsloth)
+   
+
 
 <a name="contrib"></a>
 How to contribute
