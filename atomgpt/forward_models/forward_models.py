@@ -29,7 +29,8 @@ import csv
 import pprint
 import sys
 import argparse
-from alignn.pretrained import get_figshare_model
+
+# from alignn.pretrained import get_figshare_model
 from atomgpt.inverse_models.utils import get_figlet
 
 
@@ -621,12 +622,25 @@ def main(config_file=None):
                     # ids=[ids]
                 for ii, jj, kk in zip(targets, predictions, ids):
                     # print(kk,ii.cpu().detach().numpy().tolist(),jj.cpu().detach().numpy().tolist())
+                    try:
+                        ii_num = ii.cpu().detach().tolist()
+                    except Exception:
+                        ii_num = ii.cpu().detach().numpy.tolist()
+                        pass
+
+                    try:
+                        jj_num = jj.cpu().detach().tolist()
+                    except Exception:
+                        jj_num = jj.cpu().detach().numpy.tolist()
+                        pass
                     line = (
                         str(kk)
                         + ","
-                        + str(round(ii.cpu().detach().numpy().tolist(), 3))
+                        + str(round(ii_num, 3))
+                        # + str(round(ii.cpu().detach().numpy().tolist(), 3))
                         + ","
-                        + str(round(jj.cpu().detach().numpy().tolist(), 3))
+                        + str(round(jj_num, 3))
+                        # + str(round(jj.cpu().detach().numpy().tolist(), 3))
                         + "\n"
                     )
                     f.write(line)
@@ -693,12 +707,23 @@ def main(config_file=None):
                         # ids=[ids]
                     for ii, jj, kk in zip(targets, predictions, ids):
                         # print(kk,ii.cpu().detach().numpy().tolist(),jj.cpu().detach().numpy().tolist())
+                        try:
+                            ii_num = ii.cpu().detach().tolist()
+                        except Exception:
+                            ii_num = ii.cpu().detach().numpy.tolist()
+                            pass
+
+                        try:
+                            jj_num = jj.cpu().detach().tolist()
+                        except Exception:
+                            jj_num = jj.cpu().detach().numpy.tolist()
+                            pass
                         line = (
                             str(kk)
                             + ","
-                            + str(round(ii.cpu().detach().numpy().tolist(), 3))
+                            + str(round(ii_num, 3))
                             + ","
-                            + str(round(jj.cpu().detach().numpy().tolist(), 3))
+                            + str(round(jj_num, 3))
                             + "\n"
                         )
                         f.write(line)
@@ -760,12 +785,23 @@ def main(config_file=None):
             # ids=[ids]
         for ii, jj, kk in zip(targets, predictions, ids):
             # print(kk,ii.cpu().detach().numpy().tolist(),jj.cpu().detach().numpy().tolist())
+            try:
+                ii_num = ii.cpu().detach().tolist()
+            except Exception:
+                ii_num = ii.cpu().detach().numpy.tolist()
+                pass
+
+            try:
+                jj_num = jj.cpu().detach().tolist()
+            except Exception:
+                jj_num = jj.cpu().detach().numpy.tolist()
+                pass
             line = (
                 str(kk)
                 + ","
-                + str(round(ii.cpu().detach().numpy().tolist(), 3))
+                + str(round(ii_num, 3))
                 + ","
-                + str(round(jj.cpu().detach().numpy().tolist(), 3))
+                + str(round(jj_num, 3))
                 + "\n"
             )
             # f.write("%s, %6f, %6f\n" % (kk, ii.cpu().detach().numpy().tolist(), jj.cpu().detach().numpy().tolist()))

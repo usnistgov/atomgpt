@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atomgpt"
+version = "2024.11.30"
+authors = [
+    { name = "Kamal Choudhary", email = "kamal.choudhary@nist.gov" }
+]
+description = "atomgpt"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.22.0",
+    "scipy>=1.6.3",
+    "jarvis-tools>=2021.07.19",
+    "transformers>=4.46.1,!=4.47.0",
+    "pydantic_settings",
+    "peft>=0.7.1,!=0.11.0",
+    "trl>=0.7.9,<0.9.0",
+    "triton",
+    "torch<2.1.1",
+    "sentencepiece",
+    "protobuf<4.0.0",
+    "bitsandbytes>=0.43.3",
+    "xformers<0.0.27",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/usnistgov/atomgpt"
+
+[project.scripts]
+atomgpt_forward = "atomgpt.forward_models.forward_models:main"
+atomgpt_inverse = "atomgpt.inverse_models.inverse_models:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
