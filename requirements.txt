@@ -30,7 +30,7 @@ gmpy2
 huggingface-hub==0.23.4
 idna==3.7
 importlib_resources==6.4.0
-jarvis-tools==2024.4.30
+jarvis-tools>=2024.4.30
 Jinja2
 joblib==1.4.2
 kiwisolver==1.4.5

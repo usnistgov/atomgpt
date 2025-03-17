@@ -3,8 +3,44 @@ from jarvis.core.lattice import Lattice
 import numpy as np
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
-from jarvis.analysis.diffraction.xrd import smooth_xrd
+
+# from jarvis.analysis.diffraction.xrd import smooth_xrd
 from sklearn.metrics import mean_absolute_error
+from jarvis.analysis.diffraction.xrd import XRD
+
+
+def recast_array(
+    x_original=[], y_original=[], x_new=np.arange(0, 90, 1), tol=0.1
+):
+    x_original = np.array(x_original)
+    # Initialize the new y array with NaNs or a default value
+    y_new = np.full_like(x_new, 0, dtype=np.float64)
+
+    # Fill the corresponding bins
+    for x_val, y_val in zip(x_original, y_original):
+        closest_index = np.abs(
+            x_new - x_val
+        ).argmin()  # Find the closest x_new index
+        y_new[closest_index] = y_val
+    # y_new[y_new<tol]=0
+    return x_new, y_new
+
+
+def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.5):
+    a, b, c = XRD(thetas=thetas).simulate(atoms=atoms)
+    a = np.array(a)
+    c = np.array(c)
+    c = c / np.max(c)
+    a, c = recast_array(
+        x_original=a,
+        y_original=c,
+        x_new=np.arange(thetas[0], thetas[1], intvl),
+    )
+    c = c / np.max(c)
+    # c_str = "\n".join(["{0:.3f}".format(x) for x in c])
+    c_str = "\n".join(["{0:.2f}".format(x) for x in c])
+
+    return c_str, c
 
 
 def text2atoms(response):

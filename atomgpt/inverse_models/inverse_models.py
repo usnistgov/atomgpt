@@ -451,7 +451,10 @@ def main(config_file=None):
     # tokenizer.pad_token_id = tokenizer.eos_token_id
     # model.resize_token_embeddings(len(tokenizer))
     dataset = load_dataset(
-        "json", data_files="alpaca_prop_train.json", split="train"
+        "json",
+        data_files=alpaca_prop_train_filename,
+        split="train",
+        # "json", data_files="alpaca_prop_train.json", split="train"
     )
     formatting_prompts_func_with_prompt = partial(
         formatting_prompts_func, alpaca_prompt=config.alpaca_prompt
