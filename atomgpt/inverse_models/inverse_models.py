@@ -60,7 +60,7 @@ class TrainingPropConfig(BaseSettings):
     num_train: Optional[int] = 2
     num_val: Optional[int] = 2
     num_test: Optional[int] = 2
-    model_save_path: str = "lora_model_m"
+    model_save_path: str = "atomgpt_lora_model"
     loss_type: str = "default"
     optim: str = "adamw_8bit"
     id_tag: str = "id"
