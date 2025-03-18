@@ -18,6 +18,7 @@ setuptools.setup(
             "atomgpt_forward_train=atomgpt.forward_models.forward_models:main",
             "atomgpt_forward_predict=atomgpt.forward_models.forward_predict:predict",
             "atomgpt_inverse_train=atomgpt.inverse_models.inverse_models:main",
+            "atomgpt_inverse_predict=atomgpt.inverse_models.inverse_predict:predict",
         ]
     },
     long_description=long_description,
@@ -31,4 +32,3 @@ setuptools.setup(
     ],
     python_requires=">=3.8",
 )
-

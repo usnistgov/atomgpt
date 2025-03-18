@@ -3,9 +3,11 @@ from atomgpt.inverse_models.inverse_models import TrainingPropConfig
 from jarvis.db.jsonutils import loadjson, dumpjson
 import os
 import pprint
-from atomgpt.inverse_models.utils import gen_atoms
+from atomgpt.inverse_models.utils import gen_atoms, main_spectra, load_exp_file
 import argparse
 import sys
+from pathlib import Path
+
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer"
@@ -51,9 +53,27 @@ def predict(
     lines = f.read().splitlines()
     f.close()
     mem = []
+
     for i in lines:
+        prompt = i
+        if ".dat" in i:
+            parent = Path(pred_csv).parent
+            fname = os.path.join(parent, i)
+            formula, x, y = load_exp_file(filename=fname, intvl=0.3)
+            y[y < 0] = 0
+            y_new_str = "\n".join(["{0:.2f}".format(x) for x in y])
+            formula = str(formula.split("/")[-1].split(".dat")[0])
+            # gen_mat = main_spectra(spectra=[[y_new_str,y]],formulas=[formula],model=model,tokenizer=tokenizer,device='cuda')[0]
+            prompt = (
+                "The chemical formula is "
+                + formula
+                + " The XRD is "
+                + y_new_str
+                + ". Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
+            )
+        print("prompt", prompt)
         gen_mat = gen_atoms(
-            prompt=i,
+            prompt=prompt,
             model=model,
             tokenizer=tokenizer,
             alpaca_prompt=temp_config["alpaca_prompt"],
@@ -63,7 +83,7 @@ def predict(
         print("gen atoms", gen_mat)
         atoms_arr.append(gen_mat.to_dict())
         info = {}
-        info["prompt"] = i
+        info["prompt"] = prompt
         info["atoms"] = gen_mat.to_dict()
         mem.append(info)
     dumpjson(data=mem, filename=fname)

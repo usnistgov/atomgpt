@@ -9,6 +9,7 @@ from tqdm import tqdm
 from atomgpt.forward_models.forward_models import AtomGPTDataset
 from torch.utils.data import DataLoader, Dataset
 import argparse
+from pathlib import Path
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer"
@@ -26,7 +27,9 @@ parser.add_argument(
 )
 
 
-def predict(output_dir="out", pred_csv="pred_list.csv", fname="out.csv"):
+def predict(
+    output_dir="out", pred_csv="pred_list.csv", fname="out.csv", device="cuda"
+):
     temp_config = loadjson(os.path.join(output_dir, "config.json"))
     max_length = temp_config["max_length"]
     model_name = temp_config["model_name"]
@@ -53,6 +56,7 @@ def predict(output_dir="out", pred_csv="pred_list.csv", fname="out.csv"):
     model.load_state_dict(
         torch.load(output_dir + "/best_model.pt", map_location=device)
     )
+    model.to(device)
     with open(pred_csv, "r") as f:
         reader = csv.reader(f)
         dt = [row for row in reader]
@@ -65,8 +69,12 @@ def predict(output_dir="out", pred_csv="pred_list.csv", fname="out.csv"):
     for i in tqdm(dt, total=len(dt)):
         info = {}
         info["id"] = i[0]
+        parent = Path(pred_csv).parent
         # info["prop"] = [float(j) for j in i[1:]]  # float(i[1])
-        pth = i[0]  # os.path.join(run_path, info["id"])
+        pth = os.path.join(
+            os.path.abspath(parent), i[0]
+        )  # os.path.join(run_path, info["id"])
+        # print('path',pth)
         atoms = Atoms.from_poscar(pth)
         desc = atoms.describe()[temp_config["desc_type"]]
         info["desc"] = desc
