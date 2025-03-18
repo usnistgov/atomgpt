@@ -15,8 +15,9 @@ setuptools.setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "atomgpt_forward=atomgpt.forward_models.forward_models:main",
-            "atomgpt_inverse=atomgpt.inverse_models.inverse_models:main",
+            "atomgpt_forward_train=atomgpt.forward_models.forward_models:main",
+            "atomgpt_forward_predict=atomgpt.forward_models.forward_predict:predict",
+            "atomgpt_inverse_train=atomgpt.inverse_models.inverse_models:main",
         ]
     },
     long_description=long_description,

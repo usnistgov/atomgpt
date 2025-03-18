@@ -9,27 +9,31 @@ Both forward and inverse models take a config.json file as an input. Such a conf
 ## Installation
 
 First create a conda environment:
-Install miniconda environment from https://conda.io/miniconda.html
-Based on your system requirements, you'll get a file something like 'Miniconda3-latest-XYZ'.
+Install miniforge https://github.com/conda-forge/miniforge
 
-Now,
-
-```
-bash Miniconda3-latest-Linux-x86_64.sh (for linux)
-bash Miniconda3-latest-MacOSX-x86_64.sh (for Mac)
-```
-Download 32/64 bit python 3.10 miniconda exe and install (for windows)
+For example: 
 
 ```
-conda create --name my_atomgpt python=3.10
+wget "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+```
+
+Based on your system requirements, you'll get a file something like 'Miniforge3-XYZ'.
+
+```
+bash Miniforge3-$(uname)-$(uname -m).sh
+```
+
+Now, make a conda environment:
+
+```
+conda create --name my_atomgpt python=3.10 -y
 conda activate my_atomgpt
 ```
 
 ```
 git clone https://github.com/usnistgov/atomgpt.git
 cd atomgpt
-pip install -q -r dev-requirements.txt
-pip install -q -e .
+pip install -e .
 ```
 
 ## Forward model example (structure to property)
@@ -37,8 +41,14 @@ pip install -q -e .
 Forwards model are used for developing surrogate models for atomic structure to property predictions. It requires text input which can be either the raw POSCAR type files or a text description of the material. After that, we can use Google-T5/ OpenAI GPT2 etc. models with customizing langauage head for accomplishing such a task. The description of a material is generated with [ChemNLP/describer](https://github.com/usnistgov/jarvis/blob/master/jarvis/core/atoms.py#L1567) function. If you turn [`convert`](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/forward_models/forward_models.py#L277) to `False`, you can also train on bare POSCAR files.
 
 ```
-python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
+atomgpt_forward_train --config_name atomgpt/examples/forward_model/config.json
 ```
+
+
+```
+atomgpt_forward_predict --output_dir out --pred_csv pred_list.csv
+```
+
 
 ## Inverse model example (property to structure)
 
