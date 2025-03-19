@@ -3,8 +3,69 @@ from jarvis.core.lattice import Lattice
 import numpy as np
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
-from jarvis.analysis.diffraction.xrd import smooth_xrd
+import pandas as pd
+
+# from jarvis.analysis.diffraction.xrd import smooth_xrd
 from sklearn.metrics import mean_absolute_error
+from jarvis.analysis.diffraction.xrd import XRD
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
+import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
+
+
+def baseline_als(y, lam, p, niter=10):
+    """ALS baseline correction to remove broad background trends."""
+    L = len(y)
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L - 2))
+    w = np.ones(L)
+    for _ in range(niter):
+        W = sparse.spdiags(w, 0, L, L)
+        Z = W + lam * D.dot(D.transpose())
+        z = spsolve(Z, w * y)
+        w = p * (y > z) + (1 - p) * (y < z)
+    return z
+
+
+def sharpen_peaks(y, sigma=0.5):
+    """Sharpen peaks using a narrow Gaussian filter."""
+    # Use a very small sigma to reduce peak broadening
+    y_sharp = gaussian_filter1d(y, sigma=sigma, mode="constant")
+    return y_sharp
+
+
+def recast_array(
+    x_original=[], y_original=[], x_new=np.arange(0, 90, 1), tol=0.1
+):
+    x_original = np.array(x_original)
+    # Initialize the new y array with NaNs or a default value
+    y_new = np.full_like(x_new, 0, dtype=np.float64)
+
+    # Fill the corresponding bins
+    for x_val, y_val in zip(x_original, y_original):
+        closest_index = np.abs(
+            x_new - x_val
+        ).argmin()  # Find the closest x_new index
+        y_new[closest_index] = y_val
+    # y_new[y_new<tol]=0
+    return x_new, y_new
+
+
+def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.5):
+    a, b, c = XRD(thetas=thetas).simulate(atoms=atoms)
+    a = np.array(a)
+    c = np.array(c)
+    c = c / np.max(c)
+    a, c = recast_array(
+        x_original=a,
+        y_original=c,
+        x_new=np.arange(thetas[0], thetas[1], intvl),
+    )
+    c = c / np.max(c)
+    # c_str = "\n".join(["{0:.3f}".format(x) for x in c])
+    c_str = "\n".join(["{0:.2f}".format(x) for x in c])
+
+    return c_str, c
 
 
 def text2atoms(response):
@@ -126,9 +187,9 @@ def gen_atoms(
     outputs = model.generate(
         **inputs, max_new_tokens=max_new_tokens, use_cache=True
     )
-    response = (
-        tokenizer.batch_decode(outputs)[0].split("# Output:")[1].strip("</s>")
-    )
+    response = tokenizer.batch_decode(outputs)[0]
+    print("response", response)
+    response = response.split("# Output:")[1].strip("</s>")
     atoms = None
     try:
         atoms = text2atoms(response)
@@ -218,6 +279,46 @@ def get_figlet():
     return x
 
 
+def processed(
+    x,
+    y,
+    x_range=[0, 90],
+    intvl=0.1,
+    sigma=0.05,
+    recast=True,
+    tol=0.1,
+    background_subs=True,
+):
+    """Process the spectrum: background removal and peak sharpening."""
+    y = np.array(y, dtype="float")
+    if background_subs:
+
+        # 1. Baseline correction
+        background = baseline_als(y, lam=10000, p=0.01)
+        y_corrected = y - background
+    else:
+        y_corrected = y
+
+    # 2. Normalize the corrected spectrum
+    y_corrected = y_corrected / np.max(y_corrected)
+
+    # 3. Generate new x-axis values
+    x_new = np.arange(x_range[0], x_range[1], intvl)
+
+    # 4. Recast the spectrum onto the new grid
+    if recast:
+        x_new, y_corrected = recast_array(x, y_corrected, x_new, tol=tol)
+
+    # 5. Sharpen the peaks using Gaussian filtering
+    y_sharp = sharpen_peaks(y_corrected, sigma=sigma)
+
+    # 6. Final normalization
+    if np.max(y_sharp) > 0:
+        y_sharp = y_sharp / np.max(y_sharp)
+
+    return x_new, y_sharp
+
+
 def main_spectra(
     spectra=[],
     formulas=[],
@@ -256,6 +357,7 @@ def main_spectra(
     plt.rcParams.update({"font.size": 18})
     plt.figure(figsize=(16, 4 * len(spectra)))
     count = 0
+    atoms_array = []
     for ii, cccc in enumerate(spectra):
 
         plt.subplot(the_grid[ii, 1])
@@ -278,7 +380,7 @@ def main_spectra(
         plt.xlabel(r"$2\theta$")
         plt.tight_layout()
         formula = formulas[ii]  # atoms1.composition.reduced_formula
-
+        print("formula", formula)
         info = {}
         info["instruction"] = "Below is a description of a material."
         info["input"] = (
@@ -302,7 +404,8 @@ def main_spectra(
             tokenizer=tokenizer,
             max_new_tokens=max_new_tokens,
         )
-        print(atoms)
+        # print(atoms)
+        atoms_array.append(atoms)
         plt.subplot(the_grid[ii, 2])
         y_new_str, cccc = smooth_xrd(atoms=atoms, intvl=intvl, thetas=thetas)
         # x, d_hkls1, y = XRD().simulate(atoms=optim)
@@ -354,3 +457,91 @@ def main_spectra(
         plt.close()
     # plt.xlim([0,90])
     # plt.legend()
+
+
+def parse_formula(formula):
+    def expand_group(element_dict, group, multiplier):
+        """Expand nested groups with multipliers."""
+        for elem, count in group.items():
+            element_dict[elem] += count * multiplier
+
+    def get_elements_and_count(group):
+        """Extract elements and their counts from a string group."""
+        elements = defaultdict(int)
+        # Capture elements and their counts, ignoring charge notations
+        matches = re.findall(r"([A-Z][a-z]?)(\d*)", group)
+        for element, count in matches:
+            elements[element] += int(count) if count else 1
+        return elements
+
+    # Remove all charge descriptions (e.g., ^4+, ^3-, etc.)
+    formula = re.sub(r"\^\d*[\+\-]?", "", formula)
+
+    # Remove underscores which may indicate counts
+    formula = formula.replace("_", "")
+
+    # Pattern to capture element groups (e.g., (CO3)4)
+    pattern = r"\(([^()]+)\)(\d+)"
+    element_dict = defaultdict(int)
+
+    # Extract all parenthesized groups and process them
+    while re.search(pattern, formula):
+        matches = re.findall(pattern, formula)
+        for group, multiplier in matches:
+            elements = get_elements_and_count(group)
+            expand_group(element_dict, elements, int(multiplier))
+            formula = formula.replace(f"({group}){multiplier}", "", 1)
+
+    # Process remaining non-parenthesized elements
+    remaining_elements = get_elements_and_count(formula)
+    expand_group(element_dict, remaining_elements, 1)
+
+    # Construct the compact formula
+    compact_formula = "".join(
+        f'{elem}{count if count > 1 else ""}'
+        for elem, count in sorted(element_dict.items())
+    )
+    return compact_formula
+
+
+def load_exp_file(filename="", intvl=0.3):
+    # df = pd.read_csv(
+    #     filename,
+    #     skiprows=1,
+    #     sep=" ",
+    #     engine="python",
+    # )
+    df = pd.read_csv(filename, skiprows=1, sep=" ", names=["X", "Y"])
+    if ".txt" in filename:
+
+        with open(filename, "r") as f:
+            lines = f.read().splitlines()
+        for i in lines:
+            if "##IDEAL CHEMISTRY=" in i:
+                formula = Composition.from_string(
+                    i.split("##IDEAL CHEMISTRY=")[1]
+                    .replace("_", "")
+                    .replace("^", "")
+                    .replace("+", "")
+                ).reduced_formula
+
+                tmp = (
+                    i.split("##IDEAL CHEMISTRY=")[1]
+                    .replace("_", "")
+                    .split("&#")[0]
+                )
+                formula = parse_formula(tmp)
+                print(formula, i)
+
+    else:
+        formula = filename.split(".dat")[0]
+    x = df["X"].values
+    y = df["Y"].values
+    # if df["Z"].isnull()[0]:
+    #     y = df["Y"].values
+    # else:
+    #     y = df["Z"].values
+    y = np.array(y)
+    y = y / np.max(y)
+    x, y_corrected = processed(x=x, y=y, intvl=intvl)
+    return formula, x, y_corrected

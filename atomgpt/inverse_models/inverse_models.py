@@ -60,7 +60,7 @@ class TrainingPropConfig(BaseSettings):
     num_train: Optional[int] = 2
     num_val: Optional[int] = 2
     num_test: Optional[int] = 2
-    model_save_path: str = "lora_model_m"
+    model_save_path: str = "atomgpt_lora_model"
     loss_type: str = "default"
     optim: str = "adamw_8bit"
     id_tag: str = "id"
@@ -168,7 +168,7 @@ def formatting_prompts_func(examples, alpaca_prompt):
 
 def load_model(path="", config=None):
     if config is None:
-        config_file = os.path.join(path, "atomgpt_config.json")
+        config_file = os.path.join(path, "config.json")
         config = loadjson(config_file)
         config = TrainingPropConfig(**config)
         pprint.pprint(config.dict())
@@ -192,7 +192,7 @@ def evaluate(
     for i in tqdm(test_set, total=len(test_set)):
         # try:
         prompt = i["input"]
-        print("prompt", prompt)
+        # print("prompt", prompt)
         gen_mat = gen_atoms(
             prompt=i["input"],
             tokenizer=tokenizer,
@@ -322,10 +322,10 @@ def main(config_file=None):
     if not os.path.exists(config.model_save_path):
         os.makedirs(config.model_save_path)
     tmp = config.dict()
-    f = open(os.path.join(config.output_dir, "atomgpt_config.json"), "w")
+    f = open(os.path.join(config.output_dir, "config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
-    f = open(os.path.join(config.model_save_path, "atomgpt_config.json"), "w")
+    f = open(os.path.join(config.model_save_path, "config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
     id_prop_path = config.id_prop_path
@@ -451,7 +451,10 @@ def main(config_file=None):
     # tokenizer.pad_token_id = tokenizer.eos_token_id
     # model.resize_token_embeddings(len(tokenizer))
     dataset = load_dataset(
-        "json", data_files="alpaca_prop_train.json", split="train"
+        "json",
+        data_files=alpaca_prop_train_filename,
+        split="train",
+        # "json", data_files="alpaca_prop_train.json", split="train"
     )
     formatting_prompts_func_with_prompt = partial(
         formatting_prompts_func, alpaca_prompt=config.alpaca_prompt

@@ -1,4 +1,4 @@
-# AtomGPT: atomistic generative pre-trained transformer for forward and inverse materials design
+# AtomGPT & DiffractGPT: atomistic generative pre-trained transformer for forward and inverse materials design
 
 Large language models (LLMs) such as [ChatGPT](https://openai.com/chatgpt/) have shown immense potential for various commercial applications, but their applicability for materials design remains underexplored. In this work, AtomGPT is introduced as a model specifically developed for materials design based on transformer architectures, demonstrating capabilities for both atomistic property prediction and structure generation tasks. This study shows that a combination of chemical and structural text descriptions can efficiently predict material properties with accuracy comparable to graph neural network models, including formation energies, electronic bandgaps from two different methods, and superconducting transition temperatures. Furthermore, AtomGPT can generate atomic structures for tasks such as designing new superconductors, with the predictions validated through density functional theory calculations. This work paves the way for leveraging LLMs in forward and inverse materials design, offering an efficient approach to the discovery and optimization of materials.
 
@@ -9,52 +9,96 @@ Both forward and inverse models take a config.json file as an input. Such a conf
 ## Installation
 
 First create a conda environment:
-Install miniconda environment from https://conda.io/miniconda.html
-Based on your system requirements, you'll get a file something like 'Miniconda3-latest-XYZ'.
+Install miniforge https://github.com/conda-forge/miniforge
 
-Now,
-
-```
-bash Miniconda3-latest-Linux-x86_64.sh (for linux)
-bash Miniconda3-latest-MacOSX-x86_64.sh (for Mac)
-```
-Download 32/64 bit python 3.10 miniconda exe and install (for windows)
+For example: 
 
 ```
-conda create --name my_atomgpt python=3.10
+wget "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+```
+
+Based on your system requirements, you'll get a file something like 'Miniforge3-XYZ'.
+
+```
+bash Miniforge3-$(uname)-$(uname -m).sh
+```
+
+Now, make a conda environment:
+
+```
+conda create --name my_atomgpt python=3.10 -y
 conda activate my_atomgpt
 ```
 
 ```
 git clone https://github.com/usnistgov/atomgpt.git
 cd atomgpt
-pip install -q -r dev-requirements.txt
-pip install -q -e .
+pip install -e .
 ```
 
 ## Forward model example (structure to property)
 
 Forwards model are used for developing surrogate models for atomic structure to property predictions. It requires text input which can be either the raw POSCAR type files or a text description of the material. After that, we can use Google-T5/ OpenAI GPT2 etc. models with customizing langauage head for accomplishing such a task. The description of a material is generated with [ChemNLP/describer](https://github.com/usnistgov/jarvis/blob/master/jarvis/core/atoms.py#L1567) function. If you turn [`convert`](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/forward_models/forward_models.py#L277) to `False`, you can also train on bare POSCAR files.
 
+For training:
+
 ```
 python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
 ```
+
+or use `atomgpt_forward_train` global executable.
+
+For inference:
+
+
+```
+python atomgpt/forward_models/forward_predict.py --output_dir out --pred_csv atomgpt/examples/forward_model/pred_list_forward.csv
+```
+
+or use `atomgpt_forward_predict` global executable.
+
 
 ## Inverse model example (property to structure)
 
 Inverse models are used for generating materials given property and description such as chemical formula. Currently, we use Mistral model, but other models such as Gemma, Lllama etc. can also be easily used. After the structure generation, we can optimize the structure with ALIGNN-FF model (example [here](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/ALIGNN_Structure_Relaxation_Phonons_Interface.ipynb) and then subject to density functional theory calculations for a few selected candidates using JARVIS-DFT or similar workflow (tutorial for example [here](https://pages.nist.gov/jarvis/tutorials/). Note that currently, the inversely model training as well as conference requires GPUs.
 
+For training:
+
 ```
 python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model/config.json
 ```
+
+or use `atomgpt_inverse_train` global executable.
+
+For inference:
+
+```
+python atomgpt/inverse_models/inverse_predict.py --output_dir outputs/ --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
+```
+
+or use `atomgpt_inverse_predict` global executable.
 
 
 ## DiffractGPT model example (spectral property to structure)
 
 Inverse models are also used for generating materials given spectra/multi value property such as X-ray diffraction and description such as chemical formula. 
 
+For training:
+
 ```
 python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/inverse_model_multi/config.json
+```
+
+For inference:
+
+```
+python atomgpt/inverse_models/inverse_predict.py --output_dir outputs_xrd --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv
+```
+
+or if you want to use the original model:
+
+```
+python atomgpt/inverse_models/inverse_predict.py --output_dir atomgpt/examples/inverse_model_multi --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv
 ```
 
 More detailed examples/case-studies would be added here soon.

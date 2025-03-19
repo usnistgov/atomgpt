@@ -3,31 +3,22 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+with open("requirements.txt", "r", encoding="utf-8") as fh:
+    requirements = fh.read().splitlines()
+
 setuptools.setup(
     name="atomgpt",
-    version="2024.10.30",
+    version="2024.11.30",
     author="Kamal Choudhary",
     author_email="kamal.choudhary@nist.gov",
     description="atomgpt",
-    install_requires=[
-        "numpy>=1.22.0",
-        "scipy>=1.6.3",
-        "jarvis-tools>=2021.07.19",
-        "transformers",
-        "pydantic_settings",
-        "peft",
-        "trl",
-        "triton",
-        "torch",
-        "sentencepiece",
-        "protobuf",
-        # "alignn",
-    ],
-    # scripts=["atomgpt/train_prop.py"],
+    install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "atomgpt_forward=atomgpt.forward_models.forward_models:main",
-            "atomgpt_inverse=atomgpt.inverse_models.inverse_models:main",
+            "atomgpt_forward_train=atomgpt.forward_models.forward_models:main",
+            "atomgpt_forward_predict=atomgpt.forward_models.forward_predict:predict",
+            "atomgpt_inverse_train=atomgpt.inverse_models.inverse_models:main",
+            "atomgpt_inverse_predict=atomgpt.inverse_models.inverse_predict:predict",
         ]
     },
     long_description=long_description,
