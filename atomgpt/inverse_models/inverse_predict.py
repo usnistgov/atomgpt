@@ -31,7 +31,7 @@ def predict(
     fname="out_inv.json",
     device="cuda",
 ):
-    temp_config = loadjson(os.path.join(output_dir, "atomgpt_config.json"))
+    temp_config = loadjson(os.path.join(output_dir, "config.json"))
     temp_config = TrainingPropConfig(**temp_config).dict()
     max_seq_length = temp_config["max_seq_length"]
     model_name = temp_config["model_name"]
