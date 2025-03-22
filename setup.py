@@ -25,6 +25,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/usnistgov/atomgpt",
     packages=setuptools.find_packages(),
+    license_file="LICENSE.rst",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
