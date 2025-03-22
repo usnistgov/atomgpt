@@ -101,6 +101,59 @@ or if you want to use the original model:
 python atomgpt/inverse_models/inverse_predict.py --output_dir atomgpt/examples/inverse_model_multi --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv
 ```
 
+
+Example inference only case:
+
+Make a `tmp/pred_list.csv`
+
+```
+LaB6.dat
+```
+You can add multiple .dat file with 2theta, intentisty values in this csv file.
+
+Then add a `tmp/config.json`
+
+```
+{
+    "id_prop_path": "atomgpt/examples/inverse_model_multi/id_prop.csv",
+    "prefix": "atomgpt_run",
+    "model_name": "knc6/diffractgpt_mistral_chemical_formula",
+    "batch_size": 2,
+    "num_epochs": 2,
+    "logging_steps": 1,
+    "dataset_num_proc": 2,
+    "seed_val": 3407,
+    "learning_rate": 0.0002,
+    "per_device_train_batch_size": 2,
+    "gradient_accumulation_steps": 4,
+    "num_train": 2,
+    "num_val": 0,
+    "num_test": 2,
+    "model_save_path": "",
+    "loss_type": "default",
+    "optim": "adamw_8bit",
+    "lr_scheduler_type": "linear",
+    "output_dir": "outputs_xrd",
+    "csv_out": "AI-AtomGen-prop-dft_3d-test-rmse.csv",
+    "chem_info": "formula",
+    "max_seq_length": 2048,
+    "prop": "XRD",
+    "dtype": null,
+    "load_in_4bit": true,
+    "instruction": "Below is a description of a material.",
+    "alpaca_prompt": "### Instruction:\n{}\n### Input:\n{}\n### Output:\n{}",
+    "output_prompt": " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
+}
+
+```
+
+This data was generated with example script: `atomgpt/scripts/gen_data.py`
+
+```
+python atomgpt/inverse_models/inverse_predict.py --output_dir atomgpt/examples/inverse_model_multi/tmp  --pred_csv atomgpt/examples/inverse_model_multi/tmp/pred_list.csv
+```
+
+
 More detailed examples/case-studies would be added here soon.
 
 # Google colab/Jupyter notebook

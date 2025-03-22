@@ -30,6 +30,7 @@ def predict(
     pred_csv="pred_list_inverse.csv",
     fname="out_inv.json",
     device="cuda",
+    intvl=0.3,
 ):
     temp_config = loadjson(os.path.join(output_dir, "config.json"))
     temp_config = TrainingPropConfig(**temp_config).dict()
@@ -58,8 +59,8 @@ def predict(
         prompt = i
         if ".dat" in i:
             parent = Path(pred_csv).parent
-            fname = os.path.join(parent, i)
-            formula, x, y = load_exp_file(filename=fname, intvl=0.3)
+            fname_csv = os.path.join(parent, i)
+            formula, x, y = load_exp_file(filename=fname_csv, intvl=intvl)
             y[y < 0] = 0
             y_new_str = "\n".join(["{0:.2f}".format(x) for x in y])
             formula = str(formula.split("/")[-1].split(".dat")[0])
