@@ -34,6 +34,26 @@ def sharpen_peaks(y, sigma=0.5):
     return y_sharp
 
 
+"""
+def recast_array(
+    x_original=[], y_original=[], x_new=np.arange(0, 90, 1), tol=0.1
+):
+    x_original = np.array(x_original)
+    # Initialize the new y array with NaNs or a default value
+    y_new = np.zeros_like(x_new,  dtype=np.float64)
+    #y_new = np.full_like(x_new, 0, dtype=np.float64)
+
+    # Fill the corresponding bins
+    for x_val, y_val in zip(x_original, y_original):
+        closest_index = np.abs(
+            x_new - x_val
+        ).argmin()  # Find the closest x_new index
+        y_new[closest_index] = y_val
+    # y_new[y_new<tol]=0
+    return x_new, y_new
+"""
+
+
 def recast_array(
     x_original=[], y_original=[], x_new=np.arange(0, 90, 1), tol=0.1
 ):
@@ -51,7 +71,8 @@ def recast_array(
     return x_new, y_new
 
 
-def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.5):
+def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.3):
+    # def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.5):
     a, b, c = XRD(thetas=thetas).simulate(atoms=atoms)
     a = np.array(a)
     c = np.array(c)
@@ -511,7 +532,19 @@ def load_exp_file(filename="", intvl=0.3):
     #     sep=" ",
     #     engine="python",
     # )
-    df = pd.read_csv(filename, skiprows=1, sep=" ", names=["X", "Y"])
+
+    df = pd.read_csv(
+        filename,
+        skiprows=1,
+        sep=r"[ ,]+",
+        names=["X", "Y"],
+        comment="#",
+        engine="python",
+    )
+
+    # df = pd.read_csv(filename, skiprows=1, sep=" ", names=["X", "Y"], comment="#")
+    print("df")
+    print(df)
     if ".txt" in filename:
 
         with open(filename, "r") as f:
