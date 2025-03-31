@@ -1,13 +1,22 @@
 from jarvis.db.jsonutils import loadjson
 from typing import Optional
 from atomgpt.inverse_models.loader import FastLanguageModel
-from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
+
+# from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
+from transformers import (
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
+    TrainingArguments,
+)
+import torch
 from atomgpt.inverse_models.utils import (
     gen_atoms,
     text2atoms,
     get_crystal_string_t,
     get_figlet,
 )
+from trl import SFTTrainer
 import torch
 from peft import PeftModel
 from datasets import load_dataset
@@ -87,6 +96,106 @@ class TrainingPropConfig(BaseSettings):
     output_prompt: str = (
         " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
     )
+
+
+class ExampleTrainerCallback(TrainerCallback):
+    def __init__(
+        self,
+        some_tokenized_dataset,
+        tokenizer,
+        max_length=2048,
+        run_every="step",
+    ):
+        """
+        Args:
+            run_every: "epoch" or "step"
+        """
+        super().__init__()
+        self.some_tokenized_dataset = some_tokenized_dataset
+        self.tokenizer = tokenizer
+        # self.max_new_tokens = max_new_tokens
+        self.run_every = run_every
+        self.max_length = max_length
+
+    def on_step_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        if self.run_every == "step":
+            self._run_generation(args, state, control, **kwargs)
+
+    def on_epoch_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        if self.run_every == "epoch":
+            self._run_generation(args, state, control, **kwargs)
+
+    def _run_generation(self, args, state, control, **kwargs):
+        print("🧠 Generating predictions...")
+
+        model = kwargs["model"]
+        model.eval()
+
+        sample_dataset = (
+            self.some_tokenized_dataset
+        )  # .select(range(min(3, len(self.some_tokenized_dataset))))
+
+        with torch.no_grad():
+            for idx, item in enumerate(sample_dataset):
+                # Decode full input to string
+                full_input = self.tokenizer.decode(
+                    item["input_ids"], skip_special_tokens=True
+                )
+
+                # Extract prompt up to '### Output:'
+                if "### Output:" in full_input:
+                    prompt = full_input.split("### Output:")[0] + "### Output:"
+                else:
+                    prompt = full_input
+
+                # Re-tokenize the trimmed prompt
+                encoded_prompt = self.tokenizer(
+                    prompt, return_tensors="pt"
+                ).to(model.device)
+
+                # Generate continuation from the prompt
+                generated_ids = model.generate(
+                    input_ids=encoded_prompt["input_ids"],
+                    attention_mask=encoded_prompt.get("attention_mask", None),
+                    max_new_tokens=self.max_length,
+                    # max_new_tokens=self.max_new_tokens,
+                    do_sample=False,  # deterministic output
+                )
+
+                # Decode full output
+                generated_text = self.tokenizer.decode(
+                    generated_ids[0], skip_special_tokens=True
+                )
+
+                # Optional: remove prompt from generated text to isolate prediction
+                if generated_text.startswith(prompt):
+                    predicted_answer = generated_text[len(prompt) :].strip()
+                else:
+                    predicted_answer = generated_text.strip()
+
+                # Get human-written target
+                target_text = "\n" + (item.get("output", "<no target>"))
+                # print('target_text',target_text)
+                # print('predicted_answer',predicted_answer)
+                target_text = text2atoms(target_text)
+                # print('target_text2',target_text)
+                predicted_answer = text2atoms(predicted_answer)
+                print(f"\n🔹 Sample {idx}")
+                print(f"🔸 Prompt   :\n{prompt}")
+                print(f"🔸 Target   :\n{target_text}")
+                print(f"🔸 Predicted:\n{predicted_answer}")
 
 
 def get_input(config=None, chem="", val=10):
@@ -450,9 +559,15 @@ def main(config_file=None):
     EOS_TOKEN = tokenizer.eos_token  # Must add EOS_TOKEN
     # tokenizer.pad_token_id = tokenizer.eos_token_id
     # model.resize_token_embeddings(len(tokenizer))
-    dataset = load_dataset(
+    train_dataset = load_dataset(
         "json",
         data_files=alpaca_prop_train_filename,
+        split="train",
+        # "json", data_files="alpaca_prop_train.json", split="train"
+    )
+    eval_dataset = load_dataset(
+        "json",
+        data_files=alpaca_prop_test_filename,
         split="train",
         # "json", data_files="alpaca_prop_train.json", split="train"
     )
@@ -460,19 +575,42 @@ def main(config_file=None):
         formatting_prompts_func, alpaca_prompt=config.alpaca_prompt
     )
 
-    dataset = dataset.map(
+    def tokenize_function(example):
+        return tokenizer(
+            example["text"],
+            padding="max_length",
+            truncation=True,
+            max_length=config.max_seq_length,
+        )
+
+    train_dataset = train_dataset.map(
         formatting_prompts_func_with_prompt,
         batched=True,
     )
+    eval_dataset = eval_dataset.map(
+        formatting_prompts_func_with_prompt,
+        batched=True,
+    )
+    tokenized_train = train_dataset.map(tokenize_function, batched=True)
+    tokenized_eval = eval_dataset.map(tokenize_function, batched=True)
+    tokenized_train.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "output"]
+    )
+    tokenized_eval.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "output"]
+    )
 
-    trainer = CustomSFTTrainer(
+    trainer = SFTTrainer(
+        # trainer = CustomSFTTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=dataset,
+        train_dataset=tokenized_train,
+        eval_dataset=tokenized_eval,
+        # train_dataset=dataset,
         dataset_text_field="text",
         max_seq_length=config.max_seq_length,
         dataset_num_proc=config.dataset_num_proc,
-        loss_type=config.loss_type,
+        # loss_type=config.loss_type,
         packing=False,  # Can make training 5x faster for short sequences.
         args=TrainingArguments(
             per_device_train_batch_size=config.per_device_train_batch_size,
@@ -493,6 +631,26 @@ def main(config_file=None):
             report_to="none",
         ),
     )
+    callback = ExampleTrainerCallback(
+        some_tokenized_dataset=tokenized_eval,
+        tokenizer=tokenizer,
+        max_length=config.max_seq_length,
+    )
+    trainer.add_callback(callback)
+
+    # def tokenize_function(example):
+    #    return tokenizer(example['text'], padding="max_length", truncation=True)
+    # some_tokenized_dataset = load_dataset('json', data_files='path_to_your_data', split='test')
+    # some_tokenized_dataset = dataset.map(tokenize_function, batched=True)
+
+    # --------------- DO NOT FORGET TO ADD YOUR CALLBACKS TO YOUR TRAINER! -----------------------------------------------
+    # Create the callback with you custom code
+    # example_callback = ExampleTrainerCallback(
+    #   some_tokenized_dataset = some_tokenized_dataset
+    # )
+
+    # Add the callback to the Trainer
+    # trainer.add_callback(example_callback)
 
     trainer_stats = trainer.train()
     model.save_pretrained(config.model_save_path)

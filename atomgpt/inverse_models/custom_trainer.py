@@ -196,6 +196,300 @@ def a_compute_loss(target_structure, pred_structure):
     return total_loss
 
 
+from transformers.trainer_callback import TrainerCallback
+import torch
+from transformers.trainer_callback import TrainerCallback
+import torch
+from transformers.trainer_callback import TrainerCallback
+import torch
+
+
+class AtomicStructureCallback(TrainerCallback):
+    def __init__(self, extractor_function, tokenizer, device="cuda"):
+        super().__init__()
+        self.extractor_function = extractor_function
+        self.tokenizer = tokenizer
+        self.device = device
+        self.trainer = None
+
+    def set_trainer(self, trainer):
+        self.trainer = trainer
+        print("Successfully connected to trainer in set_trainer")
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        print("Training started - AtomicStructureCallback initialized")
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        if self.trainer is None:
+            return
+
+        print(f"\n===== Epoch {state.epoch:.0f} End =====")
+
+        model = self.trainer.model
+
+        if not hasattr(self, "train_dataloader"):
+            print("Creating dataloader iterator")
+            self.train_dataloader = self.trainer.get_train_dataloader()
+            self.dataloader_iter = iter(self.train_dataloader)
+
+        try:
+            batch = next(self.dataloader_iter)
+        except StopIteration:
+            print("Resetting dataloader iterator")
+            self.dataloader_iter = iter(self.train_dataloader)
+            batch = next(self.dataloader_iter)
+
+        self._process_batch(model, batch)
+
+    def _process_batch(self, model, batch):
+        batch = {
+            k: v.to(self.device) if isinstance(v, torch.Tensor) else v
+            for k, v in batch.items()
+        }
+
+        was_training = model.training
+        model.eval()
+
+        with torch.no_grad():
+            input_ids = batch["input_ids"][:2]
+            attention_mask = batch.get("attention_mask", None)
+            if attention_mask is not None:
+                attention_mask = attention_mask[:2]
+
+            input_texts = self.tokenizer.batch_decode(
+                input_ids, skip_special_tokens=True
+            )
+
+            outputs = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=512,
+                num_return_sequences=1,
+            )
+
+        generated_texts = self.tokenizer.batch_decode(
+            outputs, skip_special_tokens=True
+        )
+        atomic_structures = self.extractor_function(generated_texts)
+
+        for i, (input_text, gen_text, structure) in enumerate(
+            zip(input_texts, generated_texts, atomic_structures)
+        ):
+            print(f"\nExample {i+1}:")
+            print(f"Input: {input_text[:100]}...")
+            print(f"Generated: {gen_text[:100]}...")
+            print(f"Extracted atomic structure:\n{structure}\n")
+            print("-" * 40)
+
+        if was_training:
+            model.train()
+
+
+class AtomicStructureCallbackddd(TrainerCallback):
+    def __init__(
+        self, extractor_function, tokenizer, device="cuda", step_frequency=100
+    ):
+        super().__init__()
+        self.extractor_function = extractor_function
+        self.tokenizer = tokenizer
+        self.device = device
+        self.step_frequency = step_frequency
+        self.trainer = None
+
+    def set_trainer(self, trainer):
+        """Gets called automatically when the trainer is initialized"""
+        self.trainer = trainer
+        print("Successfully connected to trainer in set_trainer")
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        print("Training started - AtomicStructureCallback initialized")
+        print("dddddd", self.trainer.get_train_dataloader())
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if (
+            state.global_step % self.step_frequency != 0
+            or self.trainer is None
+        ):
+            return
+
+        print(f"\n----- Step {state.global_step} -----")
+
+        model = self.trainer.model
+
+        if not hasattr(self, "train_dataloader"):
+            print("Creating dataloader iterator")
+            self.train_dataloader = self.trainer.get_train_dataloader()
+            self.dataloader_iter = iter(self.train_dataloader)
+
+        try:
+            batch = next(self.dataloader_iter)
+        except StopIteration:
+            print("Resetting dataloader iterator")
+            self.dataloader_iter = iter(self.train_dataloader)
+            batch = next(self.dataloader_iter)
+
+        self._process_batch(model, batch)
+
+    def _process_batch(self, model, batch):
+        batch = {
+            k: v.to(self.device) if isinstance(v, torch.Tensor) else v
+            for k, v in batch.items()
+        }
+
+        was_training = model.training
+        model.eval()
+
+        with torch.no_grad():
+            input_ids = batch["input_ids"][:2]
+            attention_mask = batch.get("attention_mask", None)
+            if attention_mask is not None:
+                attention_mask = attention_mask[:2]
+
+            input_texts = self.tokenizer.batch_decode(
+                input_ids, skip_special_tokens=True
+            )
+
+            outputs = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=512,
+                num_return_sequences=1,
+            )
+
+        generated_texts = self.tokenizer.batch_decode(
+            outputs, skip_special_tokens=True
+        )
+        atomic_structures = self.extractor_function(generated_texts)
+
+        for i, (input_text, gen_text, structure) in enumerate(
+            zip(input_texts, generated_texts, atomic_structures)
+        ):
+            print(f"\nExample {i+1}:")
+            print(f"Input: {input_text[:100]}...")
+            print(f"Generated: {gen_text[:100]}...")
+            print(f"Extracted atomic structure:\n{structure}\n")
+            print("-" * 40)
+
+        if was_training:
+            model.train()
+
+
+class AtomicStructureCallbackX(TrainerCallback):
+    def __init__(
+        self, extractor_function, tokenizer, device="cuda", step_frequency=100
+    ):
+        super().__init__()
+        self.extractor_function = extractor_function
+        self.tokenizer = tokenizer
+        self.device = device
+        self.step_frequency = step_frequency
+        self.trainer = None
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        """Store reference to the trainer when training begins"""
+        print("Training started - AtomicStructureCallback initialized")
+        if "trainer" in kwargs:
+            self.trainer = kwargs["trainer"]
+            print("Successfully connected to trainer")
+        else:
+            print("Warning: Could not access trainer")
+
+    def on_step_end(self, args, state, control, **kwargs):
+        """Extract structures at regular intervals during training"""
+        if (
+            state.global_step % self.step_frequency != 0
+            or self.trainer is None
+        ):
+            return
+
+        print(f"\n----- Step {state.global_step} -----")
+
+        # Access the model from the trainer
+        model = self.trainer.model
+
+        # Get a batch from the training dataloader
+        if not hasattr(self, "train_dataloader"):
+            print("Creating dataloader iterator")
+            self.train_dataloader = self.trainer.get_train_dataloader()
+            self.dataloader_iter = iter(self.train_dataloader)
+
+        try:
+            batch = next(self.dataloader_iter)
+        except StopIteration:
+            print("Resetting dataloader iterator")
+            self.dataloader_iter = iter(self.train_dataloader)
+            batch = next(self.dataloader_iter)
+
+        # Process the batch
+        self._process_batch(model, batch)
+
+    def _process_batch(self, model, batch):
+        """Process a batch to extract atomic structures"""
+        # Move to correct device
+        batch = {
+            k: v.to(self.device) if isinstance(v, torch.Tensor) else v
+            for k, v in batch.items()
+        }
+
+        # Save model state
+        was_training = model.training
+        model.eval()
+
+        # Generate predictions
+        with torch.no_grad():
+            # Take just a few examples
+            input_ids = batch["input_ids"][:2]
+            attention_mask = batch.get("attention_mask", None)
+            if attention_mask is not None:
+                attention_mask = attention_mask[:2]
+
+            # Get input texts for reference
+            input_texts = self.tokenizer.batch_decode(
+                input_ids, skip_special_tokens=True
+            )
+
+            # Generate outputs
+            outputs = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=512,  # Adjust as needed
+                num_return_sequences=1,
+            )
+
+        # Decode generated outputs
+        generated_texts = self.tokenizer.batch_decode(
+            outputs, skip_special_tokens=True
+        )
+
+        # Extract atomic structures
+        atomic_structures = self.extractor_function(generated_texts)
+
+        # Print the results
+        for i, (input_text, gen_text, structure) in enumerate(
+            zip(input_texts, generated_texts, atomic_structures)
+        ):
+            print(f"\nExample {i+1}:")
+            print(f"Input: {input_text[:100]}...")
+            print(f"Generated: {gen_text[:100]}...")
+            print(f"Extracted atomic structure:\n{structure}\n")
+            print("-" * 40)
+
+        # Restore model state
+        if was_training:
+            model.train()
+
+
+def extract_atomic_structure(target_texts):
+    atomic_structures = []
+    for text in target_texts:
+        if "### Output:" in text:
+            structure_part = text.split("### Output:")[1].strip()
+            atomic_structures.append(structure_part)
+        else:
+            atomic_structures.append("No structure found")
+    return atomic_structures
+
+
 class CustomCallback(TrainerCallback):
     def __init__(self):
         super().__init__()
@@ -226,6 +520,76 @@ class CustomCallback(TrainerCallback):
     # on_log, on_prediction_step, on_save, etc.
 
 
+def extract_atomic_structure(target_texts):
+    atomic_structures = []
+    for text in target_texts:
+        # Split the text at "### Output:"
+        if "### Output:" in text:
+            structure_part = text.split("### Output:")[1].strip()
+            atomic_structures.append(structure_part)
+        else:
+            print("No '### Output:' found in the text.")
+    return atomic_structures
+
+
+from transformers import TrainerCallback, TrainerState, TrainerControl
+
+
+class ExampleTrainerCallback(TrainerCallback):
+    """Custom ExampleTrainerCallback that accesses the model after each epoch"""
+
+    def __init__(self, some_tokenized_dataset):
+        """Initializes the ExampleTrainerCallback instance."""
+        super().__init__()
+        # --------------------- Add custom code here ------------------------------------
+        self.some_tokenized_dataset = some_tokenized_dataset
+        # ------------------------------------------------------------------------------
+
+    # Overriding the on_epoch_end() function
+    def on_epoch_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        """
+        Event called at the end of an epoch.
+        """
+        # --------------------- Add custom code here ------------------------------------
+        print("Hello an epoch has ended!")
+
+        # Access the current state of the model after the epoch ends:
+        model = kwargs["model"]
+
+        # Add some custom code here...
+        model.eval()
+
+        # Perform inference on some dataset
+        with torch.no_grad():
+            for item in self.some_tokenized_dataset:
+                print("item", item)
+                print("item k", item.keys())
+                input_ids = item[
+                    "input_ids"
+                ]  # .unsqueeze(0)  # Add batch dimension
+                attention_mask = item[
+                    "attention_mask"
+                ]  # .unsqueeze(0)  # Add batch dimension
+
+                # Forward pass, assuming model is a BertForSequenceClassification type
+                # i.e. model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+                outputs = model(
+                    input_ids=input_ids, attention_mask=attention_mask
+                )
+                logits = outputs.logits
+                probabilities = torch.nn.functional.softmax(logits, dim=-1)
+                prediction = torch.argmax(probabilities, dim=-1).item()
+                print("x", prediction)
+                # Do something with prediction
+        # ------------------------------------------------------------------------------
+
+
 class CustomSFTTrainer(SFTTrainer):
     def __init__(
         self,
@@ -238,7 +602,8 @@ class CustomSFTTrainer(SFTTrainer):
         packing,
         args: TrainingArguments,
         loss_type="default",  # Default to MSE
-        callbacks=CustomCallback(),
+        # callbacks=CustomCallback(),
+        # callbacks=CustomCallback(),
     ):
         """
         Initialize CustomSFTTrainer with explicit parameters and loss type.
@@ -262,10 +627,32 @@ class CustomSFTTrainer(SFTTrainer):
             dataset_num_proc=dataset_num_proc,
             packing=packing,
             args=args,
+            # callbacks=[AtomicStructureCallback(extractor_function=extract_atomic_structure, tokenizer=tokenizer)]
         )
+
+        # atomic_callback = AtomicStructureCallback(
+        #    extractor_function=extract_atomic_structure,  # Your function
+        #    tokenizer=tokenizer,  # Your tokenizer
+        #    device=model.device  # Get the device from your model
+        # )
         # self.model=model
-        if callbacks:
-            self.add_callback(callbacks)
+        # if callbacks:
+        #    self.add_callback(callbacks)
+        # self.add_callback(atomic_callback)
+        # cback = AtomicStructureCallback(extractor_function=extract_atomic_structure, tokenizer=tokenizer)
+        def tokenize_function(example):
+            return tokenizer(
+                example["text"], padding="max_length", truncation=True
+            )
+
+        some_tokenized_dataset = train_dataset.map(
+            tokenize_function, batched=True
+        )
+        example_callback = ExampleTrainerCallback(
+            some_tokenized_dataset=some_tokenized_dataset
+        )
+        self.add_callback(example_callback)
+        # self.add_callback(cback)
         self.loss_type = loss_type.lower()
         # self.use_bare_trainer = use_bare_trainer
 
