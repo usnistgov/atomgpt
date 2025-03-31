@@ -3,8 +3,13 @@ import torch
 import torch.nn as nn
 from trl import SFTTrainer
 from atomgpt.inverse_models.utils import text2atoms
-from transformers.trainer_callback import TrainerCallback
+from transformers import TrainerCallback, TrainerState, TrainerControl
 from jarvis.core.specie import Specie
+import re
+import torch
+from trl import SFTTrainer
+import torch
+import torch.nn.functional as F
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -196,14 +201,6 @@ def a_compute_loss(target_structure, pred_structure):
     return total_loss
 
 
-from transformers.trainer_callback import TrainerCallback
-import torch
-from transformers.trainer_callback import TrainerCallback
-import torch
-from transformers.trainer_callback import TrainerCallback
-import torch
-
-
 class AtomicStructureCallback(TrainerCallback):
     def __init__(self, extractor_function, tokenizer, device="cuda"):
         super().__init__()
@@ -285,211 +282,6 @@ class AtomicStructureCallback(TrainerCallback):
             model.train()
 
 
-class AtomicStructureCallbackddd(TrainerCallback):
-    def __init__(
-        self, extractor_function, tokenizer, device="cuda", step_frequency=100
-    ):
-        super().__init__()
-        self.extractor_function = extractor_function
-        self.tokenizer = tokenizer
-        self.device = device
-        self.step_frequency = step_frequency
-        self.trainer = None
-
-    def set_trainer(self, trainer):
-        """Gets called automatically when the trainer is initialized"""
-        self.trainer = trainer
-        print("Successfully connected to trainer in set_trainer")
-
-    def on_train_begin(self, args, state, control, **kwargs):
-        print("Training started - AtomicStructureCallback initialized")
-        print("dddddd", self.trainer.get_train_dataloader())
-
-    def on_step_end(self, args, state, control, **kwargs):
-        if (
-            state.global_step % self.step_frequency != 0
-            or self.trainer is None
-        ):
-            return
-
-        print(f"\n----- Step {state.global_step} -----")
-
-        model = self.trainer.model
-
-        if not hasattr(self, "train_dataloader"):
-            print("Creating dataloader iterator")
-            self.train_dataloader = self.trainer.get_train_dataloader()
-            self.dataloader_iter = iter(self.train_dataloader)
-
-        try:
-            batch = next(self.dataloader_iter)
-        except StopIteration:
-            print("Resetting dataloader iterator")
-            self.dataloader_iter = iter(self.train_dataloader)
-            batch = next(self.dataloader_iter)
-
-        self._process_batch(model, batch)
-
-    def _process_batch(self, model, batch):
-        batch = {
-            k: v.to(self.device) if isinstance(v, torch.Tensor) else v
-            for k, v in batch.items()
-        }
-
-        was_training = model.training
-        model.eval()
-
-        with torch.no_grad():
-            input_ids = batch["input_ids"][:2]
-            attention_mask = batch.get("attention_mask", None)
-            if attention_mask is not None:
-                attention_mask = attention_mask[:2]
-
-            input_texts = self.tokenizer.batch_decode(
-                input_ids, skip_special_tokens=True
-            )
-
-            outputs = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                max_length=512,
-                num_return_sequences=1,
-            )
-
-        generated_texts = self.tokenizer.batch_decode(
-            outputs, skip_special_tokens=True
-        )
-        atomic_structures = self.extractor_function(generated_texts)
-
-        for i, (input_text, gen_text, structure) in enumerate(
-            zip(input_texts, generated_texts, atomic_structures)
-        ):
-            print(f"\nExample {i+1}:")
-            print(f"Input: {input_text[:100]}...")
-            print(f"Generated: {gen_text[:100]}...")
-            print(f"Extracted atomic structure:\n{structure}\n")
-            print("-" * 40)
-
-        if was_training:
-            model.train()
-
-
-class AtomicStructureCallbackX(TrainerCallback):
-    def __init__(
-        self, extractor_function, tokenizer, device="cuda", step_frequency=100
-    ):
-        super().__init__()
-        self.extractor_function = extractor_function
-        self.tokenizer = tokenizer
-        self.device = device
-        self.step_frequency = step_frequency
-        self.trainer = None
-
-    def on_train_begin(self, args, state, control, **kwargs):
-        """Store reference to the trainer when training begins"""
-        print("Training started - AtomicStructureCallback initialized")
-        if "trainer" in kwargs:
-            self.trainer = kwargs["trainer"]
-            print("Successfully connected to trainer")
-        else:
-            print("Warning: Could not access trainer")
-
-    def on_step_end(self, args, state, control, **kwargs):
-        """Extract structures at regular intervals during training"""
-        if (
-            state.global_step % self.step_frequency != 0
-            or self.trainer is None
-        ):
-            return
-
-        print(f"\n----- Step {state.global_step} -----")
-
-        # Access the model from the trainer
-        model = self.trainer.model
-
-        # Get a batch from the training dataloader
-        if not hasattr(self, "train_dataloader"):
-            print("Creating dataloader iterator")
-            self.train_dataloader = self.trainer.get_train_dataloader()
-            self.dataloader_iter = iter(self.train_dataloader)
-
-        try:
-            batch = next(self.dataloader_iter)
-        except StopIteration:
-            print("Resetting dataloader iterator")
-            self.dataloader_iter = iter(self.train_dataloader)
-            batch = next(self.dataloader_iter)
-
-        # Process the batch
-        self._process_batch(model, batch)
-
-    def _process_batch(self, model, batch):
-        """Process a batch to extract atomic structures"""
-        # Move to correct device
-        batch = {
-            k: v.to(self.device) if isinstance(v, torch.Tensor) else v
-            for k, v in batch.items()
-        }
-
-        # Save model state
-        was_training = model.training
-        model.eval()
-
-        # Generate predictions
-        with torch.no_grad():
-            # Take just a few examples
-            input_ids = batch["input_ids"][:2]
-            attention_mask = batch.get("attention_mask", None)
-            if attention_mask is not None:
-                attention_mask = attention_mask[:2]
-
-            # Get input texts for reference
-            input_texts = self.tokenizer.batch_decode(
-                input_ids, skip_special_tokens=True
-            )
-
-            # Generate outputs
-            outputs = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                max_length=512,  # Adjust as needed
-                num_return_sequences=1,
-            )
-
-        # Decode generated outputs
-        generated_texts = self.tokenizer.batch_decode(
-            outputs, skip_special_tokens=True
-        )
-
-        # Extract atomic structures
-        atomic_structures = self.extractor_function(generated_texts)
-
-        # Print the results
-        for i, (input_text, gen_text, structure) in enumerate(
-            zip(input_texts, generated_texts, atomic_structures)
-        ):
-            print(f"\nExample {i+1}:")
-            print(f"Input: {input_text[:100]}...")
-            print(f"Generated: {gen_text[:100]}...")
-            print(f"Extracted atomic structure:\n{structure}\n")
-            print("-" * 40)
-
-        # Restore model state
-        if was_training:
-            model.train()
-
-
-def extract_atomic_structure(target_texts):
-    atomic_structures = []
-    for text in target_texts:
-        if "### Output:" in text:
-            structure_part = text.split("### Output:")[1].strip()
-            atomic_structures.append(structure_part)
-        else:
-            atomic_structures.append("No structure found")
-    return atomic_structures
-
-
 class CustomCallback(TrainerCallback):
     def __init__(self):
         super().__init__()
@@ -518,21 +310,6 @@ class CustomCallback(TrainerCallback):
 
     # Other methods you can override:
     # on_log, on_prediction_step, on_save, etc.
-
-
-def extract_atomic_structure(target_texts):
-    atomic_structures = []
-    for text in target_texts:
-        # Split the text at "### Output:"
-        if "### Output:" in text:
-            structure_part = text.split("### Output:")[1].strip()
-            atomic_structures.append(structure_part)
-        else:
-            print("No '### Output:' found in the text.")
-    return atomic_structures
-
-
-from transformers import TrainerCallback, TrainerState, TrainerControl
 
 
 class ExampleTrainerCallback(TrainerCallback):
@@ -590,170 +367,185 @@ class ExampleTrainerCallback(TrainerCallback):
         # ------------------------------------------------------------------------------
 
 
-class CustomSFTTrainer(SFTTrainer):
-    def __init__(
-        self,
-        model,
-        tokenizer,
-        train_dataset,
-        dataset_text_field,
-        max_seq_length,
-        dataset_num_proc,
-        packing,
-        args: TrainingArguments,
-        loss_type="default",  # Default to MSE
-        # callbacks=CustomCallback(),
-        # callbacks=CustomCallback(),
-    ):
-        """
-        Initialize CustomSFTTrainer with explicit parameters and loss type.
-
-        :param model: The model to train.
-        :param tokenizer: The tokenizer to preprocess the data.
-        :param train_dataset: The dataset for training.
-        :param dataset_text_field: The text field in the dataset.
-        :param max_seq_length: Maximum sequence length for tokenization.
-        :param dataset_num_proc: Number of processes for dataset preprocessing.
-        :param packing: Whether to use packing for sequences.
-        :param args: TrainingArguments object.
-        :param loss_type: The type of loss function ('mse', 'l1', 'cross_entropy').
-        """
-        super().__init__(
-            model=model,
-            tokenizer=tokenizer,
-            train_dataset=train_dataset,
-            dataset_text_field=dataset_text_field,
-            max_seq_length=max_seq_length,
-            dataset_num_proc=dataset_num_proc,
-            packing=packing,
-            args=args,
-            # callbacks=[AtomicStructureCallback(extractor_function=extract_atomic_structure, tokenizer=tokenizer)]
-        )
-
-        # atomic_callback = AtomicStructureCallback(
-        #    extractor_function=extract_atomic_structure,  # Your function
-        #    tokenizer=tokenizer,  # Your tokenizer
-        #    device=model.device  # Get the device from your model
-        # )
-        # self.model=model
-        # if callbacks:
-        #    self.add_callback(callbacks)
-        # self.add_callback(atomic_callback)
-        # cback = AtomicStructureCallback(extractor_function=extract_atomic_structure, tokenizer=tokenizer)
-        def tokenize_function(example):
-            return tokenizer(
-                example["text"], padding="max_length", truncation=True
-            )
-
-        some_tokenized_dataset = train_dataset.map(
-            tokenize_function, batched=True
-        )
-        example_callback = ExampleTrainerCallback(
-            some_tokenized_dataset=some_tokenized_dataset
-        )
-        self.add_callback(example_callback)
-        # self.add_callback(cback)
-        self.loss_type = loss_type.lower()
-        # self.use_bare_trainer = use_bare_trainer
-
-    def calculate_density(self, atomic_structure):
-        return len(
-            atomic_structure
-        )  # Placeholder: use actual calculation logic
-
-    def extract_atomic_structure(self, target_texts):
-        atomic_structures = []
-        for text in target_texts:
-            # Split the text at "### Output:"
-            if "### Output:" in text:
-                structure_part = text.split("### Output:")[1].strip()
+def extract_atomic_structure(target_texts):
+    atomic_structures = []
+    for text in target_texts:
+        if "### Output:" in text:
+            structure_part = text.split("### Output:")[1].strip()
+            # Basic validation: must contain at least 3 lines (lattice, angles, 1 atom)
+            lines = structure_part.splitlines()
+            if len(lines) >= 3:
                 atomic_structures.append(structure_part)
             else:
-                print("No '### Output:' found in the text.")
-        return atomic_structures
+                print("⚠️ Output too short, skipping.")
+        else:
+            print("⚠️ No '### Output:' found in the text.")
+    return atomic_structures
 
+
+def parse_structure_text(text):
+    if "### Output:" in text:
+        text = text.split("### Output:")[1]
+    else:
+        raise ValueError("No '### Output:' section found.")
+
+    lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+
+    if len(lines) < 3:
+        raise ValueError("Too few lines to be a valid atomic structure.")
+
+    try:
+        lattice = list(map(float, lines[0].split()))
+        if len(lattice) != 3:
+            raise ValueError("Lattice line must contain exactly 3 values.")
+
+        angles = list(map(float, lines[1].split()))
+        if len(angles) != 3:
+            raise ValueError("Angles line must contain exactly 3 values.")
+    except Exception as e:
+        raise ValueError(f"Failed to parse lattice/angles: {e}")
+
+    # FIXED: capture 4 groups (element + 3 floats)
+    atom_line_pattern = re.compile(
+        r"^\s*([A-Z][a-z]?)\s+"
+        r"([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s+"
+        r"([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s+"
+        r"([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)"
+    )
+
+    atoms = []
+    for i, line in enumerate(lines[2:], start=3):
+        match = atom_line_pattern.match(line)
+        if match:
+            try:
+                element = match.group(1)
+                coords = [
+                    float(match.group(2)),
+                    float(match.group(3)),
+                    float(match.group(4)),
+                ]
+                atoms.append((element, coords))
+            except Exception as e:
+                print(f"⚠️ Failed to parse atom line {i}: {line} | Error: {e}")
+        else:
+            print(f"⚠️ Line {i} does not match atom pattern: {line}")
+            continue
+
+    if len(atoms) == 0:
+        raise ValueError("No valid atom lines found.")
+
+    return lattice, angles, atoms
+
+
+class CustomSFTTrainer(SFTTrainer):
     def compute_loss(self, model, inputs, return_outputs=False):
-        """
-        Custom loss computation based on the selected loss type or the bare trainer.
-        """
-        if self.loss_type == "default":  # crossentropy
-            # Currently recommneded to use default
-            return super().compute_loss(model, inputs, return_outputs)
-
-        # Custom loss computation
-        labels = inputs.get("labels")
-        # print("Labels:", labels)
-
-        # Forward pass
         outputs = model(**inputs)
         logits = outputs.logits
+        labels = inputs["labels"]
+        # print("labels",labels)
 
-        # Select appropriate loss function
-        if self.loss_type == "mse":
-            loss_fn = nn.MSELoss()
-            target = labels.float()
-            loss = loss_fn(logits.view(-1), target.view(-1))
-        elif self.loss_type == "l1":
-            loss_fn = nn.L1Loss()
-            target = labels.float()
-            loss = loss_fn(logits.view(-1), target.view(-1))
-        elif self.loss_type == "atomgpt_structure":
-            print("Not tested, use with caution")
-            if labels is not None:
-                # labels = labels.cpu().numpy()
-                # print("self.tokenizer", self.tokenizer)
-                # print("inputs", inputs,inputs['input_ids'].shape)
-                logits = logits.argmax(-1)  # .view(-1)
-                # print('logits',logits,logits.shape)
-                # print('labels1',labels,labels.shape)
-                # Need to make generalized
-                # labels[labels == -100] = 0 #self.tokenizer.eos_token_id
-                # print('labels2',labels,labels.shape)
-                # Generate outputs
-                # Decode generated text (example for illustration)
-                # loss_fn = nn.CrossEntropyLoss()
-                loss_fn = nn.L1Loss()
-                # x = logits.view(-1, logits.size(-1))
-                # y = labels.view(-1)
-                loss = loss_fn(logits, labels)
-                return loss
+        # Decode predicted texts
+        # predictions = torch.argmax(logits, dim=-1)
+        # pred_texts = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
 
-                target_texts = self.tokenizer.batch_decode(
-                    labels, skip_special_tokens=True
-                )
-                pred_texts = self.tokenizer.batch_decode(
-                    logits, skip_special_tokens=True
-                )
-                # print('target_texts',target_texts)
-                # print('pred_texts',pred_texts)
-                # Extract atomic structures (or manipulate the texts)
-                target_atomic_structures = self.extract_atomic_structure(
-                    target_texts
-                )
-                pred_atomic_structures = self.extract_atomic_structure(
-                    pred_texts
-                )
-                # print('target_atomic_structures',target_atomic_structures)
-                # print('pred_atomic_structures',pred_atomic_structures)
-                total_loss = 0
-                for target, pred in zip(
-                    target_atomic_structures, pred_atomic_structures
-                ):
-                    total_loss += compute_losses(
-                        parse_structure(target), parse_structure(pred)
-                    )
-                # print('loss',total_loss)
-                return total_loss
+        input_ids = inputs[
+            "input_ids"
+        ]  # assuming input includes only prompt (not full answer)
+        attention_mask = inputs.get("attention_mask", None)
 
-        elif self.loss_type == "cross_entropy":
-            loss_fn = nn.CrossEntropyLoss()
-            x = logits.view(-1, logits.size(-1))
-            y = labels.view(-1)
-            # print('x',x.shape)
-            # print('y',y.shape)
-            loss = loss_fn(logits.view(-1, logits.size(-1)), labels.view(-1))
-            # print('loss',loss,loss.shape)
-        else:
-            raise ValueError(f"Unsupported loss type: {self.loss_type}")
+        generated_ids = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            eos_token_id=self.tokenizer.eos_token_id,
+            max_new_tokens=108,
+            do_sample=False,  # greedy decoding
+        )
 
-        return (loss, outputs) if return_outputs else loss
+        pred_texts = self.tokenizer.batch_decode(
+            generated_ids, skip_special_tokens=True
+        )
+
+        # Clean and decode target texts
+        if isinstance(labels, torch.Tensor):
+            labels = labels.tolist()
+
+        cleaned_labels = [[t for t in seq if t != -100] for seq in labels]
+        target_texts = self.tokenizer.batch_decode(
+            cleaned_labels, skip_special_tokens=True
+        )
+
+        # Device where model tensors live
+        device = logits.device
+        total_loss = None
+
+        for pred, target in zip(pred_texts, target_texts):
+            # try:
+            if target:
+                print("target", target)
+                tgt_lat, tgt_ang, tgt_atoms = parse_structure_text(target)
+                print("pred", pred)
+                pred_lat, pred_ang, pred_atoms = parse_structure_text(pred)
+                print("tgt_atoms", tgt_atoms)
+                print("pred_atoms", pred_atoms)
+                print()
+                print()
+                print()
+
+                # Convert values to tensors
+                pred_lat = torch.tensor(
+                    pred_lat, device=device, dtype=torch.float32
+                )
+                tgt_lat = torch.tensor(
+                    tgt_lat, device=device, dtype=torch.float32
+                )
+                pred_ang = torch.tensor(
+                    pred_ang, device=device, dtype=torch.float32
+                )
+                tgt_ang = torch.tensor(
+                    tgt_ang, device=device, dtype=torch.float32
+                )
+
+                # Lattice and angle MSE loss
+                loss_lat = F.mse_loss(pred_lat, tgt_lat)
+                loss_ang = F.mse_loss(pred_ang, tgt_ang)
+
+                # Atom type mismatch
+                type_mismatch_count = sum(
+                    1 for p, t in zip(pred_atoms, tgt_atoms) if p[0] != t[0]
+                )
+                loss_type = torch.tensor(
+                    [type_mismatch_count / max(1, len(tgt_atoms))],
+                    device=device,
+                    dtype=torch.float32,
+                    requires_grad=True,
+                )
+
+                # Coordinate MSE loss
+                pred_coords = torch.tensor(
+                    [p[1] for p in pred_atoms],
+                    device=device,
+                    dtype=torch.float32,
+                )
+                tgt_coords = torch.tensor(
+                    [t[1] for t in tgt_atoms],
+                    device=device,
+                    dtype=torch.float32,
+                )
+                loss_coord = F.mse_loss(pred_coords, tgt_coords)
+
+                # Combined structured loss
+                loss = loss_lat + loss_ang + loss_type + loss_coord
+
+            # except Exception as e:
+            #    # Parsing or shape mismatch fallback
+            #    loss = torch.tensor([10.0], device=device, requires_grad=True)
+
+            # Accumulate total loss
+            if total_loss is None:
+                total_loss = loss.squeeze()
+            else:
+                total_loss = total_loss + loss.squeeze()
+
+        final_loss = total_loss / len(pred_texts)
+        print("final_loss", final_loss)
+        return (final_loss, outputs) if return_outputs else final_loss

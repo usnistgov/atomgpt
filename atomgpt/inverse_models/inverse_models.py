@@ -2,7 +2,7 @@ from jarvis.db.jsonutils import loadjson
 from typing import Optional
 from atomgpt.inverse_models.loader import FastLanguageModel
 
-# from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
+from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
 from transformers import (
     TrainerCallback,
     TrainerControl,
@@ -600,8 +600,8 @@ def main(config_file=None):
         type="torch", columns=["input_ids", "attention_mask", "output"]
     )
 
-    trainer = SFTTrainer(
-        # trainer = CustomSFTTrainer(
+    # trainer = SFTTrainer(
+    trainer = CustomSFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=tokenized_train,
@@ -636,21 +636,7 @@ def main(config_file=None):
         tokenizer=tokenizer,
         max_length=config.max_seq_length,
     )
-    trainer.add_callback(callback)
-
-    # def tokenize_function(example):
-    #    return tokenizer(example['text'], padding="max_length", truncation=True)
-    # some_tokenized_dataset = load_dataset('json', data_files='path_to_your_data', split='test')
-    # some_tokenized_dataset = dataset.map(tokenize_function, batched=True)
-
-    # --------------- DO NOT FORGET TO ADD YOUR CALLBACKS TO YOUR TRAINER! -----------------------------------------------
-    # Create the callback with you custom code
-    # example_callback = ExampleTrainerCallback(
-    #   some_tokenized_dataset = some_tokenized_dataset
-    # )
-
-    # Add the callback to the Trainer
-    # trainer.add_callback(example_callback)
+    # trainer.add_callback(callback)
 
     trainer_stats = trainer.train()
     model.save_pretrained(config.model_save_path)
