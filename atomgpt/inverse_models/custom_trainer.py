@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from trl import SFTTrainer
 from atomgpt.inverse_models.utils import text2atoms
-
+from transformers.trainer_callback import TrainerCallback
 from jarvis.core.specie import Specie
 
 
@@ -196,6 +196,36 @@ def a_compute_loss(target_structure, pred_structure):
     return total_loss
 
 
+class CustomCallback(TrainerCallback):
+    def __init__(self):
+        super().__init__()
+        # Initialize any variables you need
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        # Called at the beginning of training
+        print("Training has begun!")
+
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        # Called at the beginning of each epoch
+        print(f"Epoch {state.epoch} started")
+
+    def on_step_end(self, args, state, control, **kwargs):
+        # Called at the end of each optimization step
+        if state.global_step % 100 == 0:
+            print(f"Step {state.global_step} completed")
+
+    def on_evaluate(self, args, state, control, metrics=None, **kwargs):
+        # Called after evaluation
+        print(f"Evaluation results: {metrics}")
+
+    def on_train_end(self, args, state, control, **kwargs):
+        # Called at the end of training
+        print("Training completed!")
+
+    # Other methods you can override:
+    # on_log, on_prediction_step, on_save, etc.
+
+
 class CustomSFTTrainer(SFTTrainer):
     def __init__(
         self,
@@ -208,6 +238,7 @@ class CustomSFTTrainer(SFTTrainer):
         packing,
         args: TrainingArguments,
         loss_type="default",  # Default to MSE
+        callbacks=CustomCallback(),
     ):
         """
         Initialize CustomSFTTrainer with explicit parameters and loss type.
@@ -233,6 +264,8 @@ class CustomSFTTrainer(SFTTrainer):
             args=args,
         )
         # self.model=model
+        if callbacks:
+            self.add_callback(callbacks)
         self.loss_type = loss_type.lower()
         # self.use_bare_trainer = use_bare_trainer
 
