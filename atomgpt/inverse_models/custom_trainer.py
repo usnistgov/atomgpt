@@ -268,7 +268,6 @@ class AtomicStructureCallback(TrainerCallback):
             outputs, skip_special_tokens=True
         )
         atomic_structures = self.extractor_function(generated_texts)
-
         for i, (input_text, gen_text, structure) in enumerate(
             zip(input_texts, generated_texts, atomic_structures)
         ):
@@ -438,16 +437,42 @@ def parse_structure_text(text):
 
 
 class CustomSFTTrainer(SFTTrainer):
+    def __init__(
+        self,
+        model,
+        tokenizer,
+        train_dataset,
+        eval_dataset,
+        dataset_text_field,
+        max_seq_length,
+        dataset_num_proc,
+        packing,
+        args: TrainingArguments,
+        loss_type="default",  # Default to MSE
+    ):
+        super().__init__(
+            model=model,
+            tokenizer=tokenizer,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            dataset_text_field=dataset_text_field,
+            max_seq_length=max_seq_length,
+            dataset_num_proc=dataset_num_proc,
+            packing=packing,
+            args=args,
+        )
+        # self.model=model
+        self.loss_type = loss_type.lower()
+        # self.use_bare_trainer = use_bare_trainer
+
     def compute_loss(self, model, inputs, return_outputs=False):
+        if self.loss_type == "default":  # crossentropy
+            # Currently recommneded to use default
+            return super().compute_loss(model, inputs, return_outputs)
+
         outputs = model(**inputs)
         logits = outputs.logits
         labels = inputs["labels"]
-        # print("labels",labels)
-
-        # Decode predicted texts
-        # predictions = torch.argmax(logits, dim=-1)
-        # pred_texts = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
-
         input_ids = inputs[
             "input_ids"
         ]  # assuming input includes only prompt (not full answer)

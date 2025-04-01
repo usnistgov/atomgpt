@@ -4,6 +4,10 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+from jarvis.core.atoms import Atoms
+import numpy as np
+from jarvis.core.atoms import Atoms
 
 # from jarvis.analysis.diffraction.xrd import smooth_xrd
 from sklearn.metrics import mean_absolute_error
@@ -89,7 +93,139 @@ def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.3):
     return c_str, c
 
 
-def text2atoms(response):
+def text2atomsNEW(response):
+    """
+    Converts text output into a JARVIS Atoms object.
+
+    Expected format:
+        First 3 lines: Lattice matrix rows (each with 3 float values)
+        Remaining lines: Element x y z (fractional coordinates)
+    """
+    try:
+        response = response.strip().strip("</s>").strip()
+        if not response:
+            raise ValueError("Empty response string")
+
+        tmp_atoms_array = [
+            line.strip() for line in response.split("\n") if line.strip()
+        ]
+        print("tmp_atoms_array", tmp_atoms_array)
+
+        # Expect at least 3 lines for lattice and 1 for atoms
+        if len(tmp_atoms_array) < 4:
+            raise ValueError(
+                "Not enough lines to define a 3x3 lattice and atomic structure."
+            )
+
+        # Parse 3 lines of 3 lattice values each
+        lattice_mat = []
+        for i in range(3):
+            row = list(map(float, tmp_atoms_array[i].split()))
+            if len(row) != 3:
+                raise ValueError(
+                    f"Lattice row {i+1} must have 3 float values, got: {row}"
+                )
+            lattice_mat.append(row)
+
+        print("lattice_mat", lattice_mat)
+
+        elements = []
+        coords = []
+
+        # Parse atomic lines
+        for line in tmp_atoms_array[3:]:
+            parts = line.split()
+            if len(parts) >= 4:
+                elements.append(parts[0])
+                coords.append(
+                    [float(parts[1]), float(parts[2]), float(parts[3])]
+                )
+            else:
+                print(f"⚠️ Skipping malformed atom line: {line}")
+
+        if len(elements) == 0 or len(coords) == 0:
+            raise ValueError("No valid atomic data found.")
+
+        atoms = Atoms(
+            coords=coords,
+            elements=elements,
+            lattice_mat=lattice_mat,
+            cartesian=False,
+        )
+        print("atoms", atoms)
+        return atoms
+
+    except Exception as e:
+        print(f"❌ Failed to parse atoms from response: {e}")
+        raise
+
+
+def text2atomsXXXXX(response):
+    """
+    Converts text output into a JARVIS Atoms object.
+
+    Expected format:
+        Line 1: (optional) blank
+        Line 2: 9 lattice numbers (3x3 matrix)
+        Remaining lines: Element x y z (fractional coordinates)
+    """
+    try:
+        response = response.strip().strip("</s>").strip()
+        if not response:
+            raise ValueError("Empty response string")
+
+        tmp_atoms_array = [
+            line.strip() for line in response.split("\n") if line.strip()
+        ]
+        print("tmp_atoms_array", tmp_atoms_array)
+
+        # Expect at least one line for lattice and one for atoms
+        if len(tmp_atoms_array) < 2:
+            raise ValueError("Not enough lines to define structure.")
+
+        # Detect and parse lattice line
+        lat_line = tmp_atoms_array[0]
+        lat_values = lat_line.split()
+        if len(lat_values) != 9:
+            raise ValueError(
+                "Lattice line must contain exactly 9 float values.", lat_values
+            )
+
+        lattice_mat = np.array(lat_values, dtype=float).reshape(3, 3).tolist()
+        print("lattice_mat", lattice_mat)
+
+        elements = []
+        coords = []
+
+        # Parse atomic lines
+        for line in tmp_atoms_array[1:]:
+            parts = line.split()
+            if len(parts) >= 4:
+                elements.append(parts[0])
+                coords.append(
+                    [float(parts[1]), float(parts[2]), float(parts[3])]
+                )
+            else:
+                print(f"⚠️ Skipping malformed atom line: {line}")
+
+        if len(elements) == 0 or len(coords) == 0:
+            raise ValueError("No valid atomic data found.")
+
+        atoms = Atoms(
+            coords=coords,
+            elements=elements,
+            lattice_mat=lattice_mat,
+            cartesian=False,
+        )
+        print("atoms", atoms)
+        return atoms
+
+    except Exception as e:
+        print(f"❌ Failed to parse atoms from response: {e}")
+        raise
+
+
+def text2atomsold(response):
     # print("response", response)
     response = response.strip("</s>")
     if response.startswith("\n"):
@@ -97,16 +233,14 @@ def text2atoms(response):
     else:
         subs = 1
     tmp_atoms_array = response.split("\n")
-    lat_lengths = np.array(tmp_atoms_array[1 - subs].split(), dtype="float")
-    lat_angles = np.array(tmp_atoms_array[2 - subs].split(), dtype="float")
-    lat = Lattice.from_parameters(
-        lat_lengths[0],
-        lat_lengths[1],
-        lat_lengths[2],
-        lat_angles[0],
-        lat_angles[1],
-        lat_angles[2],
+    print("tmp_atoms_array", tmp_atoms_array)
+    print("lat", tmp_atoms_array[1 - subs].split())
+    lattice_mat = (
+        np.array(tmp_atoms_array[1 - subs].split(), dtype="float")
+        .reshape(3, 3)
+        .tolist()
     )
+    print("lat2", lattice_mat)
     elements = []
     coords = []
     for ii, i in enumerate(tmp_atoms_array):
@@ -119,13 +253,13 @@ def text2atoms(response):
     atoms = Atoms(
         coords=coords,
         elements=elements,
-        lattice_mat=lat.lattice(),
+        lattice_mat=lattice_mat,
         cartesian=False,
     )
     return atoms
 
 
-def text2atoms_old(response):
+def text2atoms(response):
     tmp_atoms_array = response.strip("</s>").split("\n")
     # tmp_atoms_array= [element for element in tmp_atoms_array  if element != '']
     # print("tmp_atoms_array", tmp_atoms_array)
@@ -231,6 +365,59 @@ def get_crystal_string_t(atoms):
         " ".join(["{0:.2f}".format(x) for x in lengths])
         + "\n"
         + " ".join([str(int(x)) for x in angles])
+        + "\n"
+        + "\n".join(
+            [
+                str(t) + " " + " ".join(["{0:.3f}".format(x) for x in c])
+                for t, c in zip(atom_ids, frac_coords)
+            ]
+        )
+    )
+
+    # crystal_str = atoms_describer(atoms) + "\n*\n" + crystal_str
+    return crystal_str
+
+
+def get_crystal_string_tNEW(atoms):
+    lengths = atoms.lattice.abc
+    angles = atoms.lattice.angles
+    atom_ids = atoms.elements
+    frac_coords = atoms.frac_coords
+    lat_mat = np.array(atoms.lattice_mat)
+
+    # Clean string formatting for lattice matrix
+    lat_mat_str = "\n".join(
+        " ".join(f"{0.0 if abs(x) < 1e-6 else x:.2f}" for x in row)
+        for row in lat_mat
+    )
+
+    # Assemble full crystal structure string
+    crystal_str = (
+        lat_mat_str
+        + "\n"
+        + "\n".join(
+            f"{t} " + " ".join(f"{x:.3f}" for x in c)
+            for t, c in zip(atom_ids, frac_coords)
+        )
+    )
+
+    return crystal_str
+
+
+def get_crystal_string_tOSOSOSO(atoms):
+    lengths = atoms.lattice.abc  # structure.lattice.parameters[:3]
+    angles = atoms.lattice.angles
+    atom_ids = atoms.elements
+    frac_coords = atoms.frac_coords
+    lat_mat = np.array(atoms.lattice_mat)
+    # lat_mat = "\n".join(" ".join(f"{x:.2f}" for x in row) for row in lat_mat)
+    lat_mat_str = "\n".join(
+        " ".join(f"{0.0 if abs(x) < 1e-6 else x:.2f}" for x in row)
+        for row in lat_mat
+    )
+
+    crystal_str = (
+        lat_mat
         + "\n"
         + "\n".join(
             [

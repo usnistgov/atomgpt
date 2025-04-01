@@ -40,6 +40,13 @@ import argparse
 import torch.nn as nn
 from typing import Literal
 import time
+from transformers import (
+    TrainerCallback,
+    TrainingArguments,
+    TrainerState,
+    TrainerControl,
+)
+import torch
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -80,6 +87,7 @@ class TrainingPropConfig(BaseSettings):
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
     chem_info: Literal["none", "formula", "element_list"] = "formula"
     file_format: Literal["poscar", "xyz", "pdb"] = "poscar"
+    callback_samples: int = 2
     max_seq_length: int = (
         2048  # Choose any! We auto support RoPE Scaling internally!
     )
@@ -98,6 +106,96 @@ class TrainingPropConfig(BaseSettings):
     )
 
 
+class ExampleTrainerCallbackNew(TrainerCallback):
+    def __init__(
+        self,
+        some_tokenized_dataset,
+        tokenizer,
+        max_length=2048,
+        batch_size=4,
+        # max_samples=10,
+        run_every="step",
+        callback_samples=3,
+    ):
+        """
+        Args:
+            run_every: "epoch" or "step"
+        """
+        super().__init__()
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.batch_size = batch_size
+        self.run_every = run_every
+
+        # Pre-select a smaller sample dataset for speed
+        self.sample_dataset = some_tokenized_dataset.select(
+            range(min(callback_samples, len(some_tokenized_dataset)))
+        )
+
+    def on_step_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        if self.run_every == "step":
+            self._run_generation(**kwargs)
+
+    def on_epoch_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        if self.run_every == "epoch":
+            self._run_generation(**kwargs)
+
+    def _run_generation(self, **kwargs):
+        model = kwargs["model"]
+        model.eval()
+
+        B = self.batch_size
+        with torch.no_grad():
+            for i in range(0, len(self.sample_dataset), B):
+                batch = self.sample_dataset[i : i + B]
+
+                prompts = []
+                targets = []
+                print("batch", batch, type(batch))
+
+                # Generate predictions in batch
+                generated_ids = model.generate(
+                    input_ids=batch["input_ids"],
+                    attention_mask=batch["attention_mask"],
+                    max_new_tokens=self.max_length,
+                    do_sample=False,
+                )
+
+                generated_texts = self.tokenizer.batch_decode(
+                    generated_ids, skip_special_tokens=True
+                )
+                for j, k in zip(batch["output"], generated_texts):
+                    print("Target", j)
+                    print("Predicted", k)
+                    print()
+                """
+                for j, (prompt, gen_text, target) in enumerate(zip(prompts, generated_texts, targets)):
+                    # Remove prompt from generated output
+                    predicted_answer = gen_text[len(prompt):].strip() if gen_text.startswith(prompt) else gen_text.strip()
+
+                    # Optional: convert text to atom structure (if available)
+                    target_atoms = text2atoms("\n" + target)
+                    predicted_atoms = text2atoms(predicted_answer)
+
+                    print(f"\n🔹 Sample {i + j}")
+                    print(f"🔸 Prompt   :\n{prompt}")
+                    print(f"🔸 Target   :\n{target_atoms}")
+                    print(f"🔸 Predicted:\n{predicted_atoms}")
+                """
+
+
 class ExampleTrainerCallback(TrainerCallback):
     def __init__(
         self,
@@ -105,6 +203,7 @@ class ExampleTrainerCallback(TrainerCallback):
         tokenizer,
         max_length=2048,
         run_every="step",
+        callback_samples=3,
     ):
         """
         Args:
@@ -116,6 +215,7 @@ class ExampleTrainerCallback(TrainerCallback):
         # self.max_new_tokens = max_new_tokens
         self.run_every = run_every
         self.max_length = max_length
+        self.callback_samples = callback_samples
 
     def on_step_end(
         self,
@@ -138,64 +238,78 @@ class ExampleTrainerCallback(TrainerCallback):
             self._run_generation(args, state, control, **kwargs)
 
     def _run_generation(self, args, state, control, **kwargs):
-        print("🧠 Generating predictions...")
+        # print("🧠 Generating predictions...")
 
         model = kwargs["model"]
         model.eval()
 
-        sample_dataset = (
-            self.some_tokenized_dataset
-        )  # .select(range(min(3, len(self.some_tokenized_dataset))))
+        sample_dataset = (self.some_tokenized_dataset).select(
+            range(min(self.callback_samples, len(self.some_tokenized_dataset)))
+        )
 
         with torch.no_grad():
             for idx, item in enumerate(sample_dataset):
-                # Decode full input to string
-                full_input = self.tokenizer.decode(
-                    item["input_ids"], skip_special_tokens=True
-                )
+                try:
+                    # Decode full input to string
+                    full_input = self.tokenizer.decode(
+                        item["input_ids"], skip_special_tokens=True
+                    )
 
-                # Extract prompt up to '### Output:'
-                if "### Output:" in full_input:
-                    prompt = full_input.split("### Output:")[0] + "### Output:"
-                else:
-                    prompt = full_input
+                    # Extract prompt up to '### Output:'
+                    if "### Output:" in full_input:
+                        prompt = (
+                            full_input.split("### Output:")[0] + "### Output:"
+                        )
+                    else:
+                        prompt = full_input
 
-                # Re-tokenize the trimmed prompt
-                encoded_prompt = self.tokenizer(
-                    prompt, return_tensors="pt"
-                ).to(model.device)
+                    # Re-tokenize the trimmed prompt
+                    encoded_prompt = self.tokenizer(
+                        prompt, return_tensors="pt"
+                    ).to(model.device)
 
-                # Generate continuation from the prompt
-                generated_ids = model.generate(
-                    input_ids=encoded_prompt["input_ids"],
-                    attention_mask=encoded_prompt.get("attention_mask", None),
-                    max_new_tokens=self.max_length,
-                    # max_new_tokens=self.max_new_tokens,
-                    do_sample=False,  # deterministic output
-                )
+                    # Generate continuation from the prompt
+                    generated_ids = model.generate(
+                        input_ids=encoded_prompt["input_ids"],
+                        attention_mask=encoded_prompt.get(
+                            "attention_mask", None
+                        ),
+                        max_new_tokens=self.max_length,
+                        # max_new_tokens=self.max_new_tokens,
+                        do_sample=False,  # deterministic output
+                    )
 
-                # Decode full output
-                generated_text = self.tokenizer.decode(
-                    generated_ids[0], skip_special_tokens=True
-                )
-
-                # Optional: remove prompt from generated text to isolate prediction
-                if generated_text.startswith(prompt):
-                    predicted_answer = generated_text[len(prompt) :].strip()
-                else:
-                    predicted_answer = generated_text.strip()
-
-                # Get human-written target
-                target_text = "\n" + (item.get("output", "<no target>"))
-                # print('target_text',target_text)
-                # print('predicted_answer',predicted_answer)
-                target_text = text2atoms(target_text)
-                # print('target_text2',target_text)
-                predicted_answer = text2atoms(predicted_answer)
-                print(f"\n🔹 Sample {idx}")
-                print(f"🔸 Prompt   :\n{prompt}")
-                print(f"🔸 Target   :\n{target_text}")
-                print(f"🔸 Predicted:\n{predicted_answer}")
+                    # Decode full output
+                    generated_text = self.tokenizer.decode(
+                        generated_ids[0], skip_special_tokens=True
+                    )
+                    print()
+                    print()
+                    print()
+                    print("generated_text", generated_text)
+                    # Optional: remove prompt from generated text to isolate prediction
+                    if generated_text.startswith(prompt):
+                        predicted_answer = generated_text[
+                            len(prompt) :
+                        ].strip()
+                    else:
+                        predicted_answer = generated_text.strip()
+                    predicted_answer = "\n" + predicted_answer
+                    # Get human-written target
+                    print(f"\n🔹 Sample {idx}")
+                    target_text = "\n" + (item.get("output", "<no target>"))
+                    print("target_text", target_text)
+                    print("predicted_answer", predicted_answer)
+                    target_text = text2atoms(target_text)
+                    print(f"🔸 Target   :\n{target_text}")
+                    # print('target_text2',target_text)
+                    predicted_answer = text2atoms(predicted_answer)
+                    # print(f"🔸 Prompt   :\n{prompt}")
+                    print(f"🔸 Predicted:\n{predicted_answer}")
+                    print()
+                    print()
+                except Exception:
+                    pass
 
 
 def get_input(config=None, chem="", val=10):
@@ -442,6 +556,7 @@ def main(config_file=None):
     num_train = config.num_train
     num_test = config.num_test
     model_name = config.model_name
+    callback_samples = config.callback_samples
     # loss_function = config.loss_function
     # id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
@@ -591,6 +706,14 @@ def main(config_file=None):
         formatting_prompts_func_with_prompt,
         batched=True,
     )
+    # Compute the actual max sequence length in raw text
+    lengths = [
+        len(tokenizer(example["text"], truncation=False)["input_ids"])
+        for example in eval_dataset
+    ]
+    max_seq_length = max(lengths)
+    print(f"🧠 Suggested max_seq_length based on dataset: {max_seq_length}")
+
     tokenized_train = train_dataset.map(tokenize_function, batched=True)
     tokenized_eval = eval_dataset.map(tokenize_function, batched=True)
     tokenized_train.set_format(
@@ -600,8 +723,8 @@ def main(config_file=None):
         type="torch", columns=["input_ids", "attention_mask", "output"]
     )
 
-    # trainer = SFTTrainer(
-    trainer = CustomSFTTrainer(
+    trainer = SFTTrainer(
+        # trainer = CustomSFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=tokenized_train,
@@ -631,12 +754,15 @@ def main(config_file=None):
             report_to="none",
         ),
     )
-    callback = ExampleTrainerCallback(
-        some_tokenized_dataset=tokenized_eval,
-        tokenizer=tokenizer,
-        max_length=config.max_seq_length,
-    )
-    # trainer.add_callback(callback)
+    if callback_samples > 0:
+        callback = ExampleTrainerCallback(
+            some_tokenized_dataset=tokenized_eval,
+            # some_tokenized_dataset=tokenized_eval,
+            tokenizer=tokenizer,
+            max_length=config.max_seq_length,
+            callback_samples=callback_samples,
+        )
+        trainer.add_callback(callback)
 
     trainer_stats = trainer.train()
     model.save_pretrained(config.model_save_path)
