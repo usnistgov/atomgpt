@@ -23,23 +23,29 @@ parser.add_argument(
     default="pred_list_inverse.csv",
     help="CSV file for prediction list.",
 )
+parser.add_argument(
+    "--config_name",
+    default="config.json",
+    help="Config file used during training.",
+)
 
 
 def predict(
     output_dir="outputs",
+    config_name="outputs/config.json",
     pred_csv="pred_list_inverse.csv",
     fname="out_inv.json",
     device="cuda",
     intvl=0.3,
 ):
-    temp_config = loadjson(os.path.join(output_dir, "config.json"))
+    temp_config = loadjson(config_name)
     temp_config = TrainingPropConfig(**temp_config).dict()
     max_seq_length = temp_config["max_seq_length"]
     model_name = temp_config["model_name"]
-    output_dir = temp_config["output_dir"]
+    # output_dir = temp_config["output_dir"]
     dtype = temp_config["dtype"]
     load_in_4bit = temp_config["load_in_4bit"]
-    model_name = temp_config["model_name"]
+    model_name = output_dir  # temp_config["model_name"]
     pprint.pprint(temp_config)
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_name,
@@ -94,4 +100,8 @@ if __name__ == "__main__":
     # output_dir = make_id_prop()
     # output_dir="."
     args = parser.parse_args(sys.argv[1:])
-    predict(output_dir=args.output_dir, pred_csv=args.pred_csv)
+    predict(
+        output_dir=args.output_dir,
+        pred_csv=args.pred_csv,
+        config_name=args.config_name,
+    )

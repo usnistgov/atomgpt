@@ -75,7 +75,7 @@ def recast_array(
     return x_new, y_new
 
 
-def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.3):
+def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.3, sep=";"):
     # def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.5):
     a, b, c = XRD(thetas=thetas).simulate(atoms=atoms)
     a = np.array(a)
@@ -88,7 +88,7 @@ def smooth_xrd(atoms=None, thetas=[0, 90], intvl=0.3):
     )
     c = c / np.max(c)
     # c_str = "\n".join(["{0:.3f}".format(x) for x in c])
-    c_str = "\n".join(["{0:.2f}".format(x) for x in c])
+    c_str = sep.join(["{0:.2f}".format(x) for x in c])
 
     return c_str, c
 

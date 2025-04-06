@@ -1,12 +1,10 @@
-from jarvis.db.jsonutils import loadjson
 from typing import Optional
 from atomgpt.inverse_models.loader import FastLanguageModel
-
-from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
+from atomgpt.inverse_models.callbacks import (
+    PrintGPUUsageCallback,
+    ExampleTrainerCallback,
+)
 from transformers import (
-    TrainerCallback,
-    TrainerControl,
-    TrainerState,
     TrainingArguments,
 )
 import torch
@@ -17,17 +15,11 @@ from atomgpt.inverse_models.utils import (
     get_figlet,
 )
 from trl import SFTTrainer
-import torch
 from peft import PeftModel
 from datasets import load_dataset
 from functools import partial
-from transformers import TrainingArguments
 from jarvis.core.atoms import Atoms
-from jarvis.db.figshare import data
 from jarvis.db.jsonutils import loadjson, dumpjson
-import numpy as np
-from jarvis.core.atoms import Atoms
-from jarvis.core.lattice import Lattice
 from tqdm import tqdm
 import pprint
 from jarvis.io.vasp.inputs import Poscar
@@ -37,16 +29,11 @@ from pydantic_settings import BaseSettings
 import sys
 import json
 import argparse
-import torch.nn as nn
 from typing import Literal
 import time
-from transformers import (
-    TrainerCallback,
-    TrainingArguments,
-    TrainerState,
-    TrainerControl,
-)
-import torch
+from jarvis.core.composition import Composition
+
+# from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -69,13 +56,14 @@ class TrainingPropConfig(BaseSettings):
     num_epochs: int = 2
     logging_steps: int = 1
     dataset_num_proc: int = 2
+    save_steps: int = 2
     seed_val: int = 3407
     learning_rate: float = 2e-4
     per_device_train_batch_size: int = 2
     gradient_accumulation_steps: int = 4
     num_train: Optional[int] = 2
-    num_val: Optional[int] = 2
     num_test: Optional[int] = 2
+    test_ratio: Optional[float] = 0.2
     model_save_path: str = "atomgpt_lora_model"
     loss_type: str = "default"
     optim: str = "adamw_8bit"
@@ -83,20 +71,19 @@ class TrainingPropConfig(BaseSettings):
     lr_scheduler_type: str = "linear"
     prop: str = "Tc_supercon"
     output_dir: str = "outputs"
-    model_save_path: str = "lora_model_m"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
-    chem_info: Literal["none", "formula", "element_list"] = "formula"
+    chem_info: Literal["none", "formula", "element_list", "element_dict"] = (
+        "formula"
+    )
     file_format: Literal["poscar", "xyz", "pdb"] = "poscar"
     callback_samples: int = 2
     max_seq_length: int = (
         2048  # Choose any! We auto support RoPE Scaling internally!
     )
-    dtype: Optional[str] = (
-        None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
-    )
-    load_in_4bit: bool = (
-        True  # True  # Use 4bit quantization to reduce memory usage. Can be False.
-    )
+    dtype: Optional[str] = None
+    # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
+    load_in_4bit: bool = True
+    # True  # Use 4bit quantization to reduce memory usage. Can be False.
     instruction: str = "Below is a description of a superconductor material."
     alpaca_prompt: str = (
         "### Instruction:\n{}\n### Input:\n{}\n### Output:\n{}"
@@ -104,212 +91,7 @@ class TrainingPropConfig(BaseSettings):
     output_prompt: str = (
         " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
     )
-
-
-class ExampleTrainerCallbackNew(TrainerCallback):
-    def __init__(
-        self,
-        some_tokenized_dataset,
-        tokenizer,
-        max_length=2048,
-        batch_size=4,
-        # max_samples=10,
-        run_every="step",
-        callback_samples=3,
-    ):
-        """
-        Args:
-            run_every: "epoch" or "step"
-        """
-        super().__init__()
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.batch_size = batch_size
-        self.run_every = run_every
-
-        # Pre-select a smaller sample dataset for speed
-        self.sample_dataset = some_tokenized_dataset.select(
-            range(min(callback_samples, len(some_tokenized_dataset)))
-        )
-
-    def on_step_end(
-        self,
-        args: TrainingArguments,
-        state: TrainerState,
-        control: TrainerControl,
-        **kwargs,
-    ):
-        if self.run_every == "step":
-            self._run_generation(**kwargs)
-
-    def on_epoch_end(
-        self,
-        args: TrainingArguments,
-        state: TrainerState,
-        control: TrainerControl,
-        **kwargs,
-    ):
-        if self.run_every == "epoch":
-            self._run_generation(**kwargs)
-
-    def _run_generation(self, **kwargs):
-        model = kwargs["model"]
-        model.eval()
-
-        B = self.batch_size
-        with torch.no_grad():
-            for i in range(0, len(self.sample_dataset), B):
-                batch = self.sample_dataset[i : i + B]
-
-                prompts = []
-                targets = []
-                print("batch", batch, type(batch))
-
-                # Generate predictions in batch
-                generated_ids = model.generate(
-                    input_ids=batch["input_ids"],
-                    attention_mask=batch["attention_mask"],
-                    max_new_tokens=self.max_length,
-                    do_sample=False,
-                )
-
-                generated_texts = self.tokenizer.batch_decode(
-                    generated_ids, skip_special_tokens=True
-                )
-                for j, k in zip(batch["output"], generated_texts):
-                    print("Target", j)
-                    print("Predicted", k)
-                    print()
-                """
-                for j, (prompt, gen_text, target) in enumerate(zip(prompts, generated_texts, targets)):
-                    # Remove prompt from generated output
-                    predicted_answer = gen_text[len(prompt):].strip() if gen_text.startswith(prompt) else gen_text.strip()
-
-                    # Optional: convert text to atom structure (if available)
-                    target_atoms = text2atoms("\n" + target)
-                    predicted_atoms = text2atoms(predicted_answer)
-
-                    print(f"\n🔹 Sample {i + j}")
-                    print(f"🔸 Prompt   :\n{prompt}")
-                    print(f"🔸 Target   :\n{target_atoms}")
-                    print(f"🔸 Predicted:\n{predicted_atoms}")
-                """
-
-
-class ExampleTrainerCallback(TrainerCallback):
-    def __init__(
-        self,
-        some_tokenized_dataset,
-        tokenizer,
-        max_length=2048,
-        run_every="step",
-        callback_samples=3,
-    ):
-        """
-        Args:
-            run_every: "epoch" or "step"
-        """
-        super().__init__()
-        self.some_tokenized_dataset = some_tokenized_dataset
-        self.tokenizer = tokenizer
-        # self.max_new_tokens = max_new_tokens
-        self.run_every = run_every
-        self.max_length = max_length
-        self.callback_samples = callback_samples
-
-    def on_step_end(
-        self,
-        args: TrainingArguments,
-        state: TrainerState,
-        control: TrainerControl,
-        **kwargs,
-    ):
-        if self.run_every == "step":
-            self._run_generation(args, state, control, **kwargs)
-
-    def on_epoch_end(
-        self,
-        args: TrainingArguments,
-        state: TrainerState,
-        control: TrainerControl,
-        **kwargs,
-    ):
-        if self.run_every == "epoch":
-            self._run_generation(args, state, control, **kwargs)
-
-    def _run_generation(self, args, state, control, **kwargs):
-        # print("🧠 Generating predictions...")
-
-        model = kwargs["model"]
-        model.eval()
-
-        sample_dataset = (self.some_tokenized_dataset).select(
-            range(min(self.callback_samples, len(self.some_tokenized_dataset)))
-        )
-
-        with torch.no_grad():
-            for idx, item in enumerate(sample_dataset):
-                try:
-                    # Decode full input to string
-                    full_input = self.tokenizer.decode(
-                        item["input_ids"], skip_special_tokens=True
-                    )
-
-                    # Extract prompt up to '### Output:'
-                    if "### Output:" in full_input:
-                        prompt = (
-                            full_input.split("### Output:")[0] + "### Output:"
-                        )
-                    else:
-                        prompt = full_input
-
-                    # Re-tokenize the trimmed prompt
-                    encoded_prompt = self.tokenizer(
-                        prompt, return_tensors="pt"
-                    ).to(model.device)
-
-                    # Generate continuation from the prompt
-                    generated_ids = model.generate(
-                        input_ids=encoded_prompt["input_ids"],
-                        attention_mask=encoded_prompt.get(
-                            "attention_mask", None
-                        ),
-                        max_new_tokens=self.max_length,
-                        # max_new_tokens=self.max_new_tokens,
-                        do_sample=False,  # deterministic output
-                    )
-
-                    # Decode full output
-                    generated_text = self.tokenizer.decode(
-                        generated_ids[0], skip_special_tokens=True
-                    )
-                    print()
-                    print()
-                    print()
-                    print("generated_text", generated_text)
-                    # Optional: remove prompt from generated text to isolate prediction
-                    if generated_text.startswith(prompt):
-                        predicted_answer = generated_text[
-                            len(prompt) :
-                        ].strip()
-                    else:
-                        predicted_answer = generated_text.strip()
-                    predicted_answer = "\n" + predicted_answer
-                    # Get human-written target
-                    print(f"\n🔹 Sample {idx}")
-                    target_text = "\n" + (item.get("output", "<no target>"))
-                    print("target_text", target_text)
-                    print("predicted_answer", predicted_answer)
-                    target_text = text2atoms(target_text)
-                    print(f"🔸 Target   :\n{target_text}")
-                    # print('target_text2',target_text)
-                    predicted_answer = text2atoms(predicted_answer)
-                    # print(f"🔸 Prompt   :\n{prompt}")
-                    print(f"🔸 Predicted:\n{predicted_answer}")
-                    print()
-                    print()
-                except Exception:
-                    pass
+    # num_val: Optional[int] = 2
 
 
 def get_input(config=None, chem="", val=10):
@@ -318,6 +100,12 @@ def get_input(config=None, chem="", val=10):
     elif config.chem_info == "element_list":
         prefix = (
             "The chemical elements are "
+            + chem  # atoms.composition.search_string
+            + " . "
+        )
+    elif config.chem_info == "element_dict":
+        prefix = (
+            "The chemical contents are "
             + chem  # atoms.composition.search_string
             + " . "
         )
@@ -363,6 +151,12 @@ def make_alpaca_json(
                 chem = ""
             elif config.chem_info == "element_list":
                 chem = atoms.composition.search_string
+            elif config.chem_info == "element_dict":
+                comp = Composition.from_string(
+                    atoms.composition.reduced_formula
+                )
+                chem = comp.to_dict()
+                chem = str(dict(sorted(chem.items())))
             elif config.chem_info == "formula":
                 chem = atoms.composition.reduced_formula
 
@@ -414,7 +208,7 @@ def evaluate(
 
     for i in tqdm(test_set, total=len(test_set)):
         # try:
-        prompt = i["input"]
+        # prompt = i["input"]
         # print("prompt", prompt)
         gen_mat = gen_atoms(
             prompt=i["input"],
@@ -555,13 +349,16 @@ def main(config_file=None):
     run_path = os.path.dirname(id_prop_path)
     num_train = config.num_train
     num_test = config.num_test
-    model_name = config.model_name
+    # model_name = config.model_name
     callback_samples = config.callback_samples
     # loss_function = config.loss_function
     # id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
         reader = csv.reader(f)
         dt = [row for row in reader]
+    if not num_train:
+        num_test = int(len(dt) * config.test_ratio)
+        num_train = len(dt) - num_test
 
     dat = []
     ids = []
@@ -597,6 +394,8 @@ def main(config_file=None):
         dat.append(info)
 
     train_ids = ids[0:num_train]
+    print("num_train", num_train)
+    print("num_test", num_test)
     test_ids = ids[num_train : num_train + num_test]
     # test_ids = ids[num_train:]
     alpaca_prop_train_filename = os.path.join(
@@ -740,6 +539,8 @@ def main(config_file=None):
             gradient_accumulation_steps=config.gradient_accumulation_steps,
             warmup_steps=5,
             overwrite_output_dir=True,
+            save_strategy="epoch",
+            save_steps=config.save_steps,
             # max_steps = 60,
             learning_rate=config.learning_rate,
             fp16=not torch.cuda.is_bf16_supported(),
@@ -763,9 +564,11 @@ def main(config_file=None):
             callback_samples=callback_samples,
         )
         trainer.add_callback(callback)
-
+    gpu_usage = PrintGPUUsageCallback()
+    trainer.add_callback(gpu_usage)
     trainer_stats = trainer.train()
-    model.save_pretrained(config.model_save_path)
+    trainer.save_model(config.model_save_path)
+    # model.save_pretrained(config.model_save_path)
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=config.model_save_path,  # YOUR MODEL YOU USED FOR TRAINING

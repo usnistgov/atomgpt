@@ -4,6 +4,7 @@ try:
         NotebookTrainingTracker,
         NotebookProgressCallback,
     )
+
     HAS_NOTEBOOK = True
 except:
     HAS_NOTEBOOK = False
@@ -22,19 +23,31 @@ DPOTrainer_metrics = [
 set_DPOTrainer_metrics = frozenset(DPOTrainer_metrics)
 
 
-def NotebookProgressCallback_on_train_begin(self, args, state, control, **kwargs):
-    self.first_column = "Epoch" if args.evaluation_strategy == IntervalStrategy.EPOCH else "Step"
+def NotebookProgressCallback_on_train_begin(
+    self, args, state, control, **kwargs
+):
+    self.first_column = (
+        "Epoch"
+        if args.evaluation_strategy == IntervalStrategy.EPOCH
+        else "Step"
+    )
     self.training_loss = 0
     self.last_log = 0
     column_names = [self.first_column] + ["Training Loss"]
     if args.evaluation_strategy != IntervalStrategy.NO:
         column_names.append("Validation Loss")
     column_names += [x.replace("/", " / ") for x in DPOTrainer_metrics]
-    self.training_tracker = NotebookTrainingTracker(state.max_steps, column_names)
+    self.training_tracker = NotebookTrainingTracker(
+        state.max_steps, column_names
+    )
+
+
 pass
 
 
-def NotebookProgressCallback_on_log(self, args, state, control, logs=None, **kwargs):
+def NotebookProgressCallback_on_log(
+    self, args, state, control, logs=None, **kwargs
+):
     # Only for when there is no evaluation
     if args.evaluation_strategy == IntervalStrategy.NO and "loss" in logs:
         values = {"Training Loss": logs["loss"]}
@@ -45,6 +58,8 @@ def NotebookProgressCallback_on_log(self, args, state, control, logs=None, **kwa
         values["Step"] = state.global_step
         self.training_tracker.write_line(values)
     pass
+
+
 pass
 
 
@@ -75,7 +90,9 @@ def NotebookTrainingTracker_write_line(self, values):
             first_column = self.inner_table[0][0]
             if last_values[0] != values[first_column]:
                 # write new line
-                self.inner_table.append([values[c] if c in values else "No Log" for c in columns])
+                self.inner_table.append(
+                    [values[c] if c in values else "No Log" for c in columns]
+                )
             else:
                 # update last line
                 new_values = values
@@ -85,22 +102,33 @@ def NotebookTrainingTracker_write_line(self, values):
                 self.inner_table[-1] = [new_values[c] for c in columns]
         else:
             # Edit for evaluation purposes
-            self.inner_table.append([values[c] if c in values else 0 for c in columns])
+            self.inner_table.append(
+                [values[c] if c in values else 0 for c in columns]
+            )
         pass
     pass
+
+
 pass
 
 
 def PatchDPOTrainer():
     if HAS_NOTEBOOK:
         from transformers.trainer import is_in_notebook
+
         if is_in_notebook():
             # Patch DPO notebook printing
-            NotebookTrainingTracker.write_line = NotebookTrainingTracker_write_line
+            NotebookTrainingTracker.write_line = (
+                NotebookTrainingTracker_write_line
+            )
             from transformers.trainer import DEFAULT_PROGRESS_CALLBACK
-            DEFAULT_PROGRESS_CALLBACK.on_train_begin = NotebookProgressCallback_on_train_begin
-            DEFAULT_PROGRESS_CALLBACK.on_log         = NotebookProgressCallback_on_log
+
+            DEFAULT_PROGRESS_CALLBACK.on_train_begin = (
+                NotebookProgressCallback_on_train_begin
+            )
+            DEFAULT_PROGRESS_CALLBACK.on_log = NotebookProgressCallback_on_log
         pass
     pass
-pass
 
+
+pass
