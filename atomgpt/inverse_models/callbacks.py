@@ -204,7 +204,7 @@ class ExampleTrainerCallback(TrainerCallback):
                         generated_ids[0], skip_special_tokens=True
                     )
                     print(f"\n🔹 Sample {idx}")
-                    print("generated_text", generated_text)
+                    print("generated_text", generated_text.replace("\n", " "))
                     # Optional: remove prompt from generated text to isolate prediction
                     if generated_text.startswith(prompt):
                         predicted_answer = generated_text[

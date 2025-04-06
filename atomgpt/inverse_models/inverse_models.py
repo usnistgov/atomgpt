@@ -56,19 +56,22 @@ class TrainingPropConfig(BaseSettings):
     num_epochs: int = 2
     logging_steps: int = 1
     dataset_num_proc: int = 2
-    save_steps: int = 2
     seed_val: int = 3407
     learning_rate: float = 2e-4
     per_device_train_batch_size: int = 2
     gradient_accumulation_steps: int = 4
-    num_train: Optional[int] = 2
-    num_test: Optional[int] = 2
+    num_train: Optional[int] = None
+    num_test: Optional[int] = None
     test_ratio: Optional[float] = 0.2
     model_save_path: str = "atomgpt_lora_model"
+    lora_rank: Optional[int] = 16
+    lora_alpha: Optional[int] = 16
     loss_type: str = "default"
     optim: str = "adamw_8bit"
     id_tag: str = "id"
+    save_strategy: str = "st"
     lr_scheduler_type: str = "linear"
+    separator: str = ","
     prop: str = "Tc_supercon"
     output_dir: str = "outputs"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
@@ -76,6 +79,8 @@ class TrainingPropConfig(BaseSettings):
         "formula"
     )
     file_format: Literal["poscar", "xyz", "pdb"] = "poscar"
+    save_strategy: Literal["epoch", "steps", "no"] = "steps"
+    save_steps: int = 2
     callback_samples: int = 2
     max_seq_length: int = (
         2048  # Choose any! We auto support RoPE Scaling internally!
@@ -371,7 +376,7 @@ def main(config_file=None):
         if len(tmp) == 1:
             tmp = str(float(tmp[0]))
         else:
-            tmp = "\n".join(map(str, tmp))
+            tmp = config.separator.join(map(str, tmp))
 
         # if ";" in i[1]:
         #    tmp = "\n".join([str(round(float(j), 2)) for j in i[1].split(";")])
@@ -451,7 +456,7 @@ def main(config_file=None):
         # sys.exit()
         model = FastLanguageModel.get_peft_model(
             model,
-            r=16,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+            r=config.lora_rank,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
             target_modules=[
                 "q_proj",
                 "k_proj",
@@ -461,7 +466,7 @@ def main(config_file=None):
                 "up_proj",
                 "down_proj",
             ],
-            lora_alpha=16,
+            lora_alpha=config.lora_alpha,
             lora_dropout=0,  # Supports any, but = 0 is optimized
             bias="none",  # Supports any, but = "none" is optimized
             use_gradient_checkpointing=True,
@@ -539,7 +544,7 @@ def main(config_file=None):
             gradient_accumulation_steps=config.gradient_accumulation_steps,
             warmup_steps=5,
             overwrite_output_dir=True,
-            save_strategy="epoch",
+            save_strategy=config.save_strategy,
             save_steps=config.save_steps,
             # max_steps = 60,
             learning_rate=config.learning_rate,
