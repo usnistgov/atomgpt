@@ -12,7 +12,7 @@
     "gradient_accumulation_steps": 4,
     "num_train": null,
     "num_test": null,
-    "test_ratio":0.2,
+    "test_ratio":0.3,
     "model_save_path": "lora_model_m",
     "loss_type": "default",
     "optim": "adamw_8bit",
