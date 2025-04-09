@@ -1,24 +1,25 @@
-from jarvis.db.jsonutils import loadjson
 from typing import Optional
 from atomgpt.inverse_models.loader import FastLanguageModel
-from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
+from atomgpt.inverse_models.callbacks import (
+    PrintGPUUsageCallback,
+    ExampleTrainerCallback,
+)
+from transformers import (
+    TrainingArguments,
+)
+import torch
 from atomgpt.inverse_models.utils import (
     gen_atoms,
     text2atoms,
     get_crystal_string_t,
     get_figlet,
 )
-import torch
+from trl import SFTTrainer
 from peft import PeftModel
 from datasets import load_dataset
 from functools import partial
-from transformers import TrainingArguments
 from jarvis.core.atoms import Atoms
-from jarvis.db.figshare import data
 from jarvis.db.jsonutils import loadjson, dumpjson
-import numpy as np
-from jarvis.core.atoms import Atoms
-from jarvis.core.lattice import Lattice
 from tqdm import tqdm
 import pprint
 from jarvis.io.vasp.inputs import Poscar
@@ -28,9 +29,11 @@ from pydantic_settings import BaseSettings
 import sys
 import json
 import argparse
-import torch.nn as nn
 from typing import Literal
 import time
+from jarvis.core.composition import Composition
+
+# from atomgpt.inverse_models.custom_trainer import CustomSFTTrainer
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer."
@@ -57,29 +60,35 @@ class TrainingPropConfig(BaseSettings):
     learning_rate: float = 2e-4
     per_device_train_batch_size: int = 2
     gradient_accumulation_steps: int = 4
-    num_train: Optional[int] = 2
-    num_val: Optional[int] = 2
-    num_test: Optional[int] = 2
+    num_train: Optional[int] = None
+    num_test: Optional[int] = None
+    test_ratio: Optional[float] = 0.2
     model_save_path: str = "atomgpt_lora_model"
+    lora_rank: Optional[int] = 16
+    lora_alpha: Optional[int] = 16
     loss_type: str = "default"
     optim: str = "adamw_8bit"
     id_tag: str = "id"
+    save_strategy: str = "st"
     lr_scheduler_type: str = "linear"
+    separator: str = ","
     prop: str = "Tc_supercon"
     output_dir: str = "outputs"
-    model_save_path: str = "lora_model_m"
     csv_out: str = "AI-AtomGen-prop-dft_3d-test-rmse.csv"
-    chem_info: Literal["none", "formula", "element_list"] = "formula"
+    chem_info: Literal["none", "formula", "element_list", "element_dict"] = (
+        "formula"
+    )
     file_format: Literal["poscar", "xyz", "pdb"] = "poscar"
+    save_strategy: Literal["epoch", "steps", "no"] = "steps"
+    save_steps: int = 2
+    callback_samples: int = 2
     max_seq_length: int = (
         2048  # Choose any! We auto support RoPE Scaling internally!
     )
-    dtype: Optional[str] = (
-        None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
-    )
-    load_in_4bit: bool = (
-        True  # True  # Use 4bit quantization to reduce memory usage. Can be False.
-    )
+    dtype: Optional[str] = None
+    # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
+    load_in_4bit: bool = True
+    # True  # Use 4bit quantization to reduce memory usage. Can be False.
     instruction: str = "Below is a description of a superconductor material."
     alpaca_prompt: str = (
         "### Instruction:\n{}\n### Input:\n{}\n### Output:\n{}"
@@ -87,6 +96,7 @@ class TrainingPropConfig(BaseSettings):
     output_prompt: str = (
         " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
     )
+    # num_val: Optional[int] = 2
 
 
 def get_input(config=None, chem="", val=10):
@@ -95,6 +105,12 @@ def get_input(config=None, chem="", val=10):
     elif config.chem_info == "element_list":
         prefix = (
             "The chemical elements are "
+            + chem  # atoms.composition.search_string
+            + " . "
+        )
+    elif config.chem_info == "element_dict":
+        prefix = (
+            "The chemical contents are "
             + chem  # atoms.composition.search_string
             + " . "
         )
@@ -140,6 +156,12 @@ def make_alpaca_json(
                 chem = ""
             elif config.chem_info == "element_list":
                 chem = atoms.composition.search_string
+            elif config.chem_info == "element_dict":
+                comp = Composition.from_string(
+                    atoms.composition.reduced_formula
+                )
+                chem = comp.to_dict()
+                chem = str(dict(sorted(chem.items())))
             elif config.chem_info == "formula":
                 chem = atoms.composition.reduced_formula
 
@@ -191,7 +213,7 @@ def evaluate(
 
     for i in tqdm(test_set, total=len(test_set)):
         # try:
-        prompt = i["input"]
+        # prompt = i["input"]
         # print("prompt", prompt)
         gen_mat = gen_atoms(
             prompt=i["input"],
@@ -332,12 +354,16 @@ def main(config_file=None):
     run_path = os.path.dirname(id_prop_path)
     num_train = config.num_train
     num_test = config.num_test
-    model_name = config.model_name
+    # model_name = config.model_name
+    callback_samples = config.callback_samples
     # loss_function = config.loss_function
     # id_prop_path = os.path.join(run_path, id_prop_path)
     with open(id_prop_path, "r") as f:
         reader = csv.reader(f)
         dt = [row for row in reader]
+    if not num_train:
+        num_test = int(len(dt) * config.test_ratio)
+        num_train = len(dt) - num_test
 
     dat = []
     ids = []
@@ -350,7 +376,7 @@ def main(config_file=None):
         if len(tmp) == 1:
             tmp = str(float(tmp[0]))
         else:
-            tmp = "\n".join(map(str, tmp))
+            tmp = config.separator.join(map(str, tmp))
 
         # if ";" in i[1]:
         #    tmp = "\n".join([str(round(float(j), 2)) for j in i[1].split(";")])
@@ -373,6 +399,8 @@ def main(config_file=None):
         dat.append(info)
 
     train_ids = ids[0:num_train]
+    print("num_train", num_train)
+    print("num_test", num_test)
     test_ids = ids[num_train : num_train + num_test]
     # test_ids = ids[num_train:]
     alpaca_prop_train_filename = os.path.join(
@@ -428,7 +456,7 @@ def main(config_file=None):
         # sys.exit()
         model = FastLanguageModel.get_peft_model(
             model,
-            r=16,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+            r=config.lora_rank,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
             target_modules=[
                 "q_proj",
                 "k_proj",
@@ -438,7 +466,7 @@ def main(config_file=None):
                 "up_proj",
                 "down_proj",
             ],
-            lora_alpha=16,
+            lora_alpha=config.lora_alpha,
             lora_dropout=0,  # Supports any, but = 0 is optimized
             bias="none",  # Supports any, but = "none" is optimized
             use_gradient_checkpointing=True,
@@ -450,9 +478,15 @@ def main(config_file=None):
     EOS_TOKEN = tokenizer.eos_token  # Must add EOS_TOKEN
     # tokenizer.pad_token_id = tokenizer.eos_token_id
     # model.resize_token_embeddings(len(tokenizer))
-    dataset = load_dataset(
+    train_dataset = load_dataset(
         "json",
         data_files=alpaca_prop_train_filename,
+        split="train",
+        # "json", data_files="alpaca_prop_train.json", split="train"
+    )
+    eval_dataset = load_dataset(
+        "json",
+        data_files=alpaca_prop_test_filename,
         split="train",
         # "json", data_files="alpaca_prop_train.json", split="train"
     )
@@ -460,25 +494,58 @@ def main(config_file=None):
         formatting_prompts_func, alpaca_prompt=config.alpaca_prompt
     )
 
-    dataset = dataset.map(
+    def tokenize_function(example):
+        return tokenizer(
+            example["text"],
+            padding="max_length",
+            truncation=True,
+            max_length=config.max_seq_length,
+        )
+
+    train_dataset = train_dataset.map(
         formatting_prompts_func_with_prompt,
         batched=True,
     )
+    eval_dataset = eval_dataset.map(
+        formatting_prompts_func_with_prompt,
+        batched=True,
+    )
+    # Compute the actual max sequence length in raw text
+    lengths = [
+        len(tokenizer(example["text"], truncation=False)["input_ids"])
+        for example in eval_dataset
+    ]
+    max_seq_length = max(lengths)
+    print(f"🧠 Suggested max_seq_length based on dataset: {max_seq_length}")
 
-    trainer = CustomSFTTrainer(
+    tokenized_train = train_dataset.map(tokenize_function, batched=True)
+    tokenized_eval = eval_dataset.map(tokenize_function, batched=True)
+    tokenized_train.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "output"]
+    )
+    tokenized_eval.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "output"]
+    )
+
+    trainer = SFTTrainer(
+        # trainer = CustomSFTTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=dataset,
+        train_dataset=tokenized_train,
+        eval_dataset=tokenized_eval,
+        # train_dataset=dataset,
         dataset_text_field="text",
         max_seq_length=config.max_seq_length,
         dataset_num_proc=config.dataset_num_proc,
-        loss_type=config.loss_type,
+        # loss_type=config.loss_type,
         packing=False,  # Can make training 5x faster for short sequences.
         args=TrainingArguments(
             per_device_train_batch_size=config.per_device_train_batch_size,
             gradient_accumulation_steps=config.gradient_accumulation_steps,
             warmup_steps=5,
             overwrite_output_dir=True,
+            save_strategy=config.save_strategy,
+            save_steps=config.save_steps,
             # max_steps = 60,
             learning_rate=config.learning_rate,
             fp16=not torch.cuda.is_bf16_supported(),
@@ -493,9 +560,20 @@ def main(config_file=None):
             report_to="none",
         ),
     )
-
+    if callback_samples > 0:
+        callback = ExampleTrainerCallback(
+            some_tokenized_dataset=tokenized_eval,
+            # some_tokenized_dataset=tokenized_eval,
+            tokenizer=tokenizer,
+            max_length=config.max_seq_length,
+            callback_samples=callback_samples,
+        )
+        trainer.add_callback(callback)
+    gpu_usage = PrintGPUUsageCallback()
+    trainer.add_callback(gpu_usage)
     trainer_stats = trainer.train()
-    model.save_pretrained(config.model_save_path)
+    trainer.save_model(config.model_save_path)
+    # model.save_pretrained(config.model_save_path)
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=config.model_save_path,  # YOUR MODEL YOU USED FOR TRAINING

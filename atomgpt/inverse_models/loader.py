@@ -87,6 +87,7 @@ class FastLanguageModel(FastLlamaModel):
         # First check if it's a normal model via AutoConfig
         is_peft = False
         try:
+            print("model_name", model_name)
             model_config = AutoConfig.from_pretrained(model_name, token=token)
             is_peft = False
         except:

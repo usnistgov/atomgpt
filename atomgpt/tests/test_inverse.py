@@ -7,7 +7,7 @@ config = os.path.join(
 )
 print("config", config)
 
-
+"""
 def run_inverse():
     try:
         main(config)
@@ -15,6 +15,7 @@ def run_inverse():
         print("exp", exp)
         pass
 
+"""
 
 # atomgpt/examples/inverse_model/config.json
 # run_inverse()
