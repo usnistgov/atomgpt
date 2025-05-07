@@ -7,6 +7,7 @@ from atomgpt.inverse_models.utils import gen_atoms, main_spectra, load_exp_file
 import argparse
 import sys
 from pathlib import Path
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 parser = argparse.ArgumentParser(
@@ -32,29 +33,55 @@ parser.add_argument(
 
 def predict(
     output_dir="outputs",
-    config_name="outputs/config.json",
+    # config_name="outputs/config.json",
     pred_csv="pred_list_inverse.csv",
     fname="out_inv.json",
     device="cuda",
     intvl=0.3,
 ):
+    # if not os.path.exists("config_name"):
+
+    #    config_name=os.path.join(output_dir,"config.json")
+    config_name = os.path.join(output_dir, "config.json")
+    parent = Path(output_dir).parent
+    if not os.path.exists(config_name):
+        config_name = os.path.join(parent, "config.json")
+    print("config used", config_name)
     temp_config = loadjson(config_name)
+    print("config used", temp_config)
     temp_config = TrainingPropConfig(**temp_config).dict()
     max_seq_length = temp_config["max_seq_length"]
     model_name = temp_config["model_name"]
     # output_dir = temp_config["output_dir"]
     dtype = temp_config["dtype"]
     load_in_4bit = temp_config["load_in_4bit"]
-    model_name = output_dir  # temp_config["model_name"]
+    adapter = os.path.join(output_dir, "adapter_config.json")
+
+    if os.path.exists(adapter):
+
+        model_name = output_dir  # temp_config["model_name"]
+    print("Model used:", model_name)
     pprint.pprint(temp_config)
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_name,
-        max_seq_length=max_seq_length,
-        dtype=dtype,
-        load_in_4bit=load_in_4bit,
-        device_map="auto",
-    )
-    FastLanguageModel.for_inference(model)
+    model = None
+    tokenizer = None
+    try:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=model_name,
+            max_seq_length=max_seq_length,
+            dtype=dtype,
+            load_in_4bit=load_in_4bit,
+            device_map="auto",
+        )
+        FastLanguageModel.for_inference(model)
+    except:
+        filename = "unsloth.Q4_K_M.gguf"
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, gguf_file=filename
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, gguf_file=filename
+        )
+        pass
     atoms_arr = []
     f = open(pred_csv, "r")
     lines = f.read().splitlines()
@@ -103,5 +130,5 @@ if __name__ == "__main__":
     predict(
         output_dir=args.output_dir,
         pred_csv=args.pred_csv,
-        config_name=args.config_name,
+        # config_name=args.config_name,
     )

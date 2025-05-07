@@ -857,4 +857,4 @@ def fix_sft_trainer_tokenizer():
 pass
 
 # Fixes double adding BOS tokens like in llama-3
-fix_sft_trainer_tokenizer()
+# fix_sft_trainer_tokenizer()

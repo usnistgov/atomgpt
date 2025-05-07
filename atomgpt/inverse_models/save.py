@@ -1857,7 +1857,286 @@ def unsloth_push_to_hub_gguf(
 pass
 
 
-def patch_saving_functions(model):
+def unsloth_generic_push_to_hub_merged(
+    self,
+    repo_id: str,
+    tokenizer=None,
+    save_method: str = "merged_16bit",  # ["lora", "merged_16bit", "merged_4bit"]
+    use_temp_dir: Optional[bool] = None,
+    commit_message: Optional[str] = "Trained with Unsloth",
+    private: Optional[bool] = None,
+    token: Union[bool, str, None] = None,
+    max_shard_size: Union[int, str, None] = "5GB",
+    create_pr: bool = False,
+    safe_serialization: bool = True,
+    revision: str = None,
+    commit_description: str = "Upload model trained with Unsloth 2x faster",
+    tags: Optional[List[str]] = None,
+    temporary_location: str = "_unsloth_temporary_saved_buffers",
+    maximum_memory_usage: float = 0.75,
+):
+    """
+    Same as .push_to_hub(...) except 4bit weights are auto
+    converted to float16 with as few overhead as possible.
+
+    Choose for `save_method` to be either:
+    1. `16bit`: Merge LoRA into float16 weights. Useful for GGUF / llama.cpp.
+    2.  `4bit`: Merge LoRA into int4 weights. Useful for DPO / HF inference.
+    3.  `lora`: Save LoRA adapters with no merging. Useful for HF inference.
+    """
+    if tokenizer is None:
+        logger.warning_once(
+            "Unsloth: You're not saving a tokenizer as well?\n"
+            "You can do it separately via `tokenizer.push_to_hub(...)`"
+        )
+    pass
+
+    arguments = dict(locals())
+    arguments["model"] = self
+    arguments["save_directory"] = repo_id
+    arguments["push_to_hub"] = True
+    del arguments["self"]
+    del arguments["repo_id"]
+    unsloth_generic_save(**arguments)
+    for _ in range(3):
+        gc.collect()
+
+
+pass
+
+
+def unsloth_generic_save_pretrained_merged(
+    self,
+    save_directory: Union[str, os.PathLike],
+    tokenizer=None,
+    save_method: str = "merged_16bit",  # ["lora", "merged_16bit", "merged_4bit"]
+    push_to_hub: bool = False,
+    token: Optional[Union[str, bool]] = None,
+    is_main_process: bool = True,
+    state_dict: Optional[dict] = None,
+    save_function: Callable = torch.save,
+    max_shard_size: Union[int, str] = "5GB",
+    safe_serialization: bool = True,
+    variant: Optional[str] = None,
+    save_peft_format: bool = True,
+    tags: List[str] = None,
+    temporary_location: str = "_unsloth_temporary_saved_buffers",
+    maximum_memory_usage: float = 0.75,
+):
+    """
+    Same as .push_to_hub(...) except 4bit weights are auto
+    converted to float16 with as few overhead as possible.
+
+    Choose for `save_method` to be either:
+    1. `16bit`: Merge LoRA into float16 weights. Useful for GGUF / llama.cpp.
+    2.  `4bit`: Merge LoRA into int4 weights. Useful for DPO / HF inference.
+    3.  `lora`: Save LoRA adapters with no merging. Useful for HF inference.
+    """
+    if tokenizer is None:
+        logger.warning_once(
+            "Unsloth: You're not saving a tokenizer as well?\n"
+            "You can do it separately via `tokenizer.save_pretrained(...)`"
+        )
+    pass
+
+    arguments = dict(locals())
+    arguments["model"] = self
+    del arguments["self"]
+    unsloth_generic_save(**arguments)
+    for _ in range(3):
+        gc.collect()
+
+
+pass
+
+
+@torch.inference_mode
+def save_to_gguf_generic(
+    model,
+    save_directory,
+    quantization_type="Q8_0",
+    repo_id=None,
+    token=None,
+):
+    if token is None and repo_id is not None:
+        token = get_token()
+    if repo_id is not None and token is None:
+        raise RuntimeError("Unsloth: Please specify a token for uploading!")
+
+    if not os.path.exists(
+        os.path.join("llama.cpp", "unsloth_convert_hf_to_gguf.py")
+    ):
+        install_llama_cpp(just_clone_repo=True)
+    pass
+
+    metadata = _convert_to_gguf(
+        save_directory,
+        print_output=True,
+        quantization_type=quantization_type,
+    )
+    if repo_id is not None:
+        prepare_saving(
+            model,
+            repo_id,
+            push_to_hub=True,
+            max_shard_size="50GB",
+            private=True,
+            token=token,
+        )
+
+        from huggingface_hub import HfApi
+
+        api = HfApi(token=token)
+        api.upload_folder(
+            folder_path=save_directory,
+            repo_id=repo_id,
+            repo_type="model",
+            allow_patterns=["*.gguf"],
+        )
+    pass
+    return metadata
+
+
+pass
+
+
+def patch_saving_functions(model, vision=False):
+    import inspect
+    import types
+    from typing import Callable, Optional, Union, List
+
+    # And now re add our saving methods!
+    if model.push_to_hub.__name__ == "unsloth_push_to_hub":
+        original_push_to_hub = model.original_push_to_hub
+    else:
+        original_push_to_hub = model.push_to_hub
+    pass
+
+    signature = str(inspect.signature(original_push_to_hub)).replace(
+        "NoneType", "None"
+    )
+    signature = signature[1:]
+    signature = re.sub("<function save at .+?>", "torch.save", signature)
+    docs = original_push_to_hub.__doc__.encode("utf-8").decode("utf-8")
+
+    push_to_hub_text = f'''def unsloth_push_to_hub(self, {signature}:
+    """
+    {docs}
+    """
+    arguments = dict(locals())
+    del arguments["self"]
+    if "tags" in arguments and arguments["tags"] is not None:
+        assert(isinstance(arguments["tags"], (list, tuple)))
+        arguments["tags"] = list(arguments["tags"]) + ["unsloth",]
+    elif "tags" in arguments:
+        arguments["tags"] = ["unsloth",]
+    elif hasattr(self, "add_model_tags"):
+        self.add_model_tags(["unsloth",])
+
+    if "commit_message" in arguments:
+        commit_message = arguments["commit_message"]
+        if commit_message is not None:
+            if not commit_message.endswith(" "): commit_message += " "
+            if "Unsloth" not in commit_message:
+                commit_message += "(Trained with Unsloth)"
+        else:
+            commit_message = "Upload model trained with Unsloth"
+        arguments["commit_message"] = commit_message
+
+    if "commit_description" in arguments:
+        commit_description = arguments["commit_description"]
+        if commit_description is not None:
+            if not commit_description.endswith(" "): commit_description += " "
+            if "Unsloth" not in commit_description:
+                commit_description += "(Trained with Unsloth 2x faster)"
+        else:
+            commit_description = "Upload model trained with Unsloth 2x faster"
+        arguments["commit_description"] = commit_description
+
+    # Update model tag
+    if hasattr(self, "config"):
+        _ = upload_to_huggingface(
+            self, arguments["repo_id"], arguments["token"],
+            "finetuned", "trl", file_location = None,
+            old_username = None, private = arguments["private"],
+        )
+    pass
+
+    try:
+        self.original_push_to_hub(**arguments)
+    except:
+        del arguments["tags"]
+        self.original_push_to_hub(**arguments)
+    pass
+
+    if hasattr(self, "config"):
+        print("Saved model to https://huggingface.co/" + arguments["repo_id"])
+    pass
+    '''
+    exec(push_to_hub_text, globals())
+
+    original_model = model
+    while True:
+
+        if original_model.push_to_hub.__name__ != "unsloth_push_to_hub":
+            original_model.original_push_to_hub = original_model.push_to_hub
+            original_model.push_to_hub = types.MethodType(
+                unsloth_push_to_hub, original_model
+            )
+            if hasattr(original_model, "add_model_tags"):
+                original_model.add_model_tags(
+                    [
+                        "unsloth",
+                    ]
+                )
+            pass
+        pass
+
+        if hasattr(original_model, "model"):
+            original_model = original_model.model
+        else:
+            break
+    pass
+
+    # Add saving methods to top level model
+    if not vision:
+        if hasattr(model, "config"):
+            # Counteract tokenizers
+            model.push_to_hub_merged = types.MethodType(
+                unsloth_push_to_hub_merged, model
+            )
+            model.save_pretrained_merged = types.MethodType(
+                unsloth_save_pretrained_merged, model
+            )
+            model.push_to_hub_gguf = types.MethodType(
+                unsloth_push_to_hub_gguf, model
+            )
+            model.save_pretrained_gguf = types.MethodType(
+                unsloth_save_pretrained_gguf, model
+            )
+            # model.push_to_hub_ggml       = types.MethodType(unsloth_convert_lora_to_ggml_and_push_to_hub,  model)
+            # model.save_pretrained_ggml   = types.MethodType(unsloth_convert_lora_to_ggml_and_save_locally, model)
+        pass
+    else:
+        # Vision only 1 option
+        model.push_to_hub_merged = types.MethodType(
+            unsloth_generic_push_to_hub_merged, model
+        )
+        model.save_pretrained_merged = types.MethodType(
+            unsloth_generic_save_pretrained_merged, model
+        )
+        model.push_to_hub_gguf = types.MethodType(save_to_gguf_generic, model)
+        model.save_pretrained_gguf = types.MethodType(
+            save_to_gguf_generic, model
+        )
+    pass
+    return model
+
+
+pass
+
+
+def patch_saving_functions_old(model):
     import inspect
     import re
     import types
