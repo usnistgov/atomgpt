@@ -38,14 +38,13 @@ def sharpen_peaks(y, sigma=0.5):
     return y_sharp
 
 
-"""
 def recast_array(
     x_original=[], y_original=[], x_new=np.arange(0, 90, 1), tol=0.1
 ):
     x_original = np.array(x_original)
     # Initialize the new y array with NaNs or a default value
-    y_new = np.zeros_like(x_new,  dtype=np.float64)
-    #y_new = np.full_like(x_new, 0, dtype=np.float64)
+    y_new = np.zeros_like(x_new, dtype=np.float64)
+    # y_new = np.full_like(x_new, 0, dtype=np.float64)
 
     # Fill the corresponding bins
     for x_val, y_val in zip(x_original, y_original):
@@ -55,10 +54,9 @@ def recast_array(
         y_new[closest_index] = y_val
     # y_new[y_new<tol]=0
     return x_new, y_new
-"""
 
 
-def recast_array(
+def recast_arrayYY(
     x_original=[], y_original=[], x_new=np.arange(0, 90, 1), tol=0.1
 ):
     x_original = np.array(x_original)
@@ -72,6 +70,24 @@ def recast_array(
         ).argmin()  # Find the closest x_new index
         y_new[closest_index] = y_val
     # y_new[y_new<tol]=0
+    return x_new, y_new
+
+
+def recast_arrayOLD(x_original=[], y_original=[], x_new=[], tol=0.1):
+    """Recast original spectrum onto a new grid, accumulating close values."""
+    x_original = np.array(x_original)
+    y_original = np.array(y_original, dtype=np.float64)
+    y_new = np.zeros_like(x_new, dtype=np.float64)
+    x_new = np.array(x_new, dtype=np.float64)
+    indices = np.abs(x_new[:, np.newaxis] - x_original).argmin(axis=0)
+    np.add.at(y_new, indices, y_original)
+    # Accumulate intensities for sharpness preservation
+    # for x_val, y_val in zip(x_original, y_original):
+    #    closest_index = np.abs(x_new - x_val).argmin()
+    #    y_new[closest_index] += y_val
+
+    # Remove noise below tolerance level
+    # y_new[y_new < tol] = 0
     return x_new, y_new
 
 
@@ -343,7 +359,7 @@ def gen_atoms(
         **inputs, max_new_tokens=max_new_tokens, use_cache=True
     )
     response = tokenizer.batch_decode(outputs)[0]
-    print("response", response)
+    # print("response", response)
     response = response.split("# Output:")[1].strip("</s>")
     atoms = None
     try:
@@ -488,14 +504,15 @@ def get_figlet():
 
 
 def processed(
-    x,
-    y,
+    x=[],
+    y=[],
     x_range=[0, 90],
-    intvl=0.1,
+    intvl=0.3,
     sigma=0.05,
+    # sigma=0.05,
     recast=True,
     tol=0.1,
-    background_subs=True,
+    background_subs=False,
 ):
     """Process the spectrum: background removal and peak sharpening."""
     y = np.array(y, dtype="float")
@@ -515,15 +532,20 @@ def processed(
 
     # 4. Recast the spectrum onto the new grid
     if recast:
-        x_new, y_corrected = recast_array(x, y_corrected, x_new, tol=tol)
+        x, y_corrected = recast_array(
+            x_original=x, y_original=y_corrected, x_new=x_new, tol=tol
+        )
 
     # 5. Sharpen the peaks using Gaussian filtering
     y_sharp = sharpen_peaks(y_corrected, sigma=sigma)
+    # y_sharp = sharpen_peaks(y_corrected, sigma=sigma)
+    # y_sharp = sharpen_peaks(y_corrected, sigma=sigma)
 
     # 6. Final normalization
     if np.max(y_sharp) > 0:
         y_sharp = y_sharp / np.max(y_sharp)
 
+    # y_sharp = y_sharp / np.max(y_sharp)
     return x_new, y_sharp
 
 
@@ -712,7 +734,7 @@ def parse_formula(formula):
     return compact_formula
 
 
-def load_exp_file(filename="", intvl=0.3):
+def load_exp_file(filename="", intvl=0.3, background_subs=True):
     # df = pd.read_csv(
     #     filename,
     #     skiprows=1,
@@ -723,7 +745,8 @@ def load_exp_file(filename="", intvl=0.3):
     df = pd.read_csv(
         filename,
         skiprows=1,
-        sep=r"[ ,]+",
+        # sep=r"[ ,]+",
+        sep=r"[,\t ]+",
         names=["X", "Y"],
         comment="#",
         engine="python",
@@ -763,7 +786,9 @@ def load_exp_file(filename="", intvl=0.3):
     #     y = df["Z"].values
     y = np.array(y)
     y = y / np.max(y)
-    x, y_corrected = processed(x=x, y=y, intvl=intvl)
+    x, y_corrected = processed(
+        x=x, y=y, intvl=intvl, background_subs=background_subs
+    )
     return formula, x, y_corrected
 
 

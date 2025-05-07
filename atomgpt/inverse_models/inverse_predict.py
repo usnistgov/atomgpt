@@ -8,7 +8,10 @@ import argparse
 import sys
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM
-
+from ase.optimize.fire import FIRE
+from ase.constraints import ExpCellFilter
+import time
+from jarvis.core.atoms import ase_to_atoms
 
 parser = argparse.ArgumentParser(
     description="Atomistic Generative Pre-trained Transformer"
@@ -25,10 +28,40 @@ parser.add_argument(
     help="CSV file for prediction list.",
 )
 parser.add_argument(
-    "--config_name",
-    default="config.json",
-    help="Config file used during training.",
+    "--intvl",
+    default="0.3",
+    help="XRD 2 theta bin",
 )
+parser.add_argument(
+    "--relax",
+    default="True",
+    help="Relax cell or not",
+)
+
+
+def relax_atoms(
+    atoms=None,
+    fmax=0.05,
+    nsteps=150,
+    constant_volume=False,
+):
+    from alignn.ff.ff import AlignnAtomwiseCalculator, default_path
+
+    calculator = AlignnAtomwiseCalculator(path=default_path(), device="cpu")
+    t1 = time.time()
+    # if calculator is None:
+    #  return atoms
+    ase_atoms = atoms.ase_converter()
+    ase_atoms.calc = calculator
+
+    ase_atoms = ExpCellFilter(ase_atoms, constant_volume=constant_volume)
+    # TODO: Make it work with any other optimizer
+    dyn = FIRE(ase_atoms)
+    dyn.run(fmax=fmax, steps=nsteps)
+    en = ase_atoms.atoms.get_potential_energy()
+    final_atoms = ase_to_atoms(ase_atoms.atoms)
+    t2 = time.time()
+    return final_atoms
 
 
 def predict(
@@ -38,6 +71,8 @@ def predict(
     fname="out_inv.json",
     device="cuda",
     intvl=0.3,
+    relax=False,
+    background_subs=False,
 ):
     # if not os.path.exists("config_name"):
 
@@ -93,8 +128,12 @@ def predict(
         if ".dat" in i:
             parent = Path(pred_csv).parent
             fname_csv = os.path.join(parent, i)
-            formula, x, y = load_exp_file(filename=fname_csv, intvl=intvl)
-            y[y < 0] = 0
+            formula, x, y = load_exp_file(
+                filename=fname_csv,
+                intvl=intvl,
+                background_subs=background_subs,
+            )
+            y[y < 0.0] = 0
             y_new_str = "\n".join(["{0:.2f}".format(x) for x in y])
             formula = str(formula.split("/")[-1].split(".dat")[0])
             # gen_mat = main_spectra(spectra=[[y_new_str,y]],formulas=[formula],model=model,tokenizer=tokenizer,device='cuda')[0]
@@ -105,7 +144,7 @@ def predict(
                 + y_new_str
                 + ". Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
             )
-        print("prompt", prompt)
+        print("prompt", prompt.replace("\n", ","))
         gen_mat = gen_atoms(
             prompt=prompt,
             model=model,
@@ -115,6 +154,11 @@ def predict(
             device=device,
         )
         print("gen atoms", gen_mat)
+        print("gen atoms spacegroup", gen_mat.spacegroup())
+        print("intvl", intvl)
+        if relax:
+            gen_mat = relax_atoms(atoms=gen_mat)
+            print("gen atoms relax", gen_mat, gen_mat.spacegroup())
         atoms_arr.append(gen_mat.to_dict())
         info = {}
         info["prompt"] = prompt
@@ -130,5 +174,6 @@ if __name__ == "__main__":
     predict(
         output_dir=args.output_dir,
         pred_csv=args.pred_csv,
+        intvl=float(args.intvl),
         # config_name=args.config_name,
     )
