@@ -71,8 +71,11 @@ def predict(
     fname="out_inv.json",
     device="cuda",
     intvl=0.3,
+    tol=0.1,
     relax=False,
     background_subs=False,
+    filename="Q4_K_M.gguf",
+    load_in_4bit=False,  # temp_config["load_in_4bit"]
 ):
     # if not os.path.exists("config_name"):
 
@@ -89,7 +92,7 @@ def predict(
     model_name = temp_config["model_name"]
     # output_dir = temp_config["output_dir"]
     dtype = temp_config["dtype"]
-    load_in_4bit = temp_config["load_in_4bit"]
+    load_in_4bit = load_in_4bit  # temp_config["load_in_4bit"]
     adapter = os.path.join(output_dir, "adapter_config.json")
 
     if os.path.exists(adapter):
@@ -109,7 +112,6 @@ def predict(
         )
         FastLanguageModel.for_inference(model)
     except:
-        filename = "unsloth.Q4_K_M.gguf"
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, gguf_file=filename
         )
@@ -131,6 +133,7 @@ def predict(
             formula, x, y = load_exp_file(
                 filename=fname_csv,
                 intvl=intvl,
+                tol=tol,
                 background_subs=background_subs,
             )
             y[y < 0.0] = 0

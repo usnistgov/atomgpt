@@ -734,7 +734,7 @@ def parse_formula(formula):
     return compact_formula
 
 
-def load_exp_file(filename="", intvl=0.3, background_subs=True):
+def load_exp_file(filename="", intvl=0.3, background_subs=True, tol=0.1):
     # df = pd.read_csv(
     #     filename,
     #     skiprows=1,
@@ -784,10 +784,10 @@ def load_exp_file(filename="", intvl=0.3, background_subs=True):
     #     y = df["Y"].values
     # else:
     #     y = df["Z"].values
-    y = np.array(y)
+    y = np.array(y, dtype="float")
     y = y / np.max(y)
     x, y_corrected = processed(
-        x=x, y=y, intvl=intvl, background_subs=background_subs
+        x=x, y=y, intvl=intvl, background_subs=background_subs, tol=tol
     )
     return formula, x, y_corrected
 
