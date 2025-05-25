@@ -1,69 +1,64 @@
-name: AtomGPT github action
+name: AtomGPT GitHub Action
+
 on: [push, pull_request]
 
 jobs:
   miniconda:
-    name: Miniconda ${{ matrix.os }}
+    name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-        matrix:
-            os: ["ubuntu-latest"]
+      matrix:
+        os: ["ubuntu-latest"]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: test
+          activate-environment: atomgpt
           environment-file: environment.yml
           python-version: "3.10"
           auto-activate-base: false
-      - shell: bash -l {0}
+          use-mamba: true  # Speeds up env creation
+
+      - name: Print Conda environment details
+        shell: bash -l {0}
         run: |
           conda info
           conda list
-      - name: Lint
+
+      - name: Install dev tools and dependencies
         shell: bash -l {0}
         run: |
-            conda install flake8 pycodestyle pydocstyle
-            #flake8 --ignore E203,W503 --exclude=examples,tests,scripts --statistics --count --exit-zero intermat/calculators.py intermat/generate.py 
-            #pycodestyle --ignore E203,W503 --exclude=examples,tests,scripts intermat
-            #pydocstyle --match-dir=core --match-dir=io --match-dir=io --match-dir=ai --match-dir=analysis --match-dir=db --match-dir=tasks --count intermat
-      
-      - name: Run pytest
+          pip install triton
+          conda install flake8 pycodestyle pydocstyle pytest coverage codecov -y
+
+      - name: Lint with flake8 and others
         shell: bash -l {0}
         run: |
-            #source ~/.bashrc
-            find . -type f > before_test_files.txt
-            conda env create -f environment.yml
-            conda activate atomgpt 
-            pip install triton
-            #conda install alignn dgl=2.1.0 pytorch torchvision torchaudio pytorch-cuda transformers peft trl triton  -c pytorch -c nvidia -y
-            conda install pytest coverage codecov   -y
-            #conda install pytest coverage codecov pandas numpy matplotlib phonopy scikit-learn jarvis-tools --quiet
-            #export DGLBACKEND=pytorch
-            #export CUDA_VISIBLE_DEVICES="-1"
-            #pip install phonopy flake8 pytest pycodestyle pydocstyle codecov pytest-cov coverage
-            
-            python setup.py develop
-            echo 'environment.yml'
-            conda env export
-            echo 'forward model'
-            echo 'ls'
-            ls 
-            echo 'ls atomgpt'
-            ls atomgpt
-            echo 'atomgpt/examples/'
-            ls atomgpt/examples/
-            echo 'atomgpt/examples/forward_model/'
-            ls atomgpt/examples/forward_model/ 
-            python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
+          flake8 atomgpt --count --exit-zero --max-complexity=10 --statistics
+          pycodestyle atomgpt
+          pydocstyle atomgpt
 
-            # echo 'inverse model'
-            # #python atomgpt/examples/inverse_model/run.py            
-            # coverage run -m pytest
-            # coverage report -m -i
-            # codecov --token="b493c988-5235-4f38-b60a-a2b670435968"
-            # #codecov --token="85bd9c5d-9e55-4f6d-bd69-350ee5e3bb41"
-            
-            find . -type f > after_test_files.txt
-            
+      - name: Install in editable mode
+        shell: bash -l {0}
+        run: |
+          python setup.py develop
 
+      - name: Run forward model test
+        shell: bash -l {0}
+        run: |
+          echo 'Listing files'
+          ls -l atomgpt/examples/forward_model/
+          echo 'Running forward model'
+          python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
+
+      # Uncomment below to run inverse model + coverage tests
+      # - name: Run tests with coverage
+      #   shell: bash -l {0}
+      #   run: |
+      #     coverage run -m pytest
+      #     coverage report -m
+      #     codecov --token=${{ secrets.CODECOV_TOKEN }}
