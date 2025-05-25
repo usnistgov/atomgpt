@@ -20,13 +20,13 @@ from atomgpt.inverse_models.callbacks import (
 )
 import json
 from tqdm import tqdm
+from atomgpt.inverse_models.loader import (
+    FastVisionModel,
+)  # FastLanguageModel for LLMs
 
-# from inference import db_inference
-from unsloth import FastVisionModel  # FastLanguageModel for LLMs
 from jarvis.db.jsonutils import loadjson
 from datasets import Dataset
 
-from unsloth import FastVisionModel  # FastLanguageModel for LLMs
 from PIL import Image
 
 
@@ -278,7 +278,8 @@ if __name__ == "__main__":
     d = loadjson("dft_2d_formula_based/dft_2d_test_dataset.json")[0:2]
 
     inference(
-        model_name="c2db_formula_based_c2db_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-1970"
+        model_name="knc6/microscopy_gpt_llama3.2_vision_11b"
+        # model_name="c2db_formula_based_c2db_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-1970"
         # model_name="formula_output_dir_dft_2d_formula_output_dir_dft_2d_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-620/checkpoint-11/"
     )
     # inference(model_name="formula_output_dir_dft_3d_dft_2d_unsloth/Pixtral-12B-2409/checkpoint-1240",datasets=d)

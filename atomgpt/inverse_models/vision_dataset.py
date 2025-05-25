@@ -494,7 +494,7 @@ def generate_dataset_new(
     output_folder="pi_image_dataset_with_artifacts",
     train_ratio=0.9,
     miller_indices=[],
-    max_samples=None,
+    max_samples=10,
 ):
     # Predefined miller indices
     if dataset_name == "dft_2d":
@@ -553,7 +553,7 @@ def generate_dataset(
     output_folder="pi_image_dataset_with_artifacts",
     train_ratio=0.9,
     miller_indices=[],
-    max_samples=None,
+    max_samples=10,
     id_tag="jid",
 ):
     # if dataset_name == "dft_2d":

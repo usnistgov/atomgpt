@@ -34,10 +34,10 @@ from atomgpt.inverse_models.compiler_replacements import compiler_replacements
 
 # Compiled cache location
 global COMBINED_UNSLOTH_NAME
-COMBINED_UNSLOTH_NAME = "unsloth_compiled_module"
+COMBINED_UNSLOTH_NAME = "atomgpt_compiled_module"
 
 global UNSLOTH_COMPILE_LOCATION
-UNSLOTH_COMPILE_LOCATION = "unsloth_compiled_cache"
+UNSLOTH_COMPILE_LOCATION = "atomgpt_compiled_cache"
 
 global UNSLOTH_COMPILE_USE_TEMP
 UNSLOTH_COMPILE_USE_TEMP = False
@@ -2517,7 +2517,9 @@ def unsloth_compile_transformers(
 
     if compile_torch_modules and not disable:
 
-        from .patch_torch_functions import patch_torch_functions
+        from atomgpt.inverse_models.patch_torch_functions import (
+            patch_torch_functions,
+        )
 
         patch_torch_functions()
 

@@ -58,6 +58,9 @@ import numpy as np
 import contextlib
 import re
 import warnings, subprocess, re, inspect, psutil, os, math
+from atomgpt.inverse_models.tokenizer_utils import (
+    patch_tokenizer as _patch_tokenizer,
+)
 
 # from unsloth_zoo.utils import Version
 
@@ -1521,6 +1524,7 @@ pass
 
 def patch_tokenizer(model, tokenizer):
     model, tokenizer = _patch_tokenizer(model, tokenizer)
+    # model, tokenizer = _patch_tokenizer(model, tokenizer)
     if model is not None:
         model.config.update({"unsloth_version": __version__})
     return model, tokenizer

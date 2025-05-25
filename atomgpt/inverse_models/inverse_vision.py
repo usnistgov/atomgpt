@@ -1,5 +1,4 @@
-from unsloth import is_bf16_supported
-from unsloth.trainer import AtomGPTVisionDataCollator
+from atomgpt.inverse_models.vision_utils import AtomGPTVisionDataCollator
 from atomgpt.inverse_models.vision_dataset import generate_dataset
 import torch
 import os
@@ -22,11 +21,11 @@ import json
 from tqdm import tqdm
 
 # from inference import db_inference
-from unsloth import FastVisionModel  # FastLanguageModel for LLMs
+from atomgpt.inverse_models.loader import (
+    FastVisionModel,
+)  # FastLanguageModel for LLMs
 from jarvis.db.jsonutils import loadjson
 from datasets import Dataset
-
-from unsloth import FastVisionModel  # FastLanguageModel for LLMs
 
 
 # model_name="unsloth/llava-v1.6-mistral-7b-hf-bnb-4bit"
@@ -37,6 +36,8 @@ from transformers import TrainerCallback
 from jarvis.core.atoms import Atoms
 import numpy as np
 from jarvis.core.lattice import Lattice
+
+is_bf16_supported = torch.cuda.is_bf16_supported
 
 
 def text2atoms(response):
@@ -325,7 +326,6 @@ def run(
 
     FastVisionModel.for_training(model)  # Enable for training!
     output_dir = output_folder + "_" + "_".join(datasets) + "_" + model_name
-    """
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -335,8 +335,8 @@ def run(
             per_device_train_batch_size=2,  # Reduce to 1 to make Pixtral fit!
             gradient_accumulation_steps=4,
             warmup_steps=5,
-            #save_strategy="epoch",
-            #save_steps=1,
+            # save_strategy="epoch",
+            # save_steps=1,
             # max_steps = 30,
             num_train_epochs=5,  # Set this instead of max_steps for full training runs
             learning_rate=2e-4,
@@ -344,7 +344,7 @@ def run(
             bf16=is_bf16_supported(),
             logging_steps=1,
             save_steps=100,
-            #optim="adamw_torch_fused",
+            # optim="adamw_torch_fused",
             optim="paged_adamw_8bit",
             weight_decay=0.01,
             lr_scheduler_type="linear",
@@ -369,7 +369,7 @@ def run(
     print(f"GPU = {gpu_stats.name}. Max memory = {max_memory} GB.")
     print(f"{start_gpu_memory} GB of memory reserved.")
 
-    #"""
+    # """
     callback = EnhancedTrainingMonitor(
         eval_dataset=test_dataset[0:1],
         # some_tokenized_dataset=tokenized_eval,
@@ -383,7 +383,6 @@ def run(
     trainer.add_callback(gpu_usage)
 
     trainer_stats = trainer.train()
-    # """
     evaluate_and_save(
         model,
         tokenizer,
@@ -401,7 +400,9 @@ def run(
 if __name__ == "__main__":
     # run(model_name="formula_output_dir_dft_2d_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-620")
     run(
-        model_name="unsloth/Llama-3.2-11B-Vision-Instruct", datasets=["dft_2d"]
+        model_name="knc6/microscopy_gpt_llama3.2_vision_11b",
+        datasets=["dft_2d"],
+        # model_name="unsloth/Llama-3.2-11B-Vision-Instruct", datasets=["dft_2d"]
     )
     # d = loadjson(os.path.join("formula_based", "dft_2d_test_dataset.json"))
     # db_inference(d=d,model_path="formula_output_dir_dft_3d_dft_2d_unsloth/Pixtral-12B-2409/checkpoint-1240",output_folder="formula_based")
