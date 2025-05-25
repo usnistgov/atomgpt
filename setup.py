@@ -8,7 +8,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="atomgpt",
-    version="2025.1.30",
+    version="2025.4.30",
     author="Kamal Choudhary",
     author_email="kamal.choudhary@nist.gov",
     description="atomgpt",

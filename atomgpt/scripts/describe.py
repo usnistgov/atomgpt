@@ -1,4 +1,5 @@
 """Module to describe an atomic structure."""
+
 import json
 from jarvis.db.figshare import get_jid_data
 from jarvis.core.atoms import Atoms

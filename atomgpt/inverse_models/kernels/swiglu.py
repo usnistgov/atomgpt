@@ -1,7 +1,21 @@
+# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import triton
 import triton.language as tl
 import torch
-from atomgpt.inverse_models.kernels.utils import calculate_settings
+from atomgpt.inverse_models.kernels.utils import calculate_settings, torch_cuda_device
 
 
 @triton.jit
@@ -27,9 +41,10 @@ pass
 def swiglu_fg_kernel(e, g):
     batch, seq_len, hd = e.shape
     n_elements = e.numel()
-    h = torch.empty((batch, seq_len, hd), dtype = e.dtype, device = "cuda")
+    h = torch.empty((batch, seq_len, hd), dtype = e.dtype, device = e.device)
     grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    _fg_kernel[grid](e, g, h, n_elements, BLOCK_SIZE = 1024,)
+    with torch_cuda_device(e.device):
+        _fg_kernel[grid](e, g, h, n_elements, BLOCK_SIZE = 1024,)
     return h
 pass
 
@@ -80,6 +95,7 @@ def swiglu_DWf_DW_dfg_kernel(DW, e, g):
     batch_seq_len, hd = e.shape
     n_elements = e.numel()
     grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    _DWf_DW_dfg_kernel[grid](DW, e, g, n_elements, BLOCK_SIZE = 1024,)
+    with torch_cuda_device(e.device):
+        _DWf_DW_dfg_kernel[grid](DW, e, g, n_elements, BLOCK_SIZE = 1024,)
     return DW, e, g
 pass

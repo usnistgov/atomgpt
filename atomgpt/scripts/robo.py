@@ -1,7 +1,7 @@
 from pymatgen.core.structure import Structure
 from robocrys import StructureCondenser, StructureDescriber
 
-structure = Structure.from_file("POSCAR") # other file formats also supported
+structure = Structure.from_file("POSCAR")  # other file formats also supported
 
 # alternatively, uncomment the lines below to use the MPRester object
 # to fetch structures from the Materials Project database

@@ -29,6 +29,7 @@ import csv
 import pprint
 import sys
 import argparse
+from torch.optim import AdamW
 
 # from alignn.pretrained import get_figshare_model
 from atomgpt.inverse_models.utils import get_figlet
@@ -498,7 +499,8 @@ def main(config_file=None):
     if torch.cuda.device_count() > 1:
         device_ids = [d for d in range(torch.cuda.device_count())]
         model = torch.nn.DataParallel(model, device_ids=device_ids).cuda()
-    optimizer = transformers.AdamW(model.parameters(), lr=learning_rate)
+    optimizer = AdamW(model.parameters(), lr=learning_rate)
+    # optimizer = transformers.AdamW(model.parameters(), lr=learning_rate)
     # Prepare datasets and dataloaders with data collator
     # TODO: knc6 change later
     train_dataset = AtomGPTDataset(

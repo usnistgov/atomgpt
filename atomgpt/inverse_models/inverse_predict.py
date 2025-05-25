@@ -1,4 +1,4 @@
-from atomgpt.inverse_models import FastLanguageModel
+from atomgpt.inverse_models.loader import FastLanguageModel
 from atomgpt.inverse_models.inverse_models import TrainingPropConfig
 from jarvis.db.jsonutils import loadjson, dumpjson
 import os
@@ -136,7 +136,7 @@ def predict(
                 tol=tol,
                 background_subs=background_subs,
             )
-            y[y < 0.0] = 0
+            # y[y < 0.1] = 0
             y_new_str = "\n".join(["{0:.2f}".format(x) for x in y])
             formula = str(formula.split("/")[-1].split(".dat")[0])
             # gen_mat = main_spectra(spectra=[[y_new_str,y]],formulas=[formula],model=model,tokenizer=tokenizer,device='cuda')[0]

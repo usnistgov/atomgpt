@@ -1,12 +1,23 @@
+# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import triton
 import triton.language as tl
 import torch
-from atomgpt.inverse_models.kernels.utils import calculate_settings
+from atomgpt.inverse_models.kernels.utils import calculate_settings, torch_cuda_device
+ROPE_GROUP_SIZE : int = 4
 
-ROPE_GROUP_SIZE = 4
-
-@triton.heuristics({"BACKWARD_PASS": lambda args: args["BACKWARD_PASS"],})
-@triton.jit
 def _rope_embedding(
     Q,     Q_row_stride,
     cos, cos_row_stride,
@@ -22,6 +33,7 @@ def _rope_embedding(
         RoPE is Q * cos + rotate_half(Q) * sin
         See our blog post for more info
     """
+    ROPE_GROUP_SIZE = 4
     row_position  = tl.program_id(0)
     group_head_position = tl.program_id(1)
     col_offsets  = tl.arange(0, BLOCK_SIZE)
@@ -55,14 +67,26 @@ def _rope_embedding(
         tl.store(Q + offs_q2, Q2*cos1 + Q1*sin1, mask = mask)
     pass
 pass
+_rope_embedding = triton.jit(_rope_embedding)
+_rope_embedding = triton.heuristics(
+    {
+        "BACKWARD_PASS": lambda args: bool(args["BACKWARD_PASS"]),
+    }
+)(_rope_embedding)
 
 
 class Fast_RoPE_Embedding(torch.autograd.Function):
     @staticmethod
     def forward(ctx, Q, cos, sin):
         cos, sin = cos.squeeze(), sin.squeeze()
+        batch    : int
+        seq_len  : int
+        n_heads  : int
+        head_dim : int
         batch, seq_len, n_heads, head_dim = Q.shape
         Q = Q.view(batch*seq_len, n_heads*head_dim)
+        n_rows : int
+        n_cols : int
         n_rows, n_cols = Q.shape
         assert(seq_len <= cos.shape[0])
 
@@ -71,19 +95,22 @@ class Fast_RoPE_Embedding(torch.autograd.Function):
         BLOCK_SIZE, num_warps = calculate_settings(head_dim//2) # (head_dim//2)
         
         # group_size = 4 # 4 or 8, too large group_size can hurt performance.
+        div : int
+        mod : int
         div, mod = divmod(n_heads, ROPE_GROUP_SIZE)
-        n_groups = div + (mod != 0)
+        n_groups : int = div + (mod != 0)
 
-        _rope_embedding[(n_rows, n_groups, )](
-              Q,   Q.stride(0),
-            cos, cos.stride(0),
-            sin, sin.stride(0),
-            seq_len,
-            head_dim, n_heads,
-            BACKWARD_PASS = False,
-            BLOCK_SIZE = BLOCK_SIZE,
-            num_warps  = num_warps,
-        )
+        with torch_cuda_device(Q.device):
+            _rope_embedding[(n_rows, n_groups, )](
+                  Q,   Q.stride(0),
+                cos, cos.stride(0),
+                sin, sin.stride(0),
+                seq_len,
+                head_dim, n_heads,
+                BACKWARD_PASS = False,
+                BLOCK_SIZE = BLOCK_SIZE,
+                num_warps  = num_warps,
+            )
         ctx.BLOCK_SIZE = BLOCK_SIZE
         ctx.num_warps  = num_warps
         ctx.n_groups = n_groups
@@ -94,29 +121,37 @@ class Fast_RoPE_Embedding(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, dY):
+        batch    : int
+        seq_len  : int
+        n_heads  : int
+        head_dim : int
         batch, seq_len, n_heads, head_dim = dY.shape
         dY = dY.reshape(batch*seq_len, n_heads*head_dim)
         # Must be reshape not view
+        n_rows : int
+        n_cols : int
         n_rows, n_cols = dY.shape
 
         cos = ctx.cos
         sin = ctx.sin
 
-        _rope_embedding[(n_rows, ctx.n_groups, )](
-            dY,  dY .stride(0),
-            cos, cos.stride(0),
-            sin, sin.stride(0),
-            seq_len, head_dim, n_heads,
-            BACKWARD_PASS = True,
-            BLOCK_SIZE = ctx.BLOCK_SIZE,
-            num_warps  = ctx.num_warps,
-        )
+        with torch_cuda_device(dY.device):
+            _rope_embedding[(n_rows, ctx.n_groups, )](
+                dY,  dY .stride(0),
+                cos, cos.stride(0),
+                sin, sin.stride(0),
+                seq_len, head_dim, n_heads,
+                BACKWARD_PASS = True,
+                BLOCK_SIZE = ctx.BLOCK_SIZE,
+                num_warps  = ctx.num_warps,
+            )
         dY = dY.view(batch, seq_len, n_heads, head_dim)
         return dY, None, None,
     pass
 pass
 
-
+# [TODO] Unsure why RoPE Embedding is not torch.compiling properly
+@torch.compiler.disable
 def fast_rope_embedding(Q, K, cos, sin):
     Q = Fast_RoPE_Embedding.apply(Q.transpose(1, 2), cos, sin).transpose(1, 2)
     K = Fast_RoPE_Embedding.apply(K.transpose(1, 2), cos, sin).transpose(1, 2)

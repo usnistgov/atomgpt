@@ -1,7 +1,25 @@
+# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import triton
 import triton.language as tl
 import torch
-from atomgpt.inverse_models.kernels.utils import calculate_settings
+from atomgpt.inverse_models.kernels.utils import (
+    calculate_settings,
+    triton_tanh,
+    torch_cuda_device,
+)
 
 
 @triton.jit
@@ -27,9 +45,11 @@ pass
 def geglu_exact_forward_kernel(gate, up):
     batch, seq_len, hd = gate.shape
     n_elements = gate.numel()
-    out = torch.empty((batch, seq_len, hd), dtype = gate.dtype, device = "cuda")
+    device = gate.device
+    out = torch.empty((batch, seq_len, hd), dtype = gate.dtype, device = device)
     grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    _exact_forward_kernel[grid](gate, up, out, n_elements, BLOCK_SIZE = 1024,)
+    with torch_cuda_device(device):
+        _exact_forward_kernel[grid](gate, up, out, n_elements, BLOCK_SIZE = 1024,)
     return out
 pass
 
@@ -85,7 +105,8 @@ def geglu_exact_backward_kernel(DW, e, g):
     batch_seq_len, hd = e.shape
     n_elements = e.numel()
     grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    _exact_backward_kernel[grid](DW, e, g, n_elements, BLOCK_SIZE = 1024,)
+    with torch_cuda_device(e.device):
+        _exact_backward_kernel[grid](DW, e, g, n_elements, BLOCK_SIZE = 1024,)
     return DW, e, g
 pass
 
@@ -105,7 +126,7 @@ def _approx_forward_kernel(e, g, h, n_elements, BLOCK_SIZE : tl.constexpr,):
     g_row = tl.load(g + offsets, mask = mask, other = 0)#.to(tl.float32)
 
     f_row = 0.5 * e_row * (
-        tl.math.tanh(s * e_row * (1.0 + 0.044715 * e_row * e_row)) \
+        triton_tanh(s * e_row * (1.0 + 0.044715 * e_row * e_row)) \
         + 1.0
     )
     f_row = f_row.to(g_row.dtype) # Exact copy from HF
@@ -119,9 +140,11 @@ pass
 def geglu_approx_forward_kernel(gate, up):
     batch, seq_len, hd = gate.shape
     n_elements = gate.numel()
-    out = torch.empty((batch, seq_len, hd), dtype = gate.dtype, device = "cuda")
+    device = gate.device
+    out = torch.empty((batch, seq_len, hd), dtype = gate.dtype, device = device)
     grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    _approx_forward_kernel[grid](gate, up, out, n_elements, BLOCK_SIZE = 1024,)
+    with torch_cuda_device(device):
+        _approx_forward_kernel[grid](gate, up, out, n_elements, BLOCK_SIZE = 1024,)
     return out
 pass
 
@@ -154,7 +177,7 @@ def _approx_backward_kernel(DW, e, g, n_elements, BLOCK_SIZE : tl.constexpr,):
     s = 0.7978845608028654 # math.sqrt(2 / math.pi)
     a = s * e_row # a = sqrt(2 / pi) * x
     b = a * 0.044715 * e_row * e_row # b = a * 0.044715 * x^2
-    T = 1.0 + tl.math.tanh(a + b)
+    T = 1.0 + triton_tanh(a + b)
     T2 = 0.5 * T
     # Q = 0.5 * -T * (T - 2.0) * (a + 3.0 * b)
     Q2 = -T2 * (T - 2.0) * (a + 3.0 * b) 
@@ -184,6 +207,7 @@ def geglu_approx_backward_kernel(DW, e, g):
     batch_seq_len, hd = e.shape
     n_elements = e.numel()
     grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    _approx_backward_kernel[grid](DW, e, g, n_elements, BLOCK_SIZE = 1024,)
+    with torch_cuda_device(e.device):
+        _approx_backward_kernel[grid](DW, e, g, n_elements, BLOCK_SIZE = 1024,)
     return DW, e, g
 pass

@@ -1,5 +1,7 @@
 from typing import Optional
 from atomgpt.inverse_models.loader import FastLanguageModel
+
+# from unsloth import FastLanguageModel
 from atomgpt.inverse_models.callbacks import (
     PrintGPUUsageCallback,
     ExampleTrainerCallback,
@@ -14,7 +16,7 @@ from atomgpt.inverse_models.utils import (
     get_crystal_string_t,
     get_figlet,
 )
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 from peft import PeftModel
 from datasets import load_dataset
 from functools import partial
@@ -527,6 +529,7 @@ def main(config_file=None):
         type="torch", columns=["input_ids", "attention_mask", "output"]
     )
 
+    """
     trainer = SFTTrainer(
         # trainer = CustomSFTTrainer(
         model=model,
@@ -558,6 +561,26 @@ def main(config_file=None):
             output_dir=config.output_dir,
             num_train_epochs=config.num_epochs,
             report_to="none",
+        ),
+    )
+    """
+
+    trainer = SFTTrainer(
+        model=model,
+        train_dataset=tokenized_train,
+        # train_dataset = train_dataset,
+        # tokenizer = tokenizer,
+        args=SFTConfig(
+            dataset_text_field="text",
+            max_seq_length=config.max_seq_length,
+            per_device_train_batch_size=2,
+            gradient_accumulation_steps=4,
+            warmup_steps=10,
+            max_steps=60,
+            logging_steps=1,
+            output_dir="outputs",
+            optim="adamw_8bit",
+            seed=3407,
         ),
     )
     if callback_samples > 0:

@@ -73,7 +73,7 @@ or use `atomgpt_inverse_train` global executable.
 For inference:
 
 ```
-python atomgpt/inverse_models/inverse_predict.py --output_dir outputs/checkpoint-2/  --config_name outputs/config.json --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
+python atomgpt/inverse_models/inverse_predict.py --output_dir outputs/checkpoint-2/  --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
 ```
 
 or use `atomgpt_inverse_predict` global executable.
