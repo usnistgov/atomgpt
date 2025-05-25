@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import torch
 from packaging.version import Version
 import os
@@ -67,12 +51,12 @@ __all__ = [
 
 
 def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     try:
         import transformers.loss.loss_utils
     except:
         print(
-            "Unsloth: Cannot patch loss functions - update transformers for faster modules!"
+            "AtomGPT: Cannot patch loss functions - update transformers for faster modules!"
         )
         return None
     pass
@@ -106,7 +90,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
     pass
 
     # Causal LM loss
-    def UnslothForCausalLMLoss(
+    def AtomGPTForCausalLMLoss(
         logits,
         labels,
         vocab_size: int,
@@ -132,7 +116,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
     pass
 
     if Version(torch.__version__) < Version("2.4.0"):
-        UnslothForCausalLMLoss = torch._disable_dynamo(UnslothForCausalLMLoss)
+        AtomGPTForCausalLMLoss = torch._disable_dynamo(AtomGPTForCausalLMLoss)
 
     elif torch_compile:
         torch_compile_options = {
@@ -143,8 +127,8 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
             == "1",
             "triton.cudagraphs": False,
         }
-        UnslothForCausalLMLoss = torch.compile(
-            UnslothForCausalLMLoss,
+        AtomGPTForCausalLMLoss = torch.compile(
+            AtomGPTForCausalLMLoss,
             dynamic=True,
             fullgraph=False,
             options=torch_compile_options,
@@ -155,7 +139,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
     import transformers.modeling_utils
 
     LOSS_MAPPING = transformers.loss.loss_utils.LOSS_MAPPING
-    LOSS_MAPPING["ForCausalLM"] = UnslothForCausalLMLoss
+    LOSS_MAPPING["ForCausalLM"] = AtomGPTForCausalLMLoss
 
     # Remove @property and @lru_cache
     if hasattr(
@@ -168,7 +152,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
             transformers.modeling_utils.PreTrainedModel.loss_function.fget.__wrapped__
         )
     pass
-    print("Unsloth: Patched cross entropy losses.")
+    print("AtomGPT: Patched cross entropy losses.")
     os.environ["UNSLOTH_PATCHED"] = "1"
 
 
@@ -211,7 +195,7 @@ def fused_linear_cross_entropy(
     logit_softcapping: float = 0,
     accuracy_threshold: str = "auto",
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     reduction = "sum" if num_items_in_batch is not None else "mean"
     if logit_softcapping == 0:
         logit_softcapping = None
@@ -246,7 +230,7 @@ def fast_linear_cross_entropy(
     logit_scale_divide: float = 0,
     attention_mask: torch.Tensor = None,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     reduction = "sum" if num_items_in_batch is not None else "mean"
     if logit_softcapping == 0:
         logit_softcapping = None
@@ -283,7 +267,7 @@ ALLOWED_NUM_ITEMS_IN_BATCH = dict()
 def _unsloth_get_batch_samples(
     self, epoch_iterator, num_batches, device=None, *args, **kwargs
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     batch_samples = []
     num_items_in_batch = None
 
@@ -371,19 +355,3 @@ def _unsloth_get_batch_samples(
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

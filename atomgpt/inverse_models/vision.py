@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import torch
 from transformers import (
     BitsAndBytesConfig,
@@ -110,7 +96,7 @@ def unsloth_base_fast_generate(
         key = next(iter(kwargs.keys()))
         if type(kwargs["key"]) is not torch.Tensor:
             raise TypeError(
-                "Unsloth: You need to pass in input_ids to .generate!"
+                "AtomGPT: You need to pass in input_ids to .generate!"
             )
         input_ids = kwargs[key]
     pass
@@ -280,13 +266,13 @@ class FastBaseModel:
     ):
         if model_types is None:
             raise RuntimeError(
-                "Unsloth: Please use FastModel or FastVisionModel and not use FastBaseModel directly!"
+                "AtomGPT: Please use FastModel or FastVisionModel and not use FastBaseModel directly!"
             )
 
         os.environ["UNSLOTH_USE_NEW_MODEL"] = "1"
         if trust_remote_code:
             print(
-                "Unsloth: WARNING `trust_remote_code` is True.\n"
+                "AtomGPT: WARNING `trust_remote_code` is True.\n"
                 "Are you certain you want to do remote code execution?"
             )
         pass
@@ -310,11 +296,11 @@ class FastBaseModel:
                     break
 
         statistics = (
-            f"==((====))==  Unsloth {__version__}: Fast {model_type_arch.title()} patching. Transformers: {transformers_version}.{vllm_version}\n"
-            f"   {chr(92)}{chr(92)}   /|    {gpu_stats.name}. Num GPUs = {torch.cuda.device_count()}. Max memory: {max_memory} GB. Platform: {platform_system}.\n"
-            f"O^O/ {chr(92)}_/ {chr(92)}    Torch: {torch.__version__}. CUDA: {gpu_stats.major}.{gpu_stats.minor}. CUDA Toolkit: {torch.version.cuda}. Triton: {triton_version}\n"
-            f"{chr(92)}        /    Bfloat16 = {str(SUPPORTS_BFLOAT16).upper()}. FA [Xformers = {xformers_version}. FA2 = {HAS_FLASH_ATTENTION}]\n"
-            f' "-____-"     Free license: http://github.com/unslothai/unsloth'
+            f"AtomGPT {__version__}: Fast {model_type_arch.title()} patching. Transformers: {transformers_version}.{vllm_version}\n"
+            f"{gpu_stats.name}. Num GPUs = {torch.cuda.device_count()}. Max memory: {max_memory} GB. Platform: {platform_system}.\n"
+            f"Torch: {torch.__version__}. CUDA: {gpu_stats.major}.{gpu_stats.minor}. CUDA Toolkit: {torch.version.cuda}. Triton: {triton_version}\n"
+            f"Bfloat16 = {str(SUPPORTS_BFLOAT16).upper()}. FA [Xformers = {xformers_version}. FA2 = {HAS_FLASH_ATTENTION}]\n"
+            f""
         )
         print(statistics)
 
@@ -329,7 +315,7 @@ class FastBaseModel:
             old_hf_transfer = "0"
         if old_hf_transfer == "1":
             print(
-                "Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!"
+                "AtomGPT: Fast downloading is enabled - ignore downloading bars which are red colored!"
             )
         pass
         if old_hf_transfer != "0":
@@ -354,7 +340,7 @@ class FastBaseModel:
         do_forced_float32 = False
         if os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "1":
             print(
-                f"Unsloth: Using float16 precision for {model_type_arch} won't work! Using float32."
+                f"AtomGPT: Using float16 precision for {model_type_arch} won't work! Using float32."
             )
             bnb_compute_dtype = torch.float16
             do_forced_float32 = True
@@ -377,7 +363,7 @@ class FastBaseModel:
             kwargs["attn_implementation"] = "sdpa"
         if not supports_sdpa:
             print(
-                f"Unsloth: {model_type_arch.title()} does not support SDPA - switching to eager!"
+                f"AtomGPT: {model_type_arch.title()} does not support SDPA - switching to eager!"
             )
             del kwargs["attn_implementation"]
         pass
@@ -385,7 +371,7 @@ class FastBaseModel:
         bnb_config = None
         if full_finetuning and (load_in_4bit or load_in_8bit):
             print(
-                "Unsloth: You selected full finetuning support, but 4bit / 8bit is enabled - disabling LoRA / QLoRA."
+                "AtomGPT: You selected full finetuning support, but 4bit / 8bit is enabled - disabling LoRA / QLoRA."
             )
             load_in_4bit = False
             load_in_8bit = False
@@ -393,7 +379,7 @@ class FastBaseModel:
 
         if load_in_4bit and load_in_8bit:
             raise RuntimeError(
-                "Unsloth: Can only load in 4bit or 8bit, not both!"
+                "AtomGPT: Can only load in 4bit or 8bit, not both!"
             )
         if load_in_4bit:
             bnb_config = BitsAndBytesConfig(
@@ -410,7 +396,7 @@ class FastBaseModel:
             )
         elif not load_in_4bit and not load_in_8bit and not full_finetuning:
             print(
-                "Unsloth: QLoRA and full finetuning all not selected. Switching to 16bit LoRA."
+                "AtomGPT: QLoRA and full finetuning all not selected. Switching to 16bit LoRA."
             )
         pass
 
@@ -418,11 +404,11 @@ class FastBaseModel:
             os.environ["UNSLOTH_ENABLE_FULL_FINETUNING"] = "1"
             if dtype == torch.bfloat16:
                 print(
-                    "Unsloth: Using bfloat16 full finetuning which cuts memory usage by 50%."
+                    "AtomGPT: Using bfloat16 full finetuning which cuts memory usage by 50%."
                 )
             else:
                 print(
-                    "Unsloth: Float16 full finetuning uses more memory since we upcast weights to float32."
+                    "AtomGPT: Float16 full finetuning uses more memory since we upcast weights to float32."
                 )
         else:
             os.environ["UNSLOTH_ENABLE_FULL_FINETUNING"] = "0"
@@ -508,7 +494,7 @@ class FastBaseModel:
         model, tokenizer = patch_tokenizer(model, tokenizer)
         model = post_patch_loss_function(model)
 
-        # Log Unsloth version for future fastpaths for inference
+        # Log AtomGPT version for future fastpaths for inference
         if hasattr(model, "config"):
             model.config.update({"unsloth_version": __version__})
         pass
@@ -591,22 +577,22 @@ class FastBaseModel:
     ):
         if os.environ.get("UNSLOTH_ENABLE_FULL_FINETUNING", "0") == "1":
             print(
-                "Unsloth: Full finetuning is enabled, so .get_peft_model has no effect"
+                "AtomGPT: Full finetuning is enabled, so .get_peft_model has no effect"
             )
             return model
         pass
         transformers_set_seed(random_state)
 
         if type(r) is not int:
-            raise TypeError(f"Unsloth: Rank of {str(r)} must be an integer.")
+            raise TypeError(f"AtomGPT: Rank of {str(r)} must be an integer.")
         if r <= 0:
             raise TypeError(
-                f"Unsloth: Rank of {str(r)} must be larger than 0."
+                f"AtomGPT: Rank of {str(r)} must be larger than 0."
             )
 
         if isinstance(model, PeftModelForCausalLM):
             raise RuntimeError(
-                "Unsloth: You already added LoRA adapters to your model!"
+                "AtomGPT: You already added LoRA adapters to your model!"
             )
 
         if target_modules == "all-linear":
@@ -714,7 +700,7 @@ class FastBaseModel:
             and trust_remote_code == False
         ):
             raise RuntimeError(
-                "Unsloth: Unsuccessfully patched inner_training_loop"
+                "AtomGPT: Unsuccessfully patched inner_training_loop"
             )
         pass
         patch_saving_functions(model, vision=True)
@@ -757,7 +743,7 @@ class FastBaseModel:
     def for_inference(model):
         if not hasattr(model, "parameters"):
             raise TypeError(
-                "Unsloth: I think you're passing a tokenizer, not the model to for_inference!"
+                "AtomGPT: I think you're passing a tokenizer, not the model to for_inference!"
             )
 
         def _for_inference(m):
@@ -797,7 +783,7 @@ class FastBaseModel:
     def for_training(model, use_gradient_checkpointing=True):
         if not hasattr(model, "parameters"):
             raise TypeError(
-                "Unsloth: I think you're passing a tokenizer, not the model to for_training!"
+                "AtomGPT: I think you're passing a tokenizer, not the model to for_training!"
             )
 
         # Delete all fast inference loras

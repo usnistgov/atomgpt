@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 __all__ = [
     "patch_vllm",
     "vllm_dynamic_quant_supported",
@@ -217,7 +201,7 @@ if importlib.util.find_spec("vllm") is not None:
     pass
 
     def patch_vllm_bitsandbytes():
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         import vllm.model_executor.layers.quantization.bitsandbytes
 
         vllm.model_executor.layers.quantization.bitsandbytes.is_layer_skipped_bnb = (
@@ -243,14 +227,14 @@ if importlib.util.find_spec("vllm") is not None:
     class BitsAndBytesConfig(
         vllm.model_executor.layers.quantization.bitsandbytes.BitsAndBytesConfig
     ):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         def __init__(self, *args, **kwargs):
             dtype = os.environ.get(
                 "UNSLOTH_bnb_4bit_compute_dtype",
                 kwargs["bnb_4bit_compute_dtype"],
             )
             kwargs["bnb_4bit_compute_dtype"] = dtype
-            print(f"Unsloth: vLLM Bitsandbytes config using kwargs = {kwargs}")
+            print(f"AtomGPT: vLLM Bitsandbytes config using kwargs = {kwargs}")
             super().__init__(*args, **kwargs)
 
         pass
@@ -258,7 +242,7 @@ if importlib.util.find_spec("vllm") is not None:
     pass
 
     def patch_vllm_compute_dtype(dtype=torch.float16):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         # vLLM defaults to using the model config file's compute_dtype
         # We shall fix it dynamically!
         old_config = (
@@ -278,7 +262,7 @@ if importlib.util.find_spec("vllm") is not None:
     pass
 
     def unpatch_vllm_compute_dtype(old_config):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         import vllm.model_executor.layers.quantization.bitsandbytes
 
         vllm.model_executor.layers.quantization.bitsandbytes.BitsAndBytesConfig = (
@@ -489,7 +473,7 @@ if importlib.util.find_spec("bitsandbytes") is not None:
     import bitsandbytes.nn.modules
 
     class Linear4bit(bitsandbytes.nn.modules.Linear4bit):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         def __init__(self, *args, **kwargs):
             compute_dtype = os.environ.get(
                 "UNSLOTH_bnb_4bit_compute_dtype", None
@@ -504,14 +488,14 @@ if importlib.util.find_spec("bitsandbytes") is not None:
     pass
 
     def patch_bitsandbytes_quant_state():
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         bitsandbytes.functional.QuantState.from_dict = from_dict
         bitsandbytes.nn.modules.Linear4bit = Linear4bit
 
     pass
 
     def patch_bitsandbytes_compute_dtype(dtype):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         dtype = str(dtype)
         if dtype.startswith("torch."):
             dtype = dtype[len("torch.") :]
@@ -567,9 +551,9 @@ def vllm_dynamic_quant_supported(
     model_name,
     config,
 ) -> bool:
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
 
-    # Check if vLLM supports some Unsloth dynamic quants
+    # Check if vLLM supports some AtomGPT dynamic quants
     # Sometimes we quantize modules within a layer, but not an entire layer
     # If so, then we cannot use dynamic quants for now
     if not model_name.lower().endswith("unsloth-bnb-4bit"):
@@ -607,7 +591,7 @@ pass
 
 @torch.inference_mode
 def get_vllm_state_dict(llm, return_state_dict=False, config=None):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Unmerges vLLM modules and returns HF equivalent state_dict
     # vllm_state_dict = {}
     try:
@@ -634,11 +618,11 @@ def get_vllm_state_dict(llm, return_state_dict=False, config=None):
                 vllm_state_dict[weight_name] = to_cuda_fx(*cuda_data)
             pass
             raise NotImplementedError(
-                "Unsloth: Currently vLLM RPC is not yet fully enabled!"
+                "AtomGPT: Currently vLLM RPC is not yet fully enabled!"
             )
         except Exception as e:
             raise RuntimeError(
-                f"Unsloth: Cannot get internal vLLM states with error = {str(e)}"
+                f"AtomGPT: Cannot get internal vLLM states with error = {str(e)}"
             )
     pass
 
@@ -776,7 +760,7 @@ def get_vllm_state_dict(llm, return_state_dict=False, config=None):
 
     if len(skipped_layernorms) != 0:
         print(
-            f"Unsloth: Just some info: will skip parsing {list(set(skipped_layernorms))}"
+            f"AtomGPT: Just some info: will skip parsing {list(set(skipped_layernorms))}"
         )
 
     if not return_state_dict:
@@ -789,14 +773,14 @@ pass
 
 @torch.inference_mode
 def assert_same_state_dict(old_state_dict, new_state_dict):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Check if state_dict are equivalent
 
     difference = new_state_dict.keys() ^ old_state_dict.keys()
     difference -= set(("lm_head.weight",))
     if len(difference) != 0:
         raise RuntimeError(
-            f"Unsloth: Failed comparing state_dict with {difference}"
+            f"AtomGPT: Failed comparing state_dict with {difference}"
         )
     pass
 
@@ -834,7 +818,7 @@ pass
 
 @torch.inference_mode
 def create_empty_causal_lm(config, dtype=torch.float16):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Empty model from config
     new_config = deepcopy(config)
     new_config.intermediate_size = 0
@@ -866,7 +850,7 @@ pass
 def convert_vllm_to_huggingface(
     quant_state_dict, config, dtype=torch.float16, bnb_config=None
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Unmerges vLLM modules to create HF compatible model
     config.update({"torch_dtype": dtype})  # Do not use config file's dtype!
     new_model = create_empty_causal_lm(config, dtype)
@@ -1067,7 +1051,7 @@ def convert_vllm_to_huggingface(
 
     if len(skipped_layernorms) != 0:
         print(
-            f"Unsloth: Just some info: will skip parsing {list(set(skipped_layernorms))}"
+            f"AtomGPT: Just some info: will skip parsing {list(set(skipped_layernorms))}"
         )
     return new_model
 
@@ -1085,7 +1069,7 @@ def approximate_vllm_memory_usage(
     float8_kv_cache=False,
     account_for_gradients=True,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Gets approximate max model length and max num sequences
     load_in_4bit = "quantization_config" in config
     free_memory, total_memory = torch.cuda.mem_get_info()
@@ -1210,7 +1194,7 @@ def load_vllm(
     use_bitsandbytes: bool = True,
     return_args: bool = False,  # Just return args
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Create vLLM instance
     assert config is not None
     assert type(use_bitsandbytes) is bool
@@ -1218,12 +1202,12 @@ def load_vllm(
 
     major_version, minor_version = torch.cuda.get_device_capability()
     if major_version < 7:
-        raise NotImplementedError("Unsloth: Your GPU is too old!")
+        raise NotImplementedError("AtomGPT: Your GPU is too old!")
 
     # Float8 KV cache only works for 8.0 or higher
     if float8_kv_cache and major_version < 8:
         raise NotImplementedError(
-            "Unsloth: Your GPU is too old for float8 KV cache! Set it to False."
+            "AtomGPT: Your GPU is too old for float8 KV cache! Set it to False."
         )
 
     (
@@ -1250,8 +1234,8 @@ def load_vllm(
 
     if max_num_batched_tokens <= max_seq_length:
         print(
-            f"Unsloth: Your GPU cannot handle sequence lengths of {max_seq_length} due to limited GPU memory.\n"
-            f"Unsloth: Your GPU can only handle approximately the maximum sequence length of {max_seq_length}."
+            f"AtomGPT: Your GPU cannot handle sequence lengths of {max_seq_length} due to limited GPU memory.\n"
+            f"AtomGPT: Your GPU can only handle approximately the maximum sequence length of {max_seq_length}."
         )
         max_seq_length = max_num_batched_tokens
     pass
@@ -1263,17 +1247,17 @@ def load_vllm(
         _dtype = torch.float16
     if dtype == torch.bfloat16 and _dtype == torch.float16:
         print(
-            "Unsloth: We switched to dtype = torch.float16 since your GPU does not support torch.bfloat16"
+            "AtomGPT: We switched to dtype = torch.float16 since your GPU does not support torch.bfloat16"
         )
         dtype = torch.float16
     elif dtype is None:
         dtype = _dtype
-        print(f"Unsloth: Using dtype = {dtype} for vLLM.")
+        print(f"AtomGPT: Using dtype = {dtype} for vLLM.")
     elif dtype == torch.float16 or dtype == torch.bfloat16:
         pass
     else:
         raise NotImplementedError(
-            f"Unsloth: We do not support dtype = {dtype} yet!"
+            f"AtomGPT: We do not support dtype = {dtype} yet!"
         )
 
     free_memory, total_memory = torch.cuda.mem_get_info()
@@ -1308,7 +1292,7 @@ def load_vllm(
     major_version, minor_version = torch.cuda.get_device_capability()
     if (major_version < 7) or (major_version == 7 and minor_version < 5):
         print(
-            "Unsloth: Your GPU does not support prefix caching - will disable!"
+            "AtomGPT: Your GPU does not support prefix caching - will disable!"
         )
         enable_prefix_caching = False
     pass
@@ -1405,10 +1389,10 @@ def load_vllm(
         swap_space = 6
 
     print(
-        f"Unsloth: vLLM loading {model_name} with actual GPU utilization = {round(actual_gpu_memory_utilization*100, 2)}%\n"
-        f"Unsloth: Your GPU has CUDA compute capability {major_version}.{minor_version} with VRAM = {total_memory_gb} GB.\n"
-        f"Unsloth: Using conservativeness = {conservativeness}. Chunked prefill tokens = {chunked_prefill_tokens}. Num Sequences = {approx_max_num_seqs}.\n"
-        f"Unsloth: vLLM's KV Cache can use up to {round(memory_left_for_kv_cache_gb, 2)} GB. Also swap space = {swap_space} GB."
+        f"AtomGPT: vLLM loading {model_name} with actual GPU utilization = {round(actual_gpu_memory_utilization*100, 2)}%\n"
+        f"AtomGPT: Your GPU has CUDA compute capability {major_version}.{minor_version} with VRAM = {total_memory_gb} GB.\n"
+        f"AtomGPT: Using conservativeness = {conservativeness}. Chunked prefill tokens = {chunked_prefill_tokens}. Num Sequences = {approx_max_num_seqs}.\n"
+        f"AtomGPT: vLLM's KV Cache can use up to {round(memory_left_for_kv_cache_gb, 2)} GB. Also swap space = {swap_space} GB."
     )
 
     # Get device as well
@@ -1482,7 +1466,7 @@ def load_vllm(
         if key not in good_keys:
             del engine_args[key]
             print(
-                f"Unsloth: Not an error, but `{key}` is not supported in vLLM. Skipping."
+                f"AtomGPT: Not an error, but `{key}` is not supported in vLLM. Skipping."
             )
         pass
     pass
@@ -1521,7 +1505,7 @@ def load_vllm(
                 engine_args["max_num_seqs"] = approx_max_num_seqs
                 engine_args["gpu_memory_utilization"] *= 0.85
                 print(
-                    f"Unsloth: Retrying vLLM to process {approx_max_num_seqs} sequences and {max_num_batched_tokens} tokens in tandem.\n"
+                    f"AtomGPT: Retrying vLLM to process {approx_max_num_seqs} sequences and {max_num_batched_tokens} tokens in tandem.\n"
                     f"Error:\n{error}"
                 )
             else:
@@ -1545,7 +1529,7 @@ pass
 
 
 def create_batches(requests, num_sequences=64):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # llm.generate must be batched!
     n_splits = int(math.ceil(len(requests) / num_sequences))
     offsets = np.arange(0, len(requests), num_sequences)
@@ -1562,7 +1546,7 @@ pass
 
 @torch.inference_mode
 def save_lora(model, save_directory, *args, **kwargs):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     state_dict = model.state_dict()
     dtype = model.get_input_embeddings().weight.dtype
     # Cast LoRA to float16 / bfloat16
@@ -1589,7 +1573,7 @@ pass
 
 
 def vllm_lora_already_loaded(model):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Check if LoRA is loaded - if not, we should load the first one
     m = model.vllm_engine.llm_engine.model_executor.driver_worker.model_runner
     lora_cache = m.lora_manager._adapter_manager._active_adapters.cache
@@ -1604,7 +1588,7 @@ pass
 
 
 def prepare_vllm_lora_loading(model):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Get all vLLM LoRAs
     assert hasattr(model, "vllm_engine")
 
@@ -1725,7 +1709,7 @@ pass
 
 
 def load_lora_directly(model):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Load LoRAs directly from model into vLLM internal LoRAs
     model_loras_A = model.model_loras_A
     model_loras_B = model.model_loras_B
@@ -1825,7 +1809,7 @@ def load_lora(model, save_directory, load_tensors=False):
     #     return model.saved_vllm_lora_request
     # pass
 
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     global LORA_REQUEST_ID
     if LORA_REQUEST_ID is None:
         LORA_REQUEST_ID = 1
@@ -1837,7 +1821,7 @@ def load_lora(model, save_directory, load_tensors=False):
             model.peft_config["default"].save_pretrained(save_directory)
         elif not os.path.exists(save_directory):
             raise OSError(
-                f"Unsloth: LoRA filepath = {save_directory} does not exist!"
+                f"AtomGPT: LoRA filepath = {save_directory} does not exist!"
             )
     pass
 
@@ -1888,7 +1872,7 @@ pass
 def generate_batches(
     llm, inputs, n_batches=None, lora_request=None, *args, **kwargs
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Cannot just use llm.generate or will OOM - split into batches
     if n_batches is None:
         if "UNSLOTH_VLLM_BATCHES" in os.environ:
@@ -1909,7 +1893,7 @@ def generate_batches(
 
             if n_batches != llm.approx_max_num_seqs:
                 print(
-                    f"Unsloth: Will use {n_batches} batches to reduce memory usage for generation!"
+                    f"AtomGPT: Will use {n_batches} batches to reduce memory usage for generation!"
                 )
         pass
     pass
@@ -1963,7 +1947,7 @@ pass
 
 
 def _test_same_model(model, new_model, input_ids):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     from transformers.models.llama.modeling_llama import (
         apply_rotary_pos_emb,
         ALL_ATTENTION_FUNCTIONS,
@@ -2135,7 +2119,7 @@ def _test_get_vllm_state_dict(
     conservativeness=1.0,
     float8_kv_cache=False,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Check if model is allowed to be used in vLLM
     gc.collect()
     torch.cuda.empty_cache()
@@ -2151,7 +2135,7 @@ def _test_get_vllm_state_dict(
     )
     if not vllm_dynamic_quant_supported(model_name, config):
         raise NotImplementedError(
-            f"Unsloth: Dynamic quant of {model_name} not supported in vLLM"
+            f"AtomGPT: Dynamic quant of {model_name} not supported in vLLM"
         )
 
     from transformers import AutoModelForCausalLM, BitsAndBytesConfig
@@ -2315,7 +2299,7 @@ pass
 
 
 def test_get_vllm_state_dict():
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     patch_vllm()
 
     free_memory, total_memory = torch.cuda.mem_get_info()
@@ -2392,19 +2376,3 @@ def test_get_vllm_state_dict():
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

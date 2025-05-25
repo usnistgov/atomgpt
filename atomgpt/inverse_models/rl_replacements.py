@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 __all__ = [
     "RL_EXTRA_ARGS",
     "RL_FUNCTIONS",
@@ -40,21 +26,6 @@ torch_compile_options = {
     "triton.cudagraphs": False,
 }
 
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 __all__ = ["RL_REPLACEMENTS"]
 
@@ -103,7 +74,7 @@ RL_REPLACEMENTS["selective_log_softmax"] = selective_log_softmax
 def grpo_compute_loss(
     old_logits, new_logits, input_ids, mask, beta, advantages
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     old_logits = old_logits.to(torch.float32)
     new_logits = new_logits.to(torch.float32)
     input_ids = input_ids.unsqueeze(-1)
@@ -158,9 +129,9 @@ RL_REPLACEMENTS["grpo_compute_loss_slow"] = RL_REPLACEMENTS[
 )
 
 
-# Unsloth's memory efficient GRPO implementation
-class UnslothEfficientGRPO(torch.autograd.Function):
-    # All Unsloth Zoo code licensed under LGPLv3
+# AtomGPT's memory efficient GRPO implementation
+class AtomGPTEfficientGRPO(torch.autograd.Function):
+    # All AtomGPT Zoo code licensed under LGPLv3
     @staticmethod
     def forward(
         ctx,
@@ -338,7 +309,7 @@ class UnslothEfficientGRPO(torch.autograd.Function):
 
 
 pass
-RL_REPLACEMENTS["UnslothEfficientGRPO"] = UnslothEfficientGRPO
+RL_REPLACEMENTS["AtomGPTEfficientGRPO"] = AtomGPTEfficientGRPO
 
 
 def grpo_accumulated_loss(
@@ -349,7 +320,7 @@ def grpo_accumulated_loss(
     advantages,
     n_chunks=-1,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     bsz, qlen = input_ids.shape
     # Find closest multiple
     factors = [i for i in range(1, bsz + 1) if bsz % i == 0]
@@ -382,7 +353,7 @@ def grpo_accumulated_loss(
             input_ids=input_ids, logits_to_keep=logits_to_keep + 1
         ).logits
 
-        loss, completion_length, mean_kl = UnslothEfficientGRPO.apply(
+        loss, completion_length, mean_kl = AtomGPTEfficientGRPO.apply(
             new_hidden_states,
             old_hidden_states,
             lm_head,
@@ -424,22 +395,6 @@ from .dataset_utils import sft_prepare_dataset
 RL_REPLACEMENTS["sft_prepare_dataset"] = sft_prepare_dataset
 
 
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# Check untrained tokens
 def sft_trainer_fix_untrained_tokens(call_args, extra_args):
     """
     if "model" in call_args and "train_dataset" in call_args:
@@ -511,9 +466,9 @@ def sft_trainer_prepare_dataset(function_name, function):
 
     check_text = (
         "if 'tokenizer'          not in locals(): tokenizer = processing_class\n"
-        "if 'formatting_func'    not in locals(): raise RuntimeError('Unsloth: Please file a bug report - `formatting_func` does not exist!')\n"
+        "if 'formatting_func'    not in locals(): raise RuntimeError('AtomGPT: Please file a bug report - `formatting_func` does not exist!')\n"
         "if 'dataset_text_field' not in locals() and 'args' in locals(): dataset_text_field = args.dataset_text_field\n"
-        "if 'dataset_text_field' not in locals(): raise RuntimeError('Unsloth: Please file a bug report - `dataset_text_field` does not exist!')\n"
+        "if 'dataset_text_field' not in locals(): raise RuntimeError('AtomGPT: Please file a bug report - `dataset_text_field` does not exist!')\n"
         "test_text = dataset[0][dataset_text_field] if (formatting_func is None and dataset_text_field is not None) else formatting_func(dataset[0])[0]\n"
         "chat_template = getattr(tokenizer, 'chat_template', None)\n"
         "chat_template = '' if chat_template is None else chat_template\n"
@@ -642,7 +597,7 @@ def grpo_trainer__get_per_token_logps(function_name, function):
         self, model, input_ids, attention_mask, logits_to_keep
     ):
         if os.environ.get("UNSLOTH_USE_NEW_MODEL", "0") == "0":
-            return None  # Unsloth efficient GRPO
+            return None  # AtomGPT efficient GRPO
         # Otherwise, calculate normally:
         if not hasattr(self, "_autocast_dtype"):
             self._autocast_dtype = (
@@ -685,10 +640,10 @@ RL_FUNCTIONS["grpo_trainer"].append(grpo_trainer__get_per_token_logps)
 
 grpo_compute_loss = RL_REPLACEMENTS["grpo_compute_loss"]
 grpo_compute_loss_slow = RL_REPLACEMENTS["grpo_compute_loss_slow"]
-UnslothEfficientGRPO = RL_REPLACEMENTS["UnslothEfficientGRPO"]
+AtomGPTEfficientGRPO = RL_REPLACEMENTS["AtomGPTEfficientGRPO"]
 grpo_accumulated_loss = RL_REPLACEMENTS["grpo_accumulated_loss"]
 RL_PRE_ITEMS["grpo_trainer"].append(inspect.getsource(grpo_compute_loss))
-RL_PRE_ITEMS["grpo_trainer"].append(inspect.getsource(UnslothEfficientGRPO))
+RL_PRE_ITEMS["grpo_trainer"].append(inspect.getsource(AtomGPTEfficientGRPO))
 RL_PRE_ITEMS["grpo_trainer"].append(inspect.getsource(grpo_accumulated_loss))
 RL_PRE_ITEMS["grpo_trainer"].append(grpo_compute_loss_slow)
 
@@ -793,7 +748,7 @@ def grpo_trainer_fix_batch_size(RLTrainer_source, RLConfig_source):
     check_batch_size = (
         "div = per_device_train_batch_size // num_generations\n"
         "if div * num_generations != per_device_train_batch_size:\n"
-        "    print('Unsloth: We now expect `per_device_train_batch_size` to be a multiple of `num_generations`.\\n"
+        "    print('AtomGPT: We now expect `per_device_train_batch_size` to be a multiple of `num_generations`.\\n"
         "We will change the batch size of ' + str(per_device_train_batch_size) + ' to the `num_generations` of ' + str(num_generations))\n"
         "    per_device_train_batch_size = num_generations\n"
     )

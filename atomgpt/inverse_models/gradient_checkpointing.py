@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import torch
 import numpy as np
 from typing import Union, Optional, List, Any, Callable, Tuple
@@ -25,11 +9,11 @@ from atomgpt.inverse_models._utils2 import _get_dtype
 __all__ = [
     "calculate_n_gradient_checkpoints",
     "prepare_n_gradient_checkpoints",
-    "Unsloth_Offloaded_Gradient_Checkpointer",
+    "AtomGPT_Offloaded_Gradient_Checkpointer",
     "unsloth_offloaded_gradient_checkpoint",
     "patch_unsloth_gradient_checkpointing",
     "unpatch_unsloth_gradient_checkpointing",
-    "Unsloth_Gradient_Checkpointer",
+    "AtomGPT_Gradient_Checkpointer",
     "unsloth_gradient_checkpoint",
     "patch_gradient_checkpointing",
     "unpatch_gradient_checkpointing",
@@ -145,9 +129,9 @@ def prepare_n_gradient_checkpoints(
 pass
 
 
-class Unsloth_Offloaded_Gradient_Checkpointer(torch.autograd.Function):
+class AtomGPT_Offloaded_Gradient_Checkpointer(torch.autograd.Function):
     """
-    All Unsloth Zoo code licensed under LGPLv3
+    All AtomGPT Zoo code licensed under LGPLv3
     Saves VRAM by smartly offloading to RAM.
     Tiny hit to performance, since we mask the movement via non blocking calls.
     """
@@ -190,9 +174,9 @@ class Unsloth_Offloaded_Gradient_Checkpointer(torch.autograd.Function):
 pass
 
 
-class Unsloth_Gradient_Checkpointer(torch.autograd.Function):
+class AtomGPT_Gradient_Checkpointer(torch.autograd.Function):
     """
-    All Unsloth Zoo code licensed under LGPLv3
+    All AtomGPT Zoo code licensed under LGPLv3
     Same as normal gradient checkpointing but cleaner
     """
 
@@ -232,13 +216,13 @@ pass
 
 # @torch._disable_dynamo
 # def unsloth_offloaded_gradient_checkpoint(function, *args, use_reentrant = None, **kwargs):
-#     return Unsloth_Offloaded_Gradient_Checkpointer.apply(function, *args)
+#     return AtomGPT_Offloaded_Gradient_Checkpointer.apply(function, *args)
 # pass
 
 
 @torch._disable_dynamo
 def unsloth_gradient_checkpoint(function, *args, use_reentrant=None, **kwargs):
-    return Unsloth_Gradient_Checkpointer.apply(function, *args)
+    return AtomGPT_Gradient_Checkpointer.apply(function, *args)
 
 
 pass
@@ -246,7 +230,7 @@ pass
 
 def patch_unsloth_gradient_checkpointing():
     print(
-        "Unsloth: Patched gradient checkpointing for long context finetuning."
+        "AtomGPT: Patched gradient checkpointing for long context finetuning."
     )
     import torch.utils
 
@@ -269,7 +253,7 @@ pass
 
 
 def patch_gradient_checkpointing():
-    print("Unsloth: Patched gradient checkpointing.")
+    print("AtomGPT: Patched gradient checkpointing.")
     import torch.utils
 
     if (
@@ -369,7 +353,7 @@ CPU_INDEX = None
 
 
 def initialize_unsloth_gradient_checkpointing(dtype=None):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     global CPU_BUFFERS
     global CPU_INDEX
     global GPU_BUFFERS
@@ -413,7 +397,7 @@ def initialize_unsloth_gradient_checkpointing(dtype=None):
         ]
     )
 
-    # Minimum size to enable Unsloth GC is 2MB -> 32 layers = 64MB
+    # Minimum size to enable AtomGPT GC is 2MB -> 32 layers = 64MB
     n_bytes = torch.finfo(dtype).bits // 8
     MINIMUM_SIZE = 2 * 1024 * 1024 // n_bytes
     USE_UNSLOTH_GC = True
@@ -428,11 +412,11 @@ def initialize_unsloth_gradient_checkpointing(dtype=None):
 pass
 
 
-class UnslothCheckpointFunction(torch.autograd.Function):
+class AtomGPTCheckpointFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, run_function, preserve_rng_state, *args):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         # check_backward_validity(args)
         # Check if no requires_grad in inputs
         ctx.run_function = run_function
@@ -544,7 +528,7 @@ class UnslothCheckpointFunction(torch.autograd.Function):
                         global USE_UNSLOTH_GC
                         if USE_UNSLOTH_GC:
                             print(
-                                "Unsloth: Will smartly offload gradients to save VRAM!"
+                                "AtomGPT: Will smartly offload gradients to save VRAM!"
                             )
                             USE_UNSLOTH_GC = False
                     else:
@@ -581,7 +565,7 @@ class UnslothCheckpointFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *args):
-        # All Unsloth Zoo code licensed under LGPLv3
+        # All AtomGPT Zoo code licensed under LGPLv3
         if not ctx._requires_gradient:
             return None
 
@@ -876,7 +860,7 @@ def unsloth_checkpoint(
                 "Passing `context_fn` or `debug` is only supported when "
                 "use_reentrant=False."
             )
-        return UnslothCheckpointFunction.apply(function, preserve, *args)
+        return AtomGPTCheckpointFunction.apply(function, preserve, *args)
     else:
         gen = _checkpoint_without_reentrant_generator(
             function,
@@ -901,16 +885,16 @@ pass
 
 
 def patch_unsloth_smart_gradient_checkpointing(dtype=None):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if (
         torch.utils.checkpoint.CheckpointFunction.__name__
-        != "UnslothCheckpointFunction"
+        != "AtomGPTCheckpointFunction"
     ):
         initialize_unsloth_gradient_checkpointing(dtype)
         torch.utils.checkpoint._old_CheckpointFunction = (
             torch.utils.checkpoint.CheckpointFunction
         )
-        torch.utils.checkpoint.CheckpointFunction = UnslothCheckpointFunction
+        torch.utils.checkpoint.CheckpointFunction = AtomGPTCheckpointFunction
 
     if torch.utils.checkpoint.checkpoint.__name__ != "unsloth_checkpoint":
         torch.utils.checkpoint._old_checkpoint = torch.utils.checkpoint
@@ -921,10 +905,10 @@ pass
 
 
 def unpatch_unsloth_smart_gradient_checkpointing():
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if (
         torch.utils.checkpoint.CheckpointFunction.__name__
-        == "UnslothCheckpointFunction"
+        == "AtomGPTCheckpointFunction"
     ) and hasattr(torch.utils.checkpoint, "_old_CheckpointFunction"):
 
         torch.utils.checkpoint.CheckpointFunction = (
@@ -956,23 +940,7 @@ def unsloth_offloaded_gradient_checkpoint(
     global CPU_BUFFERS
     if len(CPU_BUFFERS) == 0:
         initialize_unsloth_gradient_checkpointing(args[0].dtype)
-    return UnslothCheckpointFunction.apply(function, *args)
+    return AtomGPTCheckpointFunction.apply(function, *args)
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

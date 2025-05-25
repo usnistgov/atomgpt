@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from atomgpt.inverse_models.mapper import (
     INT_TO_FLOAT_MAPPER,
     FLOAT_TO_INT_MAPPER,
@@ -48,7 +34,7 @@ def __get_model_name(
 
         model_name = INT_TO_FLOAT_MAPPER[lower_model_name]
         print(
-            f"Unsloth: Your transformers version of {transformers_version} does not support native "
+            f"AtomGPT: Your transformers version of {transformers_version} does not support native "
             f"4bit loading.\nThe minimum required version is 4.37.\n"
             f'Try `pip install --upgrade "transformers>=4.37"`\n'
             f"to obtain the latest transformers build, then restart this session.\n"
@@ -60,7 +46,7 @@ def __get_model_name(
 
         new_model_name = INT_TO_FLOAT_MAPPER[lower_model_name]
         # logger.warning_once(
-        #     f"Unsloth: You passed in `{model_name}` which is a 4bit model, yet you set\n"\
+        #     f"AtomGPT: You passed in `{model_name}` which is a 4bit model, yet you set\n"\
         #     f"`load_in_4bit = False`. We shall load `{new_model_name}` instead."
         # )
         return new_model_name
@@ -83,7 +69,7 @@ def __get_model_name(
 
         new_model_name = FLOAT_TO_INT_MAPPER[lower_model_name]
         # logger.warning_once(
-        #     f"Unsloth: You passed in `{model_name}` and `load_in_4bit = True`.\n"\
+        #     f"AtomGPT: You passed in `{model_name}` and `load_in_4bit = True`.\n"\
         #     f"We shall load `{new_model_name}` for 4x faster loading."
         # )
         return new_model_name
@@ -147,7 +133,7 @@ def get_model_name(model_name, load_in_4bit=True):
         and model_name.count("/") == 1
         and model_name[0].isalnum()
     ):
-        # Try checking if a new Unsloth version allows it!
+        # Try checking if a new AtomGPT version allows it!
         (
             NEW_INT_TO_FLOAT_MAPPER,
             NEW_FLOAT_TO_INT_MAPPER,
@@ -162,7 +148,7 @@ def get_model_name(model_name, load_in_4bit=True):
         )
         if upgraded_model_name is not None:
             raise NotImplementedError(
-                f"Unsloth: {model_name} is not supported in your current Unsloth version! Please update Unsloth via:\n\n"
+                f"AtomGPT: {model_name} is not supported in your current AtomGPT version! Please update AtomGPT via:\n\n"
                 "pip uninstall unsloth unsloth_zoo -y\n"
                 'pip install --upgrade --no-cache-dir "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"\n'
                 'pip install --upgrade --no-cache-dir "git+https://github.com/unslothai/unsloth-zoo.git"\n'

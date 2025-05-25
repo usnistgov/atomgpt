@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 __all__ = [
     "PatchFastRL",
     "vLLMSamplingParams",
@@ -69,7 +55,7 @@ def PatchRL(FastLanguageModel):
             # Put the model in inference mode.
             FastLanguageModel.for_inference(model)
 
-            # We must use .clone for Unsloth since we force inference_mode
+            # We must use .clone for AtomGPT since we force inference_mode
             # Rather we should have used no_grad
             original_generate = unwrapped_model.generate
 
@@ -137,7 +123,7 @@ torch_compile_options = {{
 {RL_pre}
 
 @dataclass
-class Unsloth{RLConfig_name}({RLConfig_name}):
+class AtomGPT{RLConfig_name}({RLConfig_name}):
     """
     {__RLConfig_doc__}
     """
@@ -162,14 +148,14 @@ pass
 
 {RLTrainer_extras}
 
-class Unsloth{RLTrainer_name}(_Unsloth{RLTrainer_name}):
+class AtomGPT{RLTrainer_name}(_AtomGPT{RLTrainer_name}):
     """
     {__RLTrainer_doc__}
     """
     def __init__({RLTrainer_arguments},
         **kwargs
     ):
-        if args is None: args = Unsloth{RLConfig_name}()
+        if args is None: args = AtomGPT{RLConfig_name}()
 {RLTrainer_extra_args}
         super().__init__({RLTrainer_call_args}{RLTrainer_kwargs})
 {RLTrainer_post}
@@ -178,7 +164,7 @@ pass
 
 
 def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
-    # Patch for vLLM and Unsloth PEFT
+    # Patch for vLLM and AtomGPT PEFT
     import trl
     import trl.trainer
 
@@ -220,9 +206,9 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
         return
 
     # Check name
-    if RLTrainer.__name__.startswith("Unsloth"):
+    if RLTrainer.__name__.startswith("AtomGPT"):
         return
-    if RLConfig.__name__.startswith("Unsloth"):
+    if RLConfig.__name__.startswith("AtomGPT"):
         return
 
     # Get old source
@@ -294,7 +280,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "use_fp16 = getattr(args, 'fp16', False)\n"
             "force_float32 = False\n"
             "if os.environ.get('UNSLOTH_FORCE_FLOAT32', '0') == '1':\n"
-            "    print('Unsloth: Switching to float32 training since model cannot work with float16')\n"
+            "    print('AtomGPT: Switching to float32 training since model cannot work with float16')\n"
             "    force_float32 = True\n"
             "mixed_precision_dtype = os.environ.get('UNSLOTH_MIXED_PRECISION', 'float32')\n"
             "dtype = getattr(model.config, 'torch_dtype', None)\n"
@@ -302,8 +288,8 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "from atomgpt.inverse_models._utils2 import _get_dtype\n"
             "dtype = _get_dtype(dtype)\n"
             "float16 = dtype == torch.float16\n"
-            "if not force_float32 and (float16 and use_bf16): raise TypeError('Unsloth: Model is in float16 precision but you want to use bfloat16 precision. Set fp16 to `True` and bf16 to `False`')\n"
-            "if not force_float32 and (not float16 and use_fp16): raise TypeError('Unsloth: Model is in bfloat16 precision but you want to use float16 precision. Set fp16 to `False` and bf16 to `True`')\n"
+            "if not force_float32 and (float16 and use_bf16): raise TypeError('AtomGPT: Model is in float16 precision but you want to use bfloat16 precision. Set fp16 to `True` and bf16 to `False`')\n"
+            "if not force_float32 and (not float16 and use_fp16): raise TypeError('AtomGPT: Model is in bfloat16 precision but you want to use float16 precision. Set fp16 to `False` and bf16 to `True`')\n"
             "if force_float32:\n"
             "    args.fp16 = False\n"
             "    args.bf16 = False\n"
@@ -337,7 +323,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "if ga_steps is not None and ga_steps > 1:\n"
             "    from transformers import __version__ as transformers_version\n"
             "    if Version(transformers_version) <= Version('4.45.2'):\n"
-            "        print('**** Unsloth: Please use our fixed gradient_accumulation_steps by updating transformers, TRL and Unsloth!\\n'\n"
+            "        print('**** AtomGPT: Please use our fixed gradient_accumulation_steps by updating transformers, TRL and AtomGPT!\\n'\n"
             "              '`pip install --upgrade --no-cache-dir --force-reinstall --no-deps unsloth transformers trl unsloth_zoo`')\n"
         )
         extra_args += check_ga
@@ -388,7 +374,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "        max_seq_length = model.max_seq_length\n"
             "        if hasattr(args, 'max_seq_length'): args.max_seq_length = max_seq_length\n"
         )
-        "    elif args_max_seq_length is not None and model_max_seq_length is not None:\n" "        if args_max_seq_length > model_max_seq_length:\n" "            print('Unsloth: You set `max_seq_length` as ' + str(args_max_seq_length) + ' but \n" "                   the maximum the model supports is ' + str(model_max_seq_length) + '. We shall reduce it.')\n" "            args.max_seq_length = model_max_seq_length\n"
+        "    elif args_max_seq_length is not None and model_max_seq_length is not None:\n" "        if args_max_seq_length > model_max_seq_length:\n" "            print('AtomGPT: You set `max_seq_length` as ' + str(args_max_seq_length) + ' but \n" "                   the maximum the model supports is ' + str(model_max_seq_length) + '. We shall reduce it.')\n" "            args.max_seq_length = model_max_seq_length\n"
         extra_args += length_check
     pass
 
@@ -410,8 +396,8 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
     if "data_collator" in call_args and "train_dataset" in call_args:
         data_collator_check = (
             "__tokenizer = processing_class if 'processing_class' in locals() else tokenizer\n"
-            "from atomgpt.inverse_models.vision_utils import UnslothVisionDataCollator\n"
-            "if not isinstance(data_collator, UnslothVisionDataCollator):\n"
+            "from atomgpt.inverse_models.vision_utils import AtomGPTVisionDataCollator\n"
+            "if not isinstance(data_collator, AtomGPTVisionDataCollator):\n"
             "    if isinstance(data_collator, DataCollatorForSeq2Seq) and 'labels' not in train_dataset.column_names:\n"
             "        data_collator = DataCollatorForLanguageModeling(__tokenizer, mlm = False)\n"
             "    elif isinstance(data_collator, DataCollatorForLanguageModeling) and 'labels' in train_dataset.column_names:\n"
@@ -425,7 +411,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
 
         # Also check if .pad exists -> if not, and is VLM, then change it!
         pad_check = (
-            "if not isinstance(data_collator, UnslothVisionDataCollator):\n"
+            "if not isinstance(data_collator, AtomGPTVisionDataCollator):\n"
             "    if not hasattr(__tokenizer, 'pad') and hasattr(__tokenizer, 'tokenizer'):\n"
             "        if isinstance(data_collator, DataCollatorForSeq2Seq):\n"
             "            data_collator = DataCollatorForSeq2Seq(__tokenizer.tokenizer)\n"
@@ -511,9 +497,9 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
     # Warn on too large or too small learning rate
     if " learning_rate" in call_args:
         learning_rate_check = (
-            "if learning_rate < 1e-7: raise FloatingPointError(f'Unsloth: Your learning rate of `{learning_rate}` is too small and less than 1e-7! "
+            "if learning_rate < 1e-7: raise FloatingPointError(f'AtomGPT: Your learning rate of `{learning_rate}` is too small and less than 1e-7! "
             "Consider increasing it, otherwise gradient updates will be close to 0!')\n"
-            "if learning_rate > 1: raise OverflowError(f'Unsloth: Your learning rate of `{learning_rate}` is way too larger > 1! "
+            "if learning_rate > 1: raise OverflowError(f'AtomGPT: Your learning rate of `{learning_rate}` is way too larger > 1! "
             "Consider decreasing it to 1e-1, otherwise gradient updates will explode!')\n"
         )
         extra_args += learning_rate_check
@@ -563,7 +549,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
         RLTrainer, trainer_file, RLTrainer_name, all_imports, imports
     )
     if RLTrainer_extras is None:
-        RLTrainer_extras = f"_Unsloth{RLTrainer_name} = {RLTrainer_name}"
+        RLTrainer_extras = f"_AtomGPT{RLTrainer_name} = {RLTrainer_name}"
 
     # Create full module
     exec(f"from trl.trainer import ({RLTrainer_name}, {RLConfig_name},)")
@@ -626,7 +612,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
 
     # Create new function
     created_module = create_new_function(
-        f"Unsloth{RLTrainer_name}",
+        f"AtomGPT{RLTrainer_name}",
         RLTrainer_source,
         f"trl.trainer.{trainer_file}",
         imports,
@@ -635,34 +621,34 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
 
     # Patch Trainer
     exec(
-        f"trl.{RLTrainer_name} = created_module.Unsloth{RLTrainer_name}",
+        f"trl.{RLTrainer_name} = created_module.AtomGPT{RLTrainer_name}",
         locals(),
         globals(),
     )
     exec(
-        f"trl.trainer.{RLTrainer_name} = created_module.Unsloth{RLTrainer_name}",
+        f"trl.trainer.{RLTrainer_name} = created_module.AtomGPT{RLTrainer_name}",
         locals(),
         globals(),
     )
     exec(
-        f"trl.trainer.{trainer_file}.{RLTrainer_name} = created_module.Unsloth{RLTrainer_name}",
+        f"trl.trainer.{trainer_file}.{RLTrainer_name} = created_module.AtomGPT{RLTrainer_name}",
         locals(),
         globals(),
     )
 
     # Patch Config
     exec(
-        f"trl.{RLConfig_name} = created_module.Unsloth{RLConfig_name}",
+        f"trl.{RLConfig_name} = created_module.AtomGPT{RLConfig_name}",
         locals(),
         globals(),
     )
     exec(
-        f"trl.trainer.{RLConfig_name} = created_module.Unsloth{RLConfig_name}",
+        f"trl.trainer.{RLConfig_name} = created_module.AtomGPT{RLConfig_name}",
         locals(),
         globals(),
     )
     exec(
-        f"trl.trainer.{trainer_file}.{RLConfig_name} = created_module.Unsloth{RLConfig_name}",
+        f"trl.trainer.{trainer_file}.{RLConfig_name} = created_module.AtomGPT{RLConfig_name}",
         locals(),
         globals(),
     )
@@ -838,7 +824,7 @@ def patch_functions(
     pass
 
     RLTrainer_source = RLTrainer_source.replace(
-        f"class {RLTrainer_name}", f"class _Unsloth{RLTrainer_name}", 1
+        f"class {RLTrainer_name}", f"class _AtomGPT{RLTrainer_name}", 1
     )
     return RLTrainer_source
 

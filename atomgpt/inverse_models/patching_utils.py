@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import torch
 import os
 import re
@@ -33,7 +17,7 @@ from atomgpt.inverse_models._utils2 import _get_dtype
 
 # Also disable compiling on bitsandbytes
 def patch_compiling_bitsandbytes():
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     os.environ["UNSLOTH_PATCHED"] = "1"
 
     # Disable dynamo on Linear4bit, Linear8bit and other future modules
@@ -71,15 +55,15 @@ pass
 
 
 def patch_layernorm(fast_layernorm):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     import torch.nn
 
-    if torch.nn.LayerNorm.__name__ != "Unsloth_LayerNorm":
+    if torch.nn.LayerNorm.__name__ != "AtomGPT_LayerNorm":
         os.environ["UNSLOTH_PATCHED"] = "1"
 
         from torch.nn import LayerNorm
 
-        class Unsloth_LayerNorm(LayerNorm):
+        class AtomGPT_LayerNorm(LayerNorm):
             def forward(self, X):
                 return fast_layernorm(self, X)
 
@@ -87,7 +71,7 @@ def patch_layernorm(fast_layernorm):
 
         pass
 
-        torch.nn.LayerNorm = Unsloth_LayerNorm
+        torch.nn.LayerNorm = AtomGPT_LayerNorm
     return
 
 
@@ -95,7 +79,7 @@ pass
 
 
 def patch_torch_compile(debug=False, O3=False, ignore_errors=True):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     assert type(debug) is bool
     assert type(O3) is bool
     import os, logging
@@ -128,11 +112,11 @@ def patch_torch_compile(debug=False, O3=False, ignore_errors=True):
     pass
     try:
         print(
-            f"🦥 Unsloth Zoo will now patch everything{DEBUGGING} to make training faster!"
+            f"AtomGPT will now patch everything{DEBUGGING} to make training faster!"
         )
     except:
         print(
-            f"Unsloth Zoo will now patch everything{DEBUGGING} to make training faster!"
+            f"AtomGPT will now patch everything{DEBUGGING} to make training faster!"
         )
     pass
 
@@ -225,7 +209,7 @@ def patch_model_and_tokenizer(
     do_forced_float32=False,
     correct_dtype=None,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     assert type(downcast_rope) is bool
     import gc
 
@@ -257,13 +241,13 @@ def patch_model_and_tokenizer(
         from bitsandbytes.nn import Linear4bit as Bnb_Linear4bit
     except:
         raise ImportError(
-            "Unsloth: Please install bitsandbytes via `pip install bitsandbytes`"
+            "AtomGPT: Please install bitsandbytes via `pip install bitsandbytes`"
         )
     try:
         from peft.tuners.lora import Linear4bit as Peft_Linear4bit
     except:
         raise ImportError(
-            "Unsloth: Please install peft via `pip install peft`"
+            "AtomGPT: Please install peft via `pip install peft`"
         )
     pass
 
@@ -464,7 +448,7 @@ pass
 def patch_compiled_autograd():
     # Fixes double compilation of functions during gradient checkpointing
     # See https://github.com/pytorch/pytorch/issues/135298
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     import inspect, re
 
     # From https://github.com/pytorch/pytorch/pull/135795/files
@@ -588,7 +572,7 @@ def check_conversion_mappings(model, current_key_name_str, skip_modules):
                         os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
                     )
                     if do_logging:
-                        print(f"Unsloth: Replace bnb issue: {str(e)}")
+                        print(f"AtomGPT: Replace bnb issue: {str(e)}")
                     break
             return any(
                 [
@@ -663,7 +647,7 @@ if hasattr(
     != "_unsloth_replace_with_bnb_linear"
 ):
 
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     source = inspect.getsource(
         transformers.integrations.bitsandbytes._replace_with_bnb_linear
     )
@@ -680,7 +664,7 @@ if hasattr(
     )
     if "current_key_name_str" not in source:
         raise RuntimeError(
-            "Unsloth: Patch for dynamic quantization failed since current_key_name_str does not exist."
+            "AtomGPT: Patch for dynamic quantization failed since current_key_name_str does not exist."
         )
 
     # First patch recursive calls to mark the parent class
@@ -707,7 +691,7 @@ if hasattr(
             do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
             if do_logging:
                 print(
-                    f"Unsloth: Could not wrap replace_with_bnb_linear but may not be an issue"
+                    f"AtomGPT: Could not wrap replace_with_bnb_linear but may not be an issue"
                 )
             mark_parent_error = True
         else:
@@ -717,7 +701,7 @@ if hasattr(
         do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
         if do_logging:
             print(
-                f"Unsloth: Could not wrap replace_with_bnb_linear but may not be an issue. {str(e)}"
+                f"AtomGPT: Could not wrap replace_with_bnb_linear but may not be an issue. {str(e)}"
             )
         mark_parent_error = True
 
@@ -739,19 +723,3 @@ if hasattr(
         _unsloth_replace_with_bnb_linear
     )
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

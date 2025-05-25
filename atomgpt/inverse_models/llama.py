@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import torch
 import gc
 import math
@@ -748,7 +734,7 @@ def LlamaModel_fast_forward(
     # retrieve input_ids and inputs_embeds
     if input_ids is not None and inputs_embeds is not None:
         raise ValueError(
-            "Unsloth: You cannot specify both decoder_input_ids and decoder_inputs_embeds at the same time"
+            "AtomGPT: You cannot specify both decoder_input_ids and decoder_inputs_embeds at the same time"
         )
     elif input_ids is not None:
         batch_size, seq_length = input_ids.shape
@@ -756,7 +742,7 @@ def LlamaModel_fast_forward(
         batch_size, seq_length, _ = inputs_embeds.shape
     else:
         raise ValueError(
-            "Unsloth: You have to specify either decoder_input_ids or decoder_inputs_embeds"
+            "AtomGPT: You have to specify either decoder_input_ids or decoder_inputs_embeds"
         )
 
     seq_length_with_past = seq_length
@@ -765,7 +751,7 @@ def LlamaModel_fast_forward(
     if hasattr(self, "max_seq_length"):
         if seq_length > self.max_seq_length:
             logger.warning_once(
-                f"Unsloth: Input IDs of length {seq_length} > the model's max sequence length of {self.max_seq_length}.\n"
+                f"AtomGPT: Input IDs of length {seq_length} > the model's max sequence length of {self.max_seq_length}.\n"
                 "We shall truncate it ourselves. It's imperative if you correct this issue first."
             )
         if input_ids is not None:
@@ -905,7 +891,7 @@ def LlamaModel_fast_forward(
         use_cache = False
         # if use_cache:
         #     logger.warning_once(
-        #         "Unsloth: `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`"
+        #         "AtomGPT: `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`"
         #     )
         #     use_cache = False
     pass
@@ -939,7 +925,7 @@ def LlamaModel_fast_forward(
             self.GA_mask = False
         elif attention_mask is not None:
             # Fixes https://github.com/unslothai/unsloth/issues/853
-            # Unsloth needs a 2D mask, not a [2, 1, n, n] mask!
+            # AtomGPT needs a 2D mask, not a [2, 1, n, n] mask!
 
             # https://github.com/pytorch/pytorch/issues/103749
             # Need to convert to float and not using bool
@@ -1357,7 +1343,7 @@ def CausalLM_fast_forward(fast_forward_inference):
             )
         else:
             RETURN_LOGITS = os.environ.get("UNSLOTH_RETURN_LOGITS", "0") == "1"
-            # < 1024 Normal Unsloth uses less VRAM!
+            # < 1024 Normal AtomGPT uses less VRAM!
             if bsz * q_len <= 1024:
                 RETURN_LOGITS = True
 
@@ -2013,7 +1999,7 @@ def unsloth_fast_generate(
                 > self.config.max_position_embeddings
             ):
                 raise ValueError(
-                    f'Unsloth: input length {kwargs["input_ids"].shape[-1]} + max_new_tokens {kwargs["max_new_tokens"]} exceeds the maximum sequence length of {self.config.max_position_embeddings}!\n'
+                    f'AtomGPT: input length {kwargs["input_ids"].shape[-1]} + max_new_tokens {kwargs["max_new_tokens"]} exceeds the maximum sequence length of {self.config.max_position_embeddings}!\n'
                     "You will need to do long context extension by increasing the `max_seq_length` in `FastLanguageModel.from_pretrained`."
                 )
     pass
@@ -2133,23 +2119,23 @@ class FastLlamaModel:
         if trust_remote_code:
             if fast_inference:
                 raise NotImplementedError(
-                    "Unsloth: Fast inference does not support `trust_remote_code` yet."
+                    "AtomGPT: Fast inference does not support `trust_remote_code` yet."
                 )
             print(
-                "Unsloth: WARNING `trust_remote_code` is True.\n"
+                "AtomGPT: WARNING `trust_remote_code` is True.\n"
                 "Are you certain you want to do remote code execution?"
             )
         pass
         if fast_inference:
             if not is_vLLM_available():
                 print(
-                    "Unsloth: vLLM is not installed! Will use Unsloth inference!"
+                    "AtomGPT: vLLM is not installed! Will use AtomGPT inference!"
                 )
                 fast_inference = False
             major_version, minor_version = torch.cuda.get_device_capability()
             if major_version < 7:
                 print(
-                    "Unsloth: vLLM does not work on older GPUs - will switch to Unsloth inference!"
+                    "AtomGPT: vLLM does not work on older GPUs - will switch to AtomGPT inference!"
                 )
                 fast_inference = False
         pass
@@ -2170,11 +2156,11 @@ class FastLlamaModel:
             vllm_version = ""
 
         statistics = (
-            f"==((====))==  Unsloth {__version__}: Fast {model_patcher.__name__[4:-5]} patching. Transformers: {transformers_version}.{vllm_version}\n"
-            f"   {chr(92)}{chr(92)}   /|    {gpu_stats.name}. Num GPUs = {torch.cuda.device_count()}. Max memory: {max_memory} GB. Platform: {platform_system}.\n"
-            f"O^O/ {chr(92)}_/ {chr(92)}    Torch: {torch.__version__}. CUDA: {gpu_stats.major}.{gpu_stats.minor}. CUDA Toolkit: {torch.version.cuda}. Triton: {triton_version}\n"
-            f"{chr(92)}        /    Bfloat16 = {str(SUPPORTS_BFLOAT16).upper()}. FA [Xformers = {xformers_version}. FA2 = {HAS_FLASH_ATTENTION}]\n"
-            f' "-____-"     Free license: http://github.com/unslothai/unsloth'
+            f"AtomGPT {__version__}: Fast {model_patcher.__name__[4:-5]} patching. Transformers: {transformers_version}.{vllm_version}\n"
+            f"{gpu_stats.name}. Num GPUs = {torch.cuda.device_count()}. Max memory: {max_memory} GB. Platform: {platform_system}.\n"
+            f"Torch: {torch.__version__}. CUDA: {gpu_stats.major}.{gpu_stats.minor}. CUDA Toolkit: {torch.version.cuda}. Triton: {triton_version}\n"
+            f"Bfloat16 = {str(SUPPORTS_BFLOAT16).upper()}. FA [Xformers = {xformers_version}. FA2 = {HAS_FLASH_ATTENTION}]\n"
+            f""
         )
         print(statistics)
 
@@ -2189,7 +2175,7 @@ class FastLlamaModel:
             old_hf_transfer = "0"
         if old_hf_transfer == "1":
             print(
-                "Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!"
+                "AtomGPT: Fast downloading is enabled - ignore downloading bars which are red colored!"
             )
         pass
         if old_hf_transfer != "0":
@@ -2244,11 +2230,11 @@ class FastLlamaModel:
 
             if fast_inference:
                 raise NotImplementedError(
-                    "Unsloth: Fast inference does not yet work with RoPE Scaling."
+                    "AtomGPT: Fast inference does not yet work with RoPE Scaling."
                 )
 
             logger.warning_once(
-                f"Unsloth: {model_name} can only handle sequence lengths of at most "
+                f"AtomGPT: {model_name} can only handle sequence lengths of at most "
                 f"{model_max_seq_length}.\nBut with kaiokendev's RoPE scaling of "
                 f"{round(rope_scaling, 3)}, it can be magically be extended to "
                 f"{max_seq_length}!"
@@ -2390,7 +2376,7 @@ class FastLlamaModel:
                 inner_training_loop = Trainer._original_training_loop
         except:
             raise RuntimeError(
-                "Unsloth: Unsuccessfully patched inner_training_loop"
+                "AtomGPT: Unsuccessfully patched inner_training_loop"
             )
         pass
 
@@ -2420,11 +2406,11 @@ class FastLlamaModel:
         # Cannot use \\ since it will cause a SyntaxWarning in Python 3.12
         # Instead use chr(92) == \\
         debug_info = """debug_info = \\
-        f"==((====))==  Unsloth - 2x faster free finetuning | Num GPUs used = {len(set(p.device for p in model.parameters()))}\\n"\\
-        f"   {chr(92)}{chr(92)}   /|    Num examples = {num_examples:,} | Num Epochs = {num_train_epochs:,} | Total steps = {max_steps:,}\\n"\\
-        f"O^O/ {chr(92)}_/ {chr(92)}    Batch size per device = {self._train_batch_size:,} | Gradient accumulation steps = {args.gradient_accumulation_steps}\\n"\\
-        f"{chr(92)}        /    Data Parallel GPUs = {args.world_size} | Total batch size ({self._train_batch_size} x {args.gradient_accumulation_steps} x {args.world_size}) = {total_train_batch_size:,}\\n"\\
-        f' "-____-"     Trainable parameters = {get_model_param_count(model, trainable_only=True):,}/{get_model_param_count(model):,} ({get_model_param_count(model, trainable_only=True)/get_model_param_count(model)*100:.2f}% trained)'
+        f"AtomGPT - 2x faster free finetuning | Num GPUs used = {len(set(p.device for p in model.parameters()))}\\n"\\
+        f"Num examples = {num_examples:,} | Num Epochs = {num_train_epochs:,} | Total steps = {max_steps:,}\\n"\\
+        f"Batch size per device = {self._train_batch_size:,} | Gradient accumulation steps = {args.gradient_accumulation_steps}\\n"\\
+        f"Data Parallel GPUs = {args.world_size} | Total batch size ({self._train_batch_size} x {args.gradient_accumulation_steps} x {args.world_size}) = {total_train_batch_size:,}\\n"\\
+        f'Trainable parameters = {get_model_param_count(model, trainable_only=True):,}/{get_model_param_count(model):,} ({get_model_param_count(model, trainable_only=True)/get_model_param_count(model)*100:.2f}% trained)'
         logger.warning(debug_info)
         import gc
         for _ in range(3):
@@ -2442,7 +2428,7 @@ class FastLlamaModel:
         debug_info = """n_total_devices = total_train_batch_size // \\
             args.gradient_accumulation_steps // self._train_batch_size
         if n_total_devices > 1:
-            logger.warning_once('Unsloth is running with multi GPUs - the effective batch size is multiplied by ' + str(n_total_devices))
+            logger.warning_once('AtomGPT is running with multi GPUs - the effective batch size is multiplied by ' + str(n_total_devices))
         debug_info ="""
         debug_info = debug_info.split("\n")
         debug_info = "\n".join(
@@ -2458,7 +2444,7 @@ class FastLlamaModel:
         )
         inner_training_loop = inner_training_loop.replace(
             "train_dataloader = tpu_spmd_dataloader(train_dataloader)",
-            "raise RuntimeError('Unsloth: TPUs are not yet supported!')",
+            "raise RuntimeError('AtomGPT: TPUs are not yet supported!')",
         )
         inner_training_loop = inner_training_loop.replace(
             "_inner_training_loop",
@@ -2504,7 +2490,7 @@ class FastLlamaModel:
             pass
         pass
 
-        # Log Unsloth version for future fastpaths for inference
+        # Log AtomGPT version for future fastpaths for inference
         model.config.update({"unsloth_version": __version__})
 
         # Add save modules
@@ -2622,7 +2608,7 @@ class FastLlamaModel:
         pass
         if os.environ.get("UNSLOTH_ENABLE_FULL_FINETUNING", "0") == "1":
             print(
-                "Unsloth: Full finetuning is enabled, so .get_peft_model has no effect"
+                "AtomGPT: Full finetuning is enabled, so .get_peft_model has no effect"
             )
             return model
         pass
@@ -2634,10 +2620,10 @@ class FastLlamaModel:
             )
 
         if type(r) is not int:
-            raise TypeError(f"Unsloth: Rank of {str(r)} must be an integer.")
+            raise TypeError(f"AtomGPT: Rank of {str(r)} must be an integer.")
         if r <= 0:
             raise TypeError(
-                f"Unsloth: Rank of {str(r)} must be larger than 0."
+                f"AtomGPT: Rank of {str(r)} must be larger than 0."
             )
 
         if isinstance(model, PeftModelForCausalLM):
@@ -2690,14 +2676,14 @@ class FastLlamaModel:
             if check_all:
                 # Simply pass through!
                 logger.warning(
-                    "Unsloth: Already have LoRA adapters! We shall skip this step."
+                    "AtomGPT: Already have LoRA adapters! We shall skip this step."
                 )
 
                 # Offload!
                 # [TODO] First offload lm_head and embed_tokens to CPU (should be disk!!)
                 if "embed_tokens" in new_target_modules:
                     print(
-                        "Unsloth: Training embed_tokens in mixed precision to save VRAM"
+                        "AtomGPT: Training embed_tokens in mixed precision to save VRAM"
                     )
 
                     new_dtype = (
@@ -2727,7 +2713,7 @@ class FastLlamaModel:
 
                 if "lm_head" in new_target_modules:
                     print(
-                        "Unsloth: Training lm_head in mixed precision to save VRAM"
+                        "AtomGPT: Training lm_head in mixed precision to save VRAM"
                     )
 
                     new_dtype = (
@@ -2758,7 +2744,7 @@ class FastLlamaModel:
                 return model
             else:
                 raise TypeError(
-                    "Unsloth: Your model already has LoRA adapters. Your new parameters are different."
+                    "AtomGPT: Your model already has LoRA adapters. Your new parameters are different."
                 )
             pass
         pass
@@ -2772,15 +2758,15 @@ class FastLlamaModel:
 
         if lora_dropout != 0:
             logger.warning_once(
-                f"Unsloth: Dropout = 0 is supported for fast patching. You are using dropout = {lora_dropout}.\n"
-                f"Unsloth will patch all other layers, except LoRA matrices, causing a performance hit."
+                f"AtomGPT: Dropout = 0 is supported for fast patching. You are using dropout = {lora_dropout}.\n"
+                f"AtomGPT will patch all other layers, except LoRA matrices, causing a performance hit."
             )
         pass
 
         if bias != "none":
             logger.warning_once(
-                f"Unsloth: bias = `none` is supported for fast patching. You are using bias = {bias}.\n"
-                f"Unsloth will patch all other layers, except LoRA matrices, causing a performance hit."
+                f"AtomGPT: bias = `none` is supported for fast patching. You are using bias = {bias}.\n"
+                f"AtomGPT will patch all other layers, except LoRA matrices, causing a performance hit."
             )
         pass
 
@@ -2790,7 +2776,7 @@ class FastLlamaModel:
             or init_lora_weights == "loftq"
         ):
             raise ValueError(
-                'Unsloth: `init_lora_weights` must be either [True, False, "gaussian", "loftq"].'
+                'AtomGPT: `init_lora_weights` must be either [True, False, "gaussian", "loftq"].'
             )
         pass
 
@@ -2800,7 +2786,7 @@ class FastLlamaModel:
                 import peft
 
                 raise RuntimeError(
-                    f"Unsloth: Your PEFT version of {peft.__version__} does not support LoftQ init.\n"
+                    f"AtomGPT: Your PEFT version of {peft.__version__} does not support LoftQ init.\n"
                     "Please install PEFT 0.7.2 or higher.\n"
                     "You can also install from source: `pip install git+https://github.com/huggingface/peft.git"
                 )
@@ -2810,7 +2796,7 @@ class FastLlamaModel:
                 from peft import LoftQConfig
 
                 logger.warning_once(
-                    "Unsloth: init_lora_weights = `loftq` is set, but `loftq_config` is None.\n"
+                    "AtomGPT: init_lora_weights = `loftq` is set, but `loftq_config` is None.\n"
                     "We shall use `loftq_config = LoftQConfig(loftq_bits = 4, loftq_iter = 1)`."
                 )
                 loftq_config = LoftQConfig(loftq_bits=4, loftq_iter=1)
@@ -2818,7 +2804,7 @@ class FastLlamaModel:
 
             if hasattr(model.config, "quantization_config"):
                 raise ValueError(
-                    "Unsloth: You are using `loftq` init, yet `load_in_4bit = True` was set.\n"
+                    "AtomGPT: You are using `loftq` init, yet `load_in_4bit = True` was set.\n"
                     "Reload your model without any quantization by setting `load_in_4bit = False`."
                 )
             pass
@@ -2831,7 +2817,7 @@ class FastLlamaModel:
                 import peft
 
                 raise RuntimeError(
-                    f"Unsloth: Your PEFT version of {peft.__version__} does not support `use_rslora`.\n"
+                    f"AtomGPT: Your PEFT version of {peft.__version__} does not support `use_rslora`.\n"
                     "Please install PEFT 0.7.2 or higher.\n"
                     "You can also install from source: `pip install git+https://github.com/huggingface/peft.git"
                 )
@@ -2861,7 +2847,7 @@ class FastLlamaModel:
         for module in target_modules:
             if module == "lm_head":
                 # logger.warning_once(
-                #     "Unsloth: `lm_head` should be placed in `modules_to_save` and not `target_modules`. "\
+                #     "AtomGPT: `lm_head` should be placed in `modules_to_save` and not `target_modules`. "\
                 #     "Luckily, we shall do it for you!"
                 # )
                 train_lm_head = True
@@ -2872,7 +2858,7 @@ class FastLlamaModel:
 
             elif module == "embed_tokens":
                 # logger.warning_once(
-                #     "Unsloth: `embed_tokens` should be placed in `modules_to_save` and not `target_modules`. "\
+                #     "AtomGPT: `embed_tokens` should be placed in `modules_to_save` and not `target_modules`. "\
                 #     "Luckily, we shall do it for you!"
                 # )
                 train_embed_tokens = True
@@ -2888,7 +2874,7 @@ class FastLlamaModel:
                 except AssertionError as e:
                     final_modules.append(module)
                     print(
-                        "Unsloth: You added custom modules, but Unsloth hasn't optimized for this.\n"
+                        "AtomGPT: You added custom modules, but AtomGPT hasn't optimized for this.\n"
                         "Beware - your finetuning might be noticeably slower!"
                     )
                 pass
@@ -2899,7 +2885,7 @@ class FastLlamaModel:
         if hasattr(model, "_need_to_train_embeddings"):
             if not train_lm_head or not train_embed_tokens:
                 print(
-                    "Unsloth: You added new tokens but did not specify if you wanted to "
+                    "AtomGPT: You added new tokens but did not specify if you wanted to "
                     "train the lm_head and embed_tokens.\nWe must turn it on for you."
                 )
                 train_lm_head = True
@@ -2937,7 +2923,7 @@ class FastLlamaModel:
                     train_embed_tokens = True
                 else:
                     raise TypeError(
-                        f"Unsloth: Module = {module} is not allowed. Only 'lm_head' and 'embed_tokens' is allowed."
+                        f"AtomGPT: Module = {module} is not allowed. Only 'lm_head' and 'embed_tokens' is allowed."
                     )
             pass
         pass
@@ -2954,12 +2940,12 @@ class FastLlamaModel:
 
             if modules_to_save is not None:
                 raise NotImplementedError(
-                    "Unsloth: Currently fast inference does not work with training embeddings or lm_head."
+                    "AtomGPT: Currently fast inference does not work with training embeddings or lm_head."
                 )
 
             if bias != "none":
                 raise NotImplementedError(
-                    "Unsloth: Currently fast inference does not work with using biases for LoRA."
+                    "AtomGPT: Currently fast inference does not work with using biases for LoRA."
                 )
         pass
 
@@ -2994,7 +2980,7 @@ class FastLlamaModel:
         if use_gradient_checkpointing == "unsloth":
             if train_embed_tokens:
                 print(
-                    "Unsloth: Offloading input_embeddings to disk to save VRAM"
+                    "AtomGPT: Offloading input_embeddings to disk to save VRAM"
                 )
                 offload_input_embeddings(model, temporary_location)
             pass
@@ -3007,7 +2993,7 @@ class FastLlamaModel:
 
             if train_lm_head:
                 print(
-                    "Unsloth: Offloading output_embeddings to disk to save VRAM"
+                    "AtomGPT: Offloading output_embeddings to disk to save VRAM"
                 )
                 offload_output_embeddings(model, temporary_location)
             pass
@@ -3029,7 +3015,7 @@ class FastLlamaModel:
 
         if train_embed_tokens:
             print(
-                "Unsloth: Training embed_tokens in mixed precision to save VRAM"
+                "AtomGPT: Training embed_tokens in mixed precision to save VRAM"
             )
             assert hasattr(model.get_input_embeddings(), "modules_to_save")
 
@@ -3051,7 +3037,7 @@ class FastLlamaModel:
         pass
 
         if train_lm_head:
-            print("Unsloth: Training lm_head in mixed precision to save VRAM")
+            print("AtomGPT: Training lm_head in mixed precision to save VRAM")
             assert hasattr(model.get_output_embeddings(), "modules_to_save")
 
             new_dtype = (
@@ -3130,7 +3116,7 @@ class FastLlamaModel:
         pass
         if not isinstance(model, PeftModelForCausalLM):
             raise TypeError(
-                "Unsloth: Your model needs to call `.get_peft_model` first!"
+                "AtomGPT: Your model needs to call `.get_peft_model` first!"
             )
         pass
 
@@ -3157,7 +3143,7 @@ class FastLlamaModel:
             apply_lora_mlp = apply_lora_mlp_swiglu
         else:
             raise NotImplementedError(
-                f"Unsloth: {model_type} is not yet implemented!"
+                f"AtomGPT: {model_type} is not yet implemented!"
             )
         pass
 
@@ -3192,7 +3178,7 @@ class FastLlamaModel:
             != "_fast_inner_training_loop"
         ):
             raise RuntimeError(
-                "Unsloth: Unsuccessfully patched Trainer! Please file a bug report!"
+                "AtomGPT: Unsuccessfully patched Trainer! Please file a bug report!"
             )
         pass
 
@@ -3284,7 +3270,7 @@ class FastLlamaModel:
                     n_mlp += 1
                 else:
                     logger.warning_once(
-                        "Not an error, but Unsloth cannot patch MLP layers with our manual autograd engine since either LoRA adapters\n"
+                        "Not an error, but AtomGPT cannot patch MLP layers with our manual autograd engine since either LoRA adapters\n"
                         "are not enabled or a bias term (like in Qwen) is used."
                     )
                 pass
@@ -3321,7 +3307,7 @@ class FastLlamaModel:
                         n_qkv += 1
                     else:
                         logger.warning_once(
-                            "Not an error, but Unsloth cannot patch Attention layers with our manual autograd engine since either LoRA adapters\n"
+                            "Not an error, but AtomGPT cannot patch Attention layers with our manual autograd engine since either LoRA adapters\n"
                             "are not enabled or a bias term (like in Qwen) is used."
                         )
                     pass
@@ -3342,7 +3328,7 @@ class FastLlamaModel:
                     n_o += 1
                 else:
                     logger.warning_once(
-                        "Not an error, but Unsloth cannot patch O projection layer with our manual autograd engine since either LoRA adapters\n"
+                        "Not an error, but AtomGPT cannot patch O projection layer with our manual autograd engine since either LoRA adapters\n"
                         "are not enabled or a bias term (like in Qwen) is used."
                     )
                 pass
@@ -3350,7 +3336,7 @@ class FastLlamaModel:
         pass
 
         logger.warning_once(
-            f"Unsloth {__version__} patched {len(model.model.model.layers)} layers with "
+            f"AtomGPT {__version__} patched {len(model.model.model.layers)} layers with "
             f"{n_qkv} QKV layers, {n_o} O layers and {n_mlp} MLP layers.",
         )
         patch_saving_functions(model)
@@ -3414,7 +3400,7 @@ class FastLlamaModel:
     def for_inference(model):
         if not hasattr(model, "parameters"):
             raise TypeError(
-                "Unsloth: I think you're passing a tokenizer, not the model to for_inference!"
+                "AtomGPT: I think you're passing a tokenizer, not the model to for_inference!"
             )
 
         def _for_inference(m):
@@ -3454,7 +3440,7 @@ class FastLlamaModel:
     def for_training(model, use_gradient_checkpointing=True):
         if not hasattr(model, "parameters"):
             raise TypeError(
-                "Unsloth: I think you're passing a tokenizer, not the model to for_training!"
+                "AtomGPT: I think you're passing a tokenizer, not the model to for_training!"
             )
 
         # Delete all fast inference loras

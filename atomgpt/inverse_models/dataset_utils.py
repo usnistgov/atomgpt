@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 __all__ = [
     "train_on_responses_only",
     "sft_prepare_dataset",
@@ -211,7 +195,7 @@ def train_on_responses_only(
     Trains only on responses and not on the instruction by masking out
     the labels with -100 for the instruction part.
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if tokenizer is None and trainer is not None:
         tokenizer = (
             trainer.processing_class
@@ -229,7 +213,7 @@ def train_on_responses_only(
 
         if instruction_part is None or response_part is None:
             raise ValueError(
-                "Unsloth: instruction_part and response_part must be given!"
+                "AtomGPT: instruction_part and response_part must be given!"
             )
         pass
     elif (instruction_part is not None or response_part is not None) and (
@@ -238,7 +222,7 @@ def train_on_responses_only(
     ):
 
         raise ValueError(
-            "Unsloth: Your tokenizer already has instruction and response parts set - do not give custom ones!"
+            "AtomGPT: Your tokenizer already has instruction and response parts set - do not give custom ones!"
         )
     else:
         instruction_part = tokenizer._unsloth_input_part
@@ -397,7 +381,7 @@ def train_on_responses_only(
     if hasattr(trainer, "train_dataset") and trainer.train_dataset is not None:
         if not hasattr(trainer.train_dataset, "map"):
             raise TypeError(
-                "Unsloth: train_on_responses_only does not work on lists!"
+                "AtomGPT: train_on_responses_only does not work on lists!"
             )
         if isinstance(trainer.train_dataset, IterableDataset):
             trainer.train_dataset = trainer.train_dataset.map(
@@ -417,7 +401,7 @@ def train_on_responses_only(
             for key, value in trainer.eval_dataset.items():
                 if not hasattr(value, "map"):
                     raise TypeError(
-                        "Unsloth: train_on_responses_only does not work on lists!"
+                        "AtomGPT: train_on_responses_only does not work on lists!"
                     )
                 if isinstance(trainer.eval_dataset, IterableDataset):
                     trainer.eval_dataset[key] = value.map(
@@ -434,7 +418,7 @@ def train_on_responses_only(
         else:
             if not hasattr(trainer.eval_dataset, "map"):
                 raise TypeError(
-                    "Unsloth: train_on_responses_only does not work on lists!"
+                    "AtomGPT: train_on_responses_only does not work on lists!"
                 )
             if isinstance(trainer.eval_dataset, IterableDataset):
                 trainer.eval_dataset = trainer.eval_dataset.map(
@@ -518,7 +502,7 @@ def standardize_data_formats(
             for key, value in message.items():
                 if type(value) is not str:
                     raise RuntimeError(
-                        "Unsloth: Cannot standardize non text datasets!"
+                        "AtomGPT: Cannot standardize non text datasets!"
                     )
                 uniques[key].append(value)
     pass
@@ -547,7 +531,7 @@ def standardize_data_formats(
     leftover_aliases = (all_aliases | roles) - all_aliases
     if len(leftover_aliases) != 0:
         raise TypeError(
-            f"Unsloth: {list(leftover_aliases)} are not in aliases. Please update aliases."
+            f"AtomGPT: {list(leftover_aliases)} are not in aliases. Please update aliases."
         )
     pass
 
@@ -588,7 +572,7 @@ def standardize_data_formats(
     return dataset.map(
         _standardize_dataset,
         batched=True,
-        desc="Unsloth: Standardizing formats",
+        desc="AtomGPT: Standardizing formats",
         num_proc=num_proc,
     )
 
@@ -613,7 +597,7 @@ def sft_prepare_dataset(
     formatting_func: Optional[Callable[[dict], str]],
     dataset_name: str,
 ) -> Union[Dataset, IterableDataset]:
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if isinstance(dataset, ConstantLengthDataset):
         return dataset
 
@@ -633,7 +617,7 @@ def sft_prepare_dataset(
     if max_seq_length == 0:
         max_seq_length = getattr(self, "max_seq", 0)
     if max_seq_length == 0:
-        raise RuntimeError("Unsloth: max_seq_length is 0! Please specify one!")
+        raise RuntimeError("AtomGPT: max_seq_length is 0! Please specify one!")
     dataset_text_field = getattr(args, "dataset_text_field", "text")
     do_truncation = max_seq_length != 0
     do_formatting_func = False
@@ -656,7 +640,7 @@ def sft_prepare_dataset(
         if is_vlm and not hasattr(tokenizer, "pad"):
             # Check if processing_class has a .pad, if not, use tokenizer.tokenizer
             raise RuntimeError(
-                f"Unsloth: {processing_class.__class__} does not have .pad!"
+                f"AtomGPT: {processing_class.__class__} does not have .pad!"
             )
         self.data_collator = DataCollatorForSeq2Seq(tokenizer)
         used_column_names.append("labels")
@@ -666,7 +650,7 @@ def sft_prepare_dataset(
         if is_vlm and not hasattr(tokenizer, "pad"):
             # Check if processing_class has a .pad, if not, use tokenizer.tokenizer
             raise RuntimeError(
-                f"Unsloth: {processing_class.__class__} does not have .pad!"
+                f"AtomGPT: {processing_class.__class__} does not have .pad!"
             )
         self.data_collator = DataCollatorForLanguageModeling(
             tokenizer, mlm=False
@@ -675,7 +659,7 @@ def sft_prepare_dataset(
     elif dataset_text_field not in column_names:
         do_formatting_func = True
         if formatting_func is None:
-            raise RuntimeError("Unsloth: You must specify a `formatting_func`")
+            raise RuntimeError("AtomGPT: You must specify a `formatting_func`")
     pass
 
     if do_tokenize:
@@ -684,7 +668,7 @@ def sft_prepare_dataset(
             test_text = formatting_func(next(iter(dataset)))
             if not isinstance(test_text, list):
                 raise ValueError(
-                    "Unsloth: The `formatting_func` should return a list of processed strings."
+                    "AtomGPT: The `formatting_func` should return a list of processed strings."
                 )
             test_text = test_text[0]
         else:
@@ -707,7 +691,7 @@ def sft_prepare_dataset(
             if test_text.startswith(bos_token) or bos_token in chat_template:
                 add_special_tokens = False
                 print(
-                    "Unsloth: We found double BOS tokens - we shall remove one automatically."
+                    "AtomGPT: We found double BOS tokens - we shall remove one automatically."
                 )
         pass
 
@@ -734,7 +718,7 @@ def sft_prepare_dataset(
 
         if use_desc:
             map_kwargs["desc"] = (
-                f'Unsloth: Tokenizing ["{dataset_text_field}"]'
+                f'AtomGPT: Tokenizing ["{dataset_text_field}"]'
             )
         dataset = dataset.map(_tokenize, batched=True, **map_kwargs)
 
@@ -748,7 +732,7 @@ def sft_prepare_dataset(
     pass
     if packing:
         print(
-            "Unsloth: Hugging Face's packing is currently buggy - we're disabling it for now!"
+            "AtomGPT: Hugging Face's packing is currently buggy - we're disabling it for now!"
         )
         return dataset
 
@@ -758,7 +742,7 @@ def sft_prepare_dataset(
             )
 
         if use_desc:
-            map_kwargs["desc"] = f"Unsloth: Packing {dataset_name} dataset"
+            map_kwargs["desc"] = f"AtomGPT: Packing {dataset_name} dataset"
         dataset = dataset.select_columns(used_column_names).map(
             pack_examples,
             batched=True,
@@ -772,19 +756,3 @@ def sft_prepare_dataset(
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

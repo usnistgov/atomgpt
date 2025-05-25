@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import torch
 from typing import Union, Optional, List, Any, Callable, Tuple
 from platform import system as platform_system
@@ -33,7 +19,7 @@ import torch
 
 
 def Version(version):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     try:
         return TrueVersion(version)
     except:
@@ -41,7 +27,7 @@ def Version(version):
 
         caller = getframeinfo(stack()[1][0])
         raise RuntimeError(
-            f"Unsloth: Could not get version for `{version}`\n"
+            f"AtomGPT: Could not get version for `{version}`\n"
             f"File name = [{caller.filename}] Line number = [{caller.lineno}]"
         )
     pass
@@ -103,7 +89,7 @@ def _get_dtype(dtype):
     elif dtype in __DTYPE_MAP:
         return __DTYPE_MAP[dtype]
     else:
-        print(f"Unsloth: {dtype} is not recognized, so we'll default to None")
+        print(f"AtomGPT: {dtype} is not recognized, so we'll default to None")
         return None
     pass
 

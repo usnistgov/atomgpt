@@ -1,5 +1,5 @@
 from unsloth import is_bf16_supported
-from unsloth.trainer import UnslothVisionDataCollator
+from unsloth.trainer import AtomGPTVisionDataCollator
 from atomgpt.inverse_models.vision_dataset import generate_dataset
 import torch
 import os
@@ -328,7 +328,7 @@ def run(
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
-        data_collator=UnslothVisionDataCollator(model, tokenizer),  # Must use!
+        data_collator=AtomGPTVisionDataCollator(model, tokenizer),  # Must use!
         train_dataset=train_dataset,
         args=SFTConfig(
             per_device_train_batch_size=2,  # Reduce to 1 to make Pixtral fit!

@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 __all__ = [
     "get_peft_regex",
     "merge_and_overwrite_lora",
@@ -82,14 +66,14 @@ def get_peft_regex(
     """
     Create a regex pattern to apply LoRA to only select layers of a model.
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if not finetune_vision_layers and not finetune_language_layers:
         raise RuntimeError(
-            "Unsloth: No layers to finetune - please select to finetune the vision and/or the language layers!"
+            "AtomGPT: No layers to finetune - please select to finetune the vision and/or the language layers!"
         )
     if not finetune_attention_modules and not finetune_mlp_modules:
         raise RuntimeError(
-            "Unsloth: No modules to finetune - please select to finetune the attention and/or the mlp modules!"
+            "AtomGPT: No modules to finetune - please select to finetune the attention and/or the mlp modules!"
         )
     pass
 
@@ -180,11 +164,11 @@ def get_peft_regex(
     )
     if not check and target_modules is not None:
         raise RuntimeError(
-            f"Unsloth: No layers to finetune? You most likely specified target_modules = {target_modules} incorrectly!"
+            f"AtomGPT: No layers to finetune? You most likely specified target_modules = {target_modules} incorrectly!"
         )
     elif not check:
         raise RuntimeError(
-            f"Unsloth: No layers to finetune for {model.config._name_or_path}. Please file a bug report!"
+            f"AtomGPT: No layers to finetune for {model.config._name_or_path}. Please file a bug report!"
         )
     pass
     return regex_matcher
@@ -194,7 +178,7 @@ pass
 
 
 def get_lora_layer_modules():
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     import peft.tuners.lora
 
     path = os.path.split(peft.tuners.lora.__file__)[0]
@@ -231,7 +215,7 @@ pass
 
 
 def requires_grad_for_gradient_checkpointing(model):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Enables requires_grad to make gradient checkpointing work on
     # non language models that don't just use .embed_tokens
     def register_other_hooks(name1, name2, module, _hooks):
@@ -278,7 +262,7 @@ def requires_grad_for_gradient_checkpointing(model):
                 output.loss.requires_grad_(True)
             except Exception as _:
                 raise RuntimeError(
-                    "Unsloth: Failed to make output require gradients!"
+                    "AtomGPT: Failed to make output require gradients!"
                 )
 
     pass
@@ -290,7 +274,7 @@ def requires_grad_for_gradient_checkpointing(model):
         elif type_input is tuple or type_input is list:
             if len(input) == 0:
                 raise RuntimeError(
-                    "Unsloth: Failed to make input require gradients!"
+                    "AtomGPT: Failed to make input require gradients!"
                 )
                 # print(f"  WARNING: Empty list input to {module.__class__.__name__}!") #
                 # return
@@ -298,7 +282,7 @@ def requires_grad_for_gradient_checkpointing(model):
                 input[0].requires_grad_(True)
         else:
             raise RuntimeError(
-                "Unsloth: Failed to make input require gradients!"
+                "AtomGPT: Failed to make input require gradients!"
             )
 
     pass
@@ -315,7 +299,7 @@ def requires_grad_for_gradient_checkpointing(model):
     name_components = name.split(".")
 
     if len(name_components) == 0:
-        raise RuntimeError("Unsloth: Model has 0 layers?")
+        raise RuntimeError("AtomGPT: Model has 0 layers?")
 
     final_where = None
     # Try getting previous parent module
@@ -384,7 +368,7 @@ def requires_grad_for_gradient_checkpointing(model):
             old_module = module
         module = old_module
     pass
-    print(f"Unsloth: Making `{module_name}` require gradients")
+    print(f"AtomGPT: Making `{module_name}` require gradients")
 
     still_need_patching = True
     # Check if input_embeddings exists
@@ -419,19 +403,3 @@ def requires_grad_for_gradient_checkpointing(model):
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 __version__ = "2025.5.7"
 
 __all__ = [
@@ -29,7 +15,7 @@ __all__ = [
     "platform_system",
     "patch_tokenizer",
     "get_statistics",
-    "Unsloth_Offloaded_Gradient_Checkpointer",
+    "AtomGPT_Offloaded_Gradient_Checkpointer",
     "offload_to_disk",
     "offload_input_embeddings",
     "offload_output_embeddings",
@@ -86,11 +72,11 @@ from atomgpt.inverse_models.patching_utils import (
     patch_compiled_autograd,
 )
 from atomgpt.inverse_models.gradient_checkpointing import (
-    Unsloth_Offloaded_Gradient_Checkpointer,
+    AtomGPT_Offloaded_Gradient_Checkpointer,
     unsloth_offloaded_gradient_checkpoint,
     patch_unsloth_gradient_checkpointing,
     unpatch_unsloth_gradient_checkpointing,
-    Unsloth_Gradient_Checkpointer,
+    AtomGPT_Gradient_Checkpointer,
     unsloth_gradient_checkpoint,
     patch_gradient_checkpointing,
     unpatch_gradient_checkpointing,
@@ -165,7 +151,7 @@ import torch
 
 
 def Version(version):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     try:
         return TrueVersion(version)
     except:
@@ -173,7 +159,7 @@ def Version(version):
 
         caller = getframeinfo(stack()[1][0])
         raise RuntimeError(
-            f"Unsloth: Could not get version for `{version}`\n"
+            f"AtomGPT: Could not get version for `{version}`\n"
             f"File name = [{caller.filename}] Line number = [{caller.lineno}]"
         )
     pass
@@ -463,7 +449,7 @@ pass
 #     where = source.find("raise KeyError")
 #     source = source[:where] + \
 #         f"if len(self) == 0:\n{spaces}{spaces}"\
-#         "    raise RuntimeError('Unsloth: You must call `FastLanguageModel.for_inference(model)` before doing inference for Unsloth models.')\n" + \
+#         "    raise RuntimeError('AtomGPT: You must call `FastLanguageModel.for_inference(model)` before doing inference for AtomGPT models.')\n" + \
 #         f"{spaces}{spaces}else:\n{spaces}{spaces}{spaces}" + source[where:]
 #     source = source.replace("__getitem__", "__cache_utils_getitem__", 1)
 #     exec(source)
@@ -479,7 +465,7 @@ if is_openai_available():
     try:
         from openai import OpenAI
     except:
-        print("Unsloth: OpenAI failed to import - ignoring for now.")
+        print("AtomGPT: OpenAI failed to import - ignoring for now.")
         import transformers.utils
 
         def _is_openai_available():
@@ -520,16 +506,16 @@ if major_version >= 8:
             ) >= Version("2.6.3")
             if not HAS_FLASH_ATTENTION_SOFTCAPPING:
                 print(
-                    "Unsloth: If you want to finetune Gemma 2, upgrade flash-attn to version 2.6.3 or higher!\n"
+                    "AtomGPT: If you want to finetune Gemma 2, upgrade flash-attn to version 2.6.3 or higher!\n"
                     "Newer versions support faster and less memory usage kernels for Gemma 2's attention softcapping!\n"
                     "To update flash-attn, do the below:\n"
                     '\npip install --no-deps --upgrade "flash-attn>=2.6.3"'
                 )
         except:
             print(
-                "Unsloth: Your Flash Attention 2 installation seems to be broken?\n"
+                "AtomGPT: Your Flash Attention 2 installation seems to be broken?\n"
                 "A possible explanation is you have a new CUDA version which isn't\n"
-                "yet compatible with FA2? Please file a ticket to Unsloth or FA2.\n"
+                "yet compatible with FA2? Please file a ticket to AtomGPT or FA2.\n"
                 "We shall now use Xformers instead, which does not have any performance hits!\n"
                 "We found this negligible impact by benchmarking on 1x A100."
             )
@@ -565,11 +551,11 @@ try:
     # Temporarily disable 0.0.27 and higher - inference issues
     if False:  # Version(xformers_version) >= Version("0.0.27"):
         raise ImportError(
-            "Unsloth: If you are in Colab, we updated the top cell install instructions - please change it to below "
+            "AtomGPT: If you are in Colab, we updated the top cell install instructions - please change it to below "
             "then press Disconnect Runtime and then Restart it.\n"
             "\n"
             "%%capture\n"
-            "# Installs Unsloth, Xformers (Flash Attention) and all other packages!\n"
+            "# Installs AtomGPT, Xformers (Flash Attention) and all other packages!\n"
             '!pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"\n'
             '!pip install --no-deps "xformers<=0.0.27" trl peft accelerate bitsandbytes\n'
             "\n"
@@ -582,21 +568,21 @@ try:
         xformers_version
     ) >= Version("0.0.24"):
         raise ImportError(
-            f"Unsloth: You have torch = {torch_version} but xformers = {xformers_version}.\n"
+            f"AtomGPT: You have torch = {torch_version} but xformers = {xformers_version}.\n"
             f"Please install xformers < 0.0.24 for torch = {torch_version}."
         )
     elif Version(torch_version) < Version("2.3.0") and Version(
         xformers_version
     ) >= Version("0.0.26"):
         raise ImportError(
-            f"Unsloth: You have torch = {torch_version} but xformers = {xformers_version}.\n"
+            f"AtomGPT: You have torch = {torch_version} but xformers = {xformers_version}.\n"
             f"Please install xformers < 0.0.26 for torch = {torch_version}."
         )
     elif Version(torch_version) < Version("2.4.0") and Version(
         xformers_version
     ) > Version("0.0.27"):
         raise ImportError(
-            f"Unsloth: You have torch = {torch_version} but xformers = {xformers_version}.\n"
+            f"AtomGPT: You have torch = {torch_version} but xformers = {xformers_version}.\n"
             f"Please install xformers <= 0.0.27 for torch = {torch_version}."
         )
     pass
@@ -607,7 +593,7 @@ try:
         _register_extensions()  # Check if C++ modules are loaded correctly
     except Exception as error:
         raise ImportError(
-            "Unsloth: Xformers was not installed correctly.\n"
+            "AtomGPT: Xformers was not installed correctly.\n"
             "Please install xformers separately first.\n"
             "Then confirm if it's correctly installed by running:\n"
             "python -m xformers.info\n\n"
@@ -626,14 +612,14 @@ pass
 # Check TRL version
 from trl import __version__ as trl_version
 
-# Unsloth now supports all TRL versions!
+# AtomGPT now supports all TRL versions!
 if False:  # Version(trl_version) >= Version("0.9.0"):
     raise ImportError(
-        "Unsloth: If you are in Colab, we updated the top cell install instructions - please change it to below "
+        "AtomGPT: If you are in Colab, we updated the top cell install instructions - please change it to below "
         "then press Disconnect Runtime and then Restart it.\n"
         "\n"
         "%%capture\n"
-        "# Installs Unsloth, Xformers (Flash Attention) and all other packages!\n"
+        "# Installs AtomGPT, Xformers (Flash Attention) and all other packages!\n"
         '!pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"\n'
         '!pip install --no-deps "xformers<=0.0.27" trl peft accelerate bitsandbytes\n'
         "\n"
@@ -728,7 +714,7 @@ import accelerate
 
 
 def torch_compile_kwargs(*args, **kwargs):
-    print("Unsloth: Enabled auto compiling")
+    print("AtomGPT: Enabled auto compiling")
     return {
         "dynamic": True,
         "fullgraph": False,
@@ -746,7 +732,7 @@ del accelerate
 
 def patch_regional_compilation():
     # Regional torch 2.5 Recompilation - weirdly very slow??
-    if torch.nn.ModuleList.__name__ == "UnslothModuleList":
+    if torch.nn.ModuleList.__name__ == "AtomGPTModuleList":
         return
     # Only works for torch 2.5
     if Version(torch.__version__) < Version("2.5.0"):
@@ -755,7 +741,7 @@ def patch_regional_compilation():
     old_module_list = torch.nn.ModuleList
     os.environ["UNSLOTH_PATCHED"] = "1"
 
-    def UnslothModuleList(*args, **kwargs):
+    def AtomGPTModuleList(*args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and type(args[0]) is list:
             args = [
                 old_module_list(
@@ -773,9 +759,9 @@ def patch_regional_compilation():
         return old_module_list(*args, **kwargs)
 
     pass
-    UnslothModuleList.__doc__ = old_module_list.__doc__
+    AtomGPTModuleList.__doc__ = old_module_list.__doc__
 
-    torch.nn.ModuleList = UnslothModuleList
+    torch.nn.ModuleList = AtomGPTModuleList
     return
 
 
@@ -836,7 +822,7 @@ if Version(peft_version) < Version("0.12.0"):
         LoraLayer.update_layer = LoraLayer_update_layer
     except:
         logger.warning_once(
-            "Unsloth unsuccessfully patched LoraLayer.update_layer. Please file a bug report.\n"
+            "AtomGPT unsuccessfully patched LoraLayer.update_layer. Please file a bug report.\n"
             "Luckily, your training run will still work in the meantime!"
         )
     pass
@@ -1414,7 +1400,7 @@ def _unsloth_pre_compute_loss(self, model, inputs, *args, **kwargs):
         name = inner_model.__class__.__name__
 
         logger.warning_once(
-            f"Unsloth: Not an error, but {name} does not accept `num_items_in_batch`.\n"
+            f"AtomGPT: Not an error, but {name} does not accept `num_items_in_batch`.\n"
             "Using gradient accumulation will be very slightly less accurate.\n"
             "Read more on gradient accumulation issues here: https://unsloth.ai/blog/gradient"
         )
@@ -1440,7 +1426,7 @@ def patch_gradient_accumulation_fix(Trainer):
         ):
 
             raise NotImplementedError(
-                "Unsloth: Please make a Github issue immediately!!"
+                "AtomGPT: Please make a Github issue immediately!!"
             )
         else:
             if (
@@ -1458,7 +1444,7 @@ def patch_gradient_accumulation_fix(Trainer):
         pass
     else:
         logger.warning_once(
-            "Unsloth: We fixed a gradient accumulation bug, "
+            "AtomGPT: We fixed a gradient accumulation bug, "
             "but it seems like you don't have the latest transformers version!\n"
             "Please update transformers, TRL and unsloth via:\n"
             "`pip install --upgrade --no-cache-dir --no-deps unsloth transformers git+https://github.com/huggingface/trl.git`"
@@ -1588,7 +1574,7 @@ def unsloth_compile_transformers(
     if Version(torch_version) < Version("2.4.0"):
         print(
             "=" * 30
-            + "Unsloth: Unfortunately Unsloth vision and other newer optimized models need Torch 2.4 or later.\n"
+            + "AtomGPT: Unfortunately AtomGPT vision and other newer optimized models need Torch 2.4 or later.\n"
             f"You have Torch version {torch_version}. Please upgrade your Torch version by visiting https://pytorch.org/\n"
             "For now your models will not get optimized, but will still work for now!"
         )
@@ -1596,7 +1582,7 @@ def unsloth_compile_transformers(
     pass
     if trust_remote_code and unsloth_force_compile == False:
         print(
-            "Unsloth: We can't trace models if `trust_remote_code = True`, "
+            "AtomGPT: We can't trace models if `trust_remote_code = True`, "
             "so turning off some optimizations!"
         )
         return model_types, False
@@ -1646,7 +1632,7 @@ pass
 # We need an empty logits flag to warn people logits will not be returned anymore unless asked ie
 # os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 LOGITS_ERROR_STRING = (
-    "Unsloth: Logits are empty from 2024.11 onwards. To get raw logits again, please "
+    "AtomGPT: Logits are empty from 2024.11 onwards. To get raw logits again, please "
     'set the environment variable `UNSLOTH_RETURN_LOGITS` to `"1" BEFORE starting to train ie before `trainer.train()`. For example:\n'
     "```\nimport os\n"
     "os.environ['UNSLOTH_RETURN_LOGITS'] = '1'\n"

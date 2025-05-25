@@ -1,5 +1,5 @@
 from unsloth import is_bf16_supported
-from unsloth.trainer import UnslothVisionDataCollator
+from unsloth.trainer import AtomGPTVisionDataCollator
 from atomgpt.inverse_models.vision_dataset import generate_dataset
 import torch
 import os

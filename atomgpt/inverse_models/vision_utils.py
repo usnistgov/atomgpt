@@ -1,36 +1,6 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-# Copyright 2024-present QwenLM team https://github.com/QwenLM/Qwen2-VL
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 __all__ = [
     "process_vision_info",
-    "UnslothVisionDataCollator",
+    "AtomGPTVisionDataCollator",
 ]
 
 global IMAGE_TOKENS
@@ -281,7 +251,7 @@ def _get_dtype(dtype):
     elif dtype in __DTYPE_MAP:
         return __DTYPE_MAP[dtype]
     else:
-        print(f"Unsloth: {dtype} is not recognized, so we'll default to None")
+        print(f"AtomGPT: {dtype} is not recognized, so we'll default to None")
         return None
     pass
 
@@ -294,8 +264,8 @@ LANCZOS = PIL.Image.Resampling.LANCZOS
 from .dataset_utils import train_on_responses_only as _train_on_responses_only
 
 
-class UnslothVisionDataCollator:
-    # All Unsloth Zoo code licensed under LGPLv3
+class AtomGPTVisionDataCollator:
+    # All AtomGPT Zoo code licensed under LGPLv3
     __slots__ = (
         "padding_token_ids",
         "dtype",
@@ -328,7 +298,7 @@ class UnslothVisionDataCollator:
     ):
         if not hasattr(processor, "image_processor"):
             raise TypeError(
-                "Unsloth: UnslothVisionDataCollator is only for image models!"
+                "AtomGPT: AtomGPTVisionDataCollator is only for image models!"
             )
 
         self.padding_token_ids = get_padding_tokens_ids(processor)
@@ -347,7 +317,7 @@ class UnslothVisionDataCollator:
                 self.image_size = model.config.vision_config.image_size
             except:
                 print(
-                    "Unsloth: Model does not have a default image size - using 512"
+                    "AtomGPT: Model does not have a default image size - using 512"
                 )
                 self.image_size = 512
         elif resize == "max":
@@ -360,7 +330,7 @@ class UnslothVisionDataCollator:
             self.image_size = resize
         else:
             raise TypeError(
-                "Unsloth: resize accepts 'min', 'max', a tuple of 2 numbers or 1 number\n"
+                "AtomGPT: resize accepts 'min', 'max', a tuple of 2 numbers or 1 number\n"
                 "For example (224, 224) or just 224. The default is 'min' which auto resizes images!"
             )
         pass
@@ -429,7 +399,7 @@ class UnslothVisionDataCollator:
                 )
                 self.assistant_single_content = True
                 print(
-                    f"Unsloth: {processor.__class__.__name__} only accepts 1 "
+                    f"AtomGPT: {processor.__class__.__name__} only accepts 1 "
                     "text field for assistant roles!\n"
                     "We will auto fix the data collator to support it!"
                 )
@@ -464,7 +434,7 @@ class UnslothVisionDataCollator:
                 assert type(message) is dict
                 if "role" not in message and "content" not in message:
                     raise TypeError(
-                        "Unsloth: Failed to use vision data collator!\n"
+                        "AtomGPT: Failed to use vision data collator!\n"
                         "Maybe use `standardize_data_formats` first!"
                     )
                 content = message["content"]
@@ -477,7 +447,7 @@ class UnslothVisionDataCollator:
                     assert "type" in part
                 else:
                     raise TypeError(
-                        "Unsloth: Failed to use vision data collator!\n"
+                        "AtomGPT: Failed to use vision data collator!\n"
                         "Your messages must be a like:\n"
                         "[{'role':'user', 'content':[{'type':'text', 'text':'Hello!'}]}]"
                     )

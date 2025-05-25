@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from transformers import AutoTokenizer
 from transformers.convert_slow_tokenizer import convert_slow_tokenizer
 from transformers import PreTrainedTokenizerFast
@@ -64,7 +50,7 @@ def mean_of_trained_tokens(model, eps=1e-16):
     These include <|eot_id|>, <|start_header_id|>, <|end_header_id|>
     We reset them to the mean of the rest of the tokens
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     embedding_matrix = model.get_input_embeddings().weight.clone()
     lm_head_matrix = model.get_output_embeddings().weight.clone()
 
@@ -75,7 +61,7 @@ def mean_of_trained_tokens(model, eps=1e-16):
     n_trained = embedding_matrix.shape[0] - n_untrained
     # if n_untrained != 0:
     #     print(
-    #         f"Unsloth: Not an error, but your model has {n_untrained} untrained tokens.\n"\
+    #         f"AtomGPT: Not an error, but your model has {n_untrained} untrained tokens.\n"\
     #         "We shall set them to the mean of the other trained tokens."
     #     )
     # pass
@@ -113,7 +99,7 @@ def add_new_tokens(
     Smartly resizes the tokenizer and adds new tokens to the model.
     We also disregard untrained tokens by removing them from the mean calculation.
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     assert isinstance(new_tokens, (list, tuple))
     assert len(new_tokens) > 0
     assert method == "mean" or method == "interpolation"
@@ -123,7 +109,7 @@ def add_new_tokens(
     overlapping_tokens = set(new_tokens) & set(tokenizer.vocab.keys())
     if len(overlapping_tokens) != 0:
         print(
-            f"Unsloth: You're adding new_tokens = {new_tokens}\n"
+            f"AtomGPT: You're adding new_tokens = {new_tokens}\n"
             f"There are tokens which are overlapping = {list(overlapping_tokens)}\n"
             f"We shall safely ignore these overlapping tokens."
         )
@@ -164,21 +150,21 @@ def add_new_tokens(
     # Confirm sizes are correct
     if embedding_matrix.shape[0] != (old_input_length + len(new_tokens)):
         raise RuntimeError(
-            "Unsloth: Embedding matrix size did not get resized properly. Please file a bug report!"
+            "AtomGPT: Embedding matrix size did not get resized properly. Please file a bug report!"
         )
     if lm_head_matrix.shape[0] != (old_output_length + len(new_tokens)):
         raise RuntimeError(
-            "Unsloth: LM Head matrix size did not get resized properly. Please file a bug report!"
+            "AtomGPT: LM Head matrix size did not get resized properly. Please file a bug report!"
         )
     if model.config.vocab_size != (old_config_size + len(new_tokens)):
         raise RuntimeError(
-            "Unsloth: Model's config vocab_size did not get resized properly. Please file a bug report!"
+            "AtomGPT: Model's config vocab_size did not get resized properly. Please file a bug report!"
         )
     pass
 
     if method == "interpolation":
         print(
-            "Unsloth: You are using interpolation to add new tokens.\n"
+            "AtomGPT: You are using interpolation to add new tokens.\n"
             f"We shall set new tokens = mean(embeddings)*{1-interpolation} + mean(new_tokens)*{interpolation}"
         )
         for j, token in enumerate(new_tokens):
@@ -256,7 +242,7 @@ def fix_untrained_tokens(
     We reset them to the mean of the rest of the tokens
     """
     print("tokenizer here", tokenizer)
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     embedding_matrix = model.get_input_embeddings().weight
     lm_head_matrix = model.get_output_embeddings().weight
     chat_template = getattr(tokenizer, "chat_template", None)
@@ -469,7 +455,7 @@ def fix_untrained_tokens(
         token_ids = list(set(final_bad_items))
         tokens = tokenizer.decode(token_ids)
         raise ValueError(
-            f"Unsloth: Untrained tokens in rows [{list(set(which_locations))}] found.\n"
+            f"AtomGPT: Untrained tokens in rows [{list(set(which_locations))}] found.\n"
             f"The token ids are [{token_ids}] and tokens are [{tokens}].\n"
             f"The issue is the embed_tokens & lm_head not trainable, which will cause NaNs. "
             "Restart then add `embed_tokens` & `lm_head` to "
@@ -536,7 +522,7 @@ def fix_untrained_tokens(
 
     # Set them to the mean
     print(
-        "Unsloth: Setting embed_tokens & lm_head untrained tokens to "
+        "AtomGPT: Setting embed_tokens & lm_head untrained tokens to "
         "mean(trained) to counteract NaNs during training."
     )
     embedding_matrix[where_untrained] = mean_embedding.to(
@@ -579,7 +565,7 @@ def patch_tokenizer(model, tokenizer):
     Check if pad_token is not the same as eos_token otherwise the loss will ignore it!!
     Fixes https://github.com/unslothai/unsloth/issues/5
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     joiner = "\1\0=+=\0\1"
     number_repetitions = 3 - 1  # Number of reserved tokens needed
 
@@ -717,21 +703,6 @@ def patch_tokenizer(model, tokenizer):
 
 pass
 
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 IGNORED_TOKENIZER_CHECKING = frozenset(
     (
         "CodeLlamaTokenizerFast",
@@ -1197,7 +1168,7 @@ def fix_sentencepiece_gguf(saved_location):
 
     # Edit sentence piece tokens with added_tokens_json
     logger.warning(
-        f"Unsloth: Extending {saved_location}/tokenizer.model with added_tokens.json.\n"
+        f"AtomGPT: Extending {saved_location}/tokenizer.model with added_tokens.json.\n"
         f"Originally tokenizer.model is of size ({sentence_piece_size}).\n"
         f"But we need to extend to sentencepiece vocab size ({new_size})."
     )
@@ -1261,7 +1232,7 @@ def _load_correct_tokenizer(
     except:
         slow_tokenizer = None
         # print(
-        #     f"Unsloth: {tokenizer_name} has no tokenizer.model file.\n"\
+        #     f"AtomGPT: {tokenizer_name} has no tokenizer.model file.\n"\
         #     "Just informing you about this - this is not a critical error."
         # )
     pass
@@ -1301,7 +1272,7 @@ def _load_correct_tokenizer(
             return fast_tokenizer
         else:
             logger.warning(
-                f"Unsloth: Will load {tokenizer_name} as a legacy tokenizer."
+                f"AtomGPT: Will load {tokenizer_name} as a legacy tokenizer."
             )
             return convert_to_fast_tokenizer(slow_tokenizer)
         pass
@@ -1354,7 +1325,7 @@ def load_correct_tokenizer(
         chat_template = fix_chat_template(tokenizer)
         if old_chat_template is not None and chat_template is None:
             raise RuntimeError(
-                "Unsloth: Fixing chat template failed - please file a report immediately!"
+                "AtomGPT: Fixing chat template failed - please file a report immediately!"
             )
         pass
     pass
@@ -1481,20 +1452,20 @@ def fix_chat_template(tokenizer):
                 and "{%- if add_generation_prompt %}" not in new_chat_template
             ):
                 raise RuntimeError(
-                    f"Unsloth: The tokenizer `{tokenizer.name_or_path}`\n"
+                    f"AtomGPT: The tokenizer `{tokenizer.name_or_path}`\n"
                     "does not have a {% if add_generation_prompt %} for generation purposes.\n"
                     f"Please file a bug report to the maintainers of `{tokenizer.name_or_path}` - thanks!"
                 )
             else:
                 logger.warning_once(
-                    "Unsloth: We successfully patched the tokenizer to add a {% if add_generation_prompt %} to the chat_template.\n"
+                    "AtomGPT: We successfully patched the tokenizer to add a {% if add_generation_prompt %} to the chat_template.\n"
                     f"This is not a bug, but please notify the maintainers of `{tokenizer.name_or_path}` - thanks!"
                 )
                 chat_template = new_chat_template
             pass
         else:
             raise RuntimeError(
-                f"Unsloth: The tokenizer `{tokenizer.name_or_path}`\n"
+                f"AtomGPT: The tokenizer `{tokenizer.name_or_path}`\n"
                 "has a {% if add_generation_prompt %} for generation purposes, but wasn't provided correctly.\n"
                 "Please file a bug report immediately - thanks!"
             )
@@ -1616,7 +1587,7 @@ def check_tokenizer(
                         < max_embedding_size
                     ):
                         logger.warning_once(
-                            f"Unsloth loaded a broken tokenizer `{model_name}`, but managed to repair it!\n"
+                            f"AtomGPT loaded a broken tokenizer `{model_name}`, but managed to repair it!\n"
                             f"Tokens {bad_tokens} with ids {bad_indices} exceeds the max vocab size of {max_embedding_size}.\n"
                             "We removed these bad tokens. If you think this is incorrect, fix your tokenizer first."
                         )
@@ -1626,7 +1597,7 @@ def check_tokenizer(
 
                 # :( Failure
                 raise RuntimeError(
-                    f"Unsloth tried to load `{model_name}`, but cannot succeed.\n"
+                    f"AtomGPT tried to load `{model_name}`, but cannot succeed.\n"
                     f"Tokens {bad_tokens} with ids {bad_indices} exceeds the max vocab size of {max_embedding_size}.\n"
                     f"Fix your tokenizer since it'll perform out of bounds memory accesses."
                 )
@@ -1666,7 +1637,7 @@ def check_tokenizer(
                 # Tokenizer has out of bounds issues and we can't
                 # load the slow tokenizer version :(
                 logger.warning_once(
-                    "Unsloth: Tokenizer is most likely buggy, and Unsloth failed to repair it.\n"
+                    "AtomGPT: Tokenizer is most likely buggy, and AtomGPT failed to repair it.\n"
                     "It will still work, but beware of out of bounds memory accesses.\n"
                     "Please file an issue on the model owner's repo about this issue."
                 )
@@ -1761,9 +1732,9 @@ def patch_sft_trainer_tokenizer():
         check_text = (
             "\n"
             "if 'tokenizer'          not in locals(): tokenizer = processing_class\n"
-            "if 'formatting_func'    not in locals(): raise RuntimeError('Unsloth: Please file a bug report - `formatting_func` does not exist!')\n"
+            "if 'formatting_func'    not in locals(): raise RuntimeError('AtomGPT: Please file a bug report - `formatting_func` does not exist!')\n"
             "if 'dataset_text_field' not in locals() and 'args' in locals(): dataset_text_field = args.dataset_text_field\n"
-            "if 'dataset_text_field' not in locals(): raise RuntimeError('Unsloth: Please file a bug report - `dataset_text_field` does not exist!')\n"
+            "if 'dataset_text_field' not in locals(): raise RuntimeError('AtomGPT: Please file a bug report - `dataset_text_field` does not exist!')\n"
             "test_text = dataset[0][dataset_text_field] if (formatting_func is None and dataset_text_field is not None) else formatting_func(dataset[0])[0]\n"
             "chat_template = getattr(tokenizer, 'chat_template', None)\n"
             "chat_template = '' if chat_template is None else chat_template\n"
@@ -1833,9 +1804,9 @@ def patch_sft_trainer_tokenizer():
             "    a = np.array([int(x.decode('utf-8'))/1024 for x in a])\n"
             "except:\n"
             "    if not torch.cuda.is_available():\n"
-            "        raise RuntimeError('Unsloth: We do not support AMD / Intel machines yet - it is a work in progress!')\n"
+            "        raise RuntimeError('AtomGPT: We do not support AMD / Intel machines yet - it is a work in progress!')\n"
             "if ((a - PRE_CHECK) >= 1).sum() > 1:\n"
-            "    raise RuntimeError('Unsloth currently does not support multi GPU setups - but we are working on it!')\n"
+            "    raise RuntimeError('AtomGPT currently does not support multi GPU setups - but we are working on it!')\n"
             "for _ in range(3):\n"
             "    gc.collect()\n"
             "    torch.cuda.empty_cache()\n"
@@ -1855,7 +1826,7 @@ def patch_sft_trainer_tokenizer():
             "        from transformers import __version__ as transformers_version\n"
             "        from packaging.version import Version\n"
             "        if Version(transformers_version) <= Version('4.45.2'):\n"
-            "            print('**** Unsloth: Please use our fixed gradient_accumulation_steps by updating transformers, TRL and Unsloth!\\n'\\\n"
+            "            print('**** AtomGPT: Please use our fixed gradient_accumulation_steps by updating transformers, TRL and AtomGPT!\\n'\\\n"
             "                  '`pip install --upgrade --no-cache-dir --no-deps unsloth transformers git+https://github.com/huggingface/trl.git`')\n"
             "except:\n"
             "    pass\n"

@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from atomgpt.inverse_models._utils import (
     is_bfloat16_supported,
     is_vLLM_available,
@@ -143,7 +129,7 @@ class FastLanguageModel(FastLlamaModel):
         if fast_inference:
             if importlib.util.find_spec("vllm") is None:
                 raise ImportError(
-                    "Unsloth: Please install vLLM before enabling `fast_inference`!\n"
+                    "AtomGPT: Please install vLLM before enabling `fast_inference`!\n"
                     "You can do this in a terminal via `pip install vllm`"
                 )
             pass
@@ -230,7 +216,7 @@ class FastLanguageModel(FastLlamaModel):
         # Error out if both LoRA and normal model config exists.
         if both_exist:
             raise RuntimeError(
-                "Unsloth: Your repo has a LoRA adapter and a base model.\n"
+                "AtomGPT: Your repo has a LoRA adapter and a base model.\n"
                 "You have 2 files `config.json` and `adapter_config.json`.\n"
                 "We must only allow one config file.\n"
                 "Please separate the LoRA and base models to 2 repos."
@@ -241,14 +227,14 @@ class FastLanguageModel(FastLlamaModel):
             # Old transformers version
             if "rope_scaling" in error.lower() and not SUPPORTS_LLAMA31:
                 raise ImportError(
-                    f"Unsloth: Your transformers version of {transformers_version} does not support new RoPE scaling methods.\n"
+                    f"AtomGPT: Your transformers version of {transformers_version} does not support new RoPE scaling methods.\n"
                     f"This includes Llama 3.1. The minimum required version is 4.43.2\n"
                     f'Try `pip install --upgrade "transformers>=4.43.2"`\n'
                     f"to obtain the latest transformers build, then restart this session."
                 )
             # Create a combined error message showing both failures
             combined_error = (
-                "Unsloth: Failed to load model. Both AutoConfig and PeftConfig loading failed.\n\n"
+                "AtomGPT: Failed to load model. Both AutoConfig and PeftConfig loading failed.\n\n"
                 f"AutoConfig error: {autoconfig_error}\n\n"
                 f"PeftConfig error: {peft_error}\n\n"
             )
@@ -289,7 +275,7 @@ class FastLanguageModel(FastLlamaModel):
 
             if scaling_type == "llama3" and not SUPPORTS_LLAMA31:
                 raise ImportError(
-                    f"Unsloth: Your transformers version of {transformers_version} does not support Llama 3.1.\n"
+                    f"AtomGPT: Your transformers version of {transformers_version} does not support Llama 3.1.\n"
                     f"The minimum required version is 4.43.2\n"
                     f'Try `pip install --upgrade "transformers>=4.43.2"`\n'
                     f"to obtain the latest transformers build, then restart this session."
@@ -302,7 +288,7 @@ class FastLanguageModel(FastLlamaModel):
         elif model_type == "gemma":
             if not SUPPORTS_GEMMA:
                 raise ImportError(
-                    f"Unsloth: Your transformers version of {transformers_version} does not support Gemma.\n"
+                    f"AtomGPT: Your transformers version of {transformers_version} does not support Gemma.\n"
                     f"The minimum required version is 4.38.\n"
                     f'Try `pip install --upgrade "transformers>=4.38"`\n'
                     f"to obtain the latest transformers build, then restart this session."
@@ -311,7 +297,7 @@ class FastLanguageModel(FastLlamaModel):
         elif model_type == "gemma2":
             if not SUPPORTS_GEMMA2:
                 raise ImportError(
-                    f"Unsloth: Your transformers version of {transformers_version} does not support Gemma2.\n"
+                    f"AtomGPT: Your transformers version of {transformers_version} does not support Gemma2.\n"
                     f"The minimum required version is 4.42.3.\n"
                     f'Try `pip install --upgrade "transformers>=4.42.3"`\n'
                     f"to obtain the latest transformers build, then restart this session."
@@ -319,13 +305,13 @@ class FastLanguageModel(FastLlamaModel):
             # Also check for softcapping support in flash-attn which is faster!
             if is_bfloat16_supported() and not HAS_FLASH_ATTENTION:
                 print(
-                    "Unsloth: If you want to finetune Gemma 2, install flash-attn to make it faster!\n"
+                    "AtomGPT: If you want to finetune Gemma 2, install flash-attn to make it faster!\n"
                     "To install flash-attn, do the below:\n"
                     '\npip install --no-deps --upgrade "flash-attn>=2.6.3"'
                 )
             elif HAS_FLASH_ATTENTION and not HAS_FLASH_ATTENTION_SOFTCAPPING:
                 print(
-                    "Unsloth: If you want to finetune Gemma 2, upgrade flash-attn to version 2.6.3 or higher!\n"
+                    "AtomGPT: If you want to finetune Gemma 2, upgrade flash-attn to version 2.6.3 or higher!\n"
                     "Newer versions support faster and less memory usage kernels for Gemma 2's attention softcapping!\n"
                     "To update flash-attn, do the below:\n"
                     '\npip install --no-deps --upgrade "flash-attn>=2.6.3"'
@@ -337,7 +323,7 @@ class FastLanguageModel(FastLlamaModel):
         elif model_type == "qwen3":  # or model_type == "qwen3_moe":
             if not SUPPORTS_QWEN3 or not SUPPORTS_QWEN3_MOE:
                 raise ImportError(
-                    f"Unsloth: Your transformers version of {transformers_version} does not support Qwen3.\n"
+                    f"AtomGPT: Your transformers version of {transformers_version} does not support Qwen3.\n"
                     f"The minimum required version is 4.50.3.\n"
                     f'Try `pip install --upgrade "transformers>=4.50.3"`\n'
                     f"to obtain the latest transformers build, then restart this session."
@@ -394,7 +380,7 @@ class FastLanguageModel(FastLlamaModel):
         if fast_inference:
             if not is_vLLM_available():
                 print(
-                    "Unsloth: vLLM is not installed! Will use Unsloth inference!"
+                    "AtomGPT: vLLM is not installed! Will use AtomGPT inference!"
                 )
                 fast_inference = False
             pass
@@ -408,7 +394,7 @@ class FastLanguageModel(FastLlamaModel):
                 if not vllm_dynamic_quant_supported(model_name, model_config):
                     # Instead use -bnb-4bit variant
                     print(
-                        f"Unsloth: Switching from Unsloth dynamic quant to normal quant since\n"
+                        f"AtomGPT: Switching from AtomGPT dynamic quant to normal quant since\n"
                         f"we do not yet support fast inference for {model_name}"
                     )
                     model_name = (
@@ -577,7 +563,7 @@ class FastModel(FastBaseModel):
 
         if full_finetuning and (load_in_4bit or load_in_8bit):
             print(
-                "Unsloth: You selected full finetuning support, but 4bit / 8bit is enabled - disabling LoRA / QLoRA."
+                "AtomGPT: You selected full finetuning support, but 4bit / 8bit is enabled - disabling LoRA / QLoRA."
             )
             load_in_4bit = False
             load_in_8bit = False
@@ -585,7 +571,7 @@ class FastModel(FastBaseModel):
 
         if load_in_4bit and load_in_8bit:
             raise RuntimeError(
-                "Unsloth: Can only load in 4bit or 8bit, not both!\n"
+                "AtomGPT: Can only load in 4bit or 8bit, not both!\n"
                 "Also, we by default set `load_in_4bit = True`.\n"
                 "If you want 8bit finetuning, set both `load_in_4bit = False` and `load_in_8bit = True`"
             )
@@ -603,7 +589,7 @@ class FastModel(FastBaseModel):
             "4.49.0"
         ):
             raise RuntimeError(
-                "Unsloth: Pixtral only works on transformers >= 4.49.0."
+                "AtomGPT: Pixtral only works on transformers >= 4.49.0."
                 + LATEST
             )
         elif (
@@ -611,7 +597,7 @@ class FastModel(FastBaseModel):
             and transformers_version < Version("4.49.0")
         ):
             raise RuntimeError(
-                "Unsloth: Qwen 2.5 only works on transformers >= 4.49.0."
+                "AtomGPT: Qwen 2.5 only works on transformers >= 4.49.0."
                 + LATEST
             )
         elif (
@@ -619,7 +605,7 @@ class FastModel(FastBaseModel):
             and transformers_version < Version("4.50.0.dev0")
         ):
             raise RuntimeError(
-                "Unsloth: Gemma 3 only works on transformers >= 4.50.0."
+                "AtomGPT: Gemma 3 only works on transformers >= 4.50.0."
                 + NIGHTLY
             )
         elif (
@@ -627,7 +613,7 @@ class FastModel(FastBaseModel):
             and transformers_version < Version("4.50.0.dev0")
         ):
             raise RuntimeError(
-                "Unsloth: Cohere's Command model only works on transformers >= 4.50.0."
+                "AtomGPT: Cohere's Command model only works on transformers >= 4.50.0."
                 + NIGHTLY
             )
         elif "csm-1b" in lowered_model_name:
@@ -641,7 +627,7 @@ class FastModel(FastBaseModel):
             "4.50.0.dev0"
         ):
             raise RuntimeError(
-                "Unsloth: OLMo-2 only works on transformers >= 4.50.0."
+                "AtomGPT: OLMo-2 only works on transformers >= 4.50.0."
                 + NIGHTLY
             )
         else:
@@ -651,7 +637,7 @@ class FastModel(FastBaseModel):
                     os.environ["UNSLOTH_DISABLE_STATIC_GENERATION"] = "1"
                     if transformers_version < Version("4.50.0.dev0"):
                         raise RuntimeError(
-                            f"Unsloth: {check_model_name} only works on transformers >= 4.50.0."
+                            f"AtomGPT: {check_model_name} only works on transformers >= 4.50.0."
                             + NIGHTLY
                         )
                     break
@@ -738,7 +724,7 @@ class FastModel(FastBaseModel):
         # Error out if both LoRA and normal model config exists.
         if both_exist:
             raise RuntimeError(
-                "Unsloth: Your repo has a LoRA adapter and a base model.\n"
+                "AtomGPT: Your repo has a LoRA adapter and a base model.\n"
                 "You have 2 files `config.json` and `adapter_config.json`.\n"
                 "We must only allow one config file.\n"
                 "Please separate the LoRA and base models to 2 repos."
@@ -749,14 +735,14 @@ class FastModel(FastBaseModel):
             # Old transformers version
             if "rope_scaling" in error.lower() and not SUPPORTS_LLAMA31:
                 raise ImportError(
-                    f"Unsloth: Your transformers version of {transformers_version} does not support new RoPE scaling methods.\n"
+                    f"AtomGPT: Your transformers version of {transformers_version} does not support new RoPE scaling methods.\n"
                     f"This includes Llama 3.1. The minimum required version is 4.43.2\n"
                     f'Try `pip install --upgrade "transformers>=4.43.2"`\n'
                     f"to obtain the latest transformers build, then restart this session."
                 )
             # Create a combined error message showing both failures
             combined_error = (
-                "Unsloth: Failed to load model. Both AutoConfig and PeftConfig loading failed.\n\n"
+                "AtomGPT: Failed to load model. Both AutoConfig and PeftConfig loading failed.\n\n"
                 f"AutoConfig error: {autoconfig_error}\n\n"
                 f"PeftConfig error: {peft_error}\n\n"
             )

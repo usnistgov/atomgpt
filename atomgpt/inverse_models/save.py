@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from bitsandbytes.nn import Linear4bit as Bnb_Linear4bit
 from peft.tuners.lora import Linear4bit as Peft_Linear4bit
 from peft.tuners.lora import Linear as Peft_Linear
@@ -139,7 +125,7 @@ def _free_cached_model(model):
             )
 
             logger.warning_once(
-                "Unsloth: Will remove a cached repo with size "
+                "AtomGPT: Will remove a cached repo with size "
                 + delete_strategy.expected_freed_size_str,
             )
 
@@ -177,7 +163,7 @@ def _merge_lora(layer, name):
             maximum_element = torch.max(W.min().abs(), W.max())
             if not torch.isfinite(maximum_element).item():
                 raise ValueError(
-                    f"Unsloth: Merge failed.\n{name} has some elements = infinity."
+                    f"AtomGPT: Merge failed.\n{name} has some elements = infinity."
                 )
         pass
         W = W.t().to(dtype)
@@ -191,7 +177,7 @@ pass
 
 def fast_save_pickle(shard, name):
     # Use this if # CPUs is <= 2
-    print(f"Unsloth: Saving {name}...")
+    print(f"AtomGPT: Saving {name}...")
     torch.save(
         shard,
         name,
@@ -222,11 +208,11 @@ def unsloth_save_model(
     save_peft_format: bool = True,
     # Push to hub
     use_temp_dir: Optional[bool] = None,
-    commit_message: Optional[str] = "Trained with Unsloth",
+    commit_message: Optional[str] = "Trained with AtomGPT",
     private: Optional[bool] = None,
     create_pr: bool = False,
     revision: str = None,
-    commit_description: str = "Upload model trained with Unsloth 2x faster",
+    commit_description: str = "Upload model trained with AtomGPT 2x faster",
     tags: List[str] = None,
     # Our functions
     temporary_location: str = "_unsloth_temporary_saved_buffers",
@@ -240,19 +226,19 @@ def unsloth_save_model(
 
     if commit_message is None:
         commit_message = ""
-    if "Unsloth" not in commit_message:
-        commit_message += " (Trained with Unsloth)"
+    if "AtomGPT" not in commit_message:
+        commit_message += " (Trained with AtomGPT)"
     commit_message = commit_message.lstrip()
 
     if commit_description is None:
-        commit_description = "Upload model trained with Unsloth 2x faster"
-    elif "Unsloth 2x faster" not in commit_description:
-        commit_description += " (Trained with Unsloth 2x faster)"
+        commit_description = "Upload model trained with AtomGPT 2x faster"
+    elif "AtomGPT 2x faster" not in commit_description:
+        commit_description += " (Trained with AtomGPT 2x faster)"
     pass
 
     if save_method == "merged_4bit":
         raise RuntimeError(
-            "Unsloth: Merging into 4bit will cause your model to lose accuracy if you plan\n"
+            "AtomGPT: Merging into 4bit will cause your model to lose accuracy if you plan\n"
             "to merge to GGUF or others later on. I suggest you to do this as a final step\n"
             "if you're planning to do multiple saves.\n"
             "If you are certain, change `save_method` to `merged_4bit_forced`."
@@ -280,7 +266,7 @@ def unsloth_save_model(
             username = whoami(token=token)["name"]
         except:
             raise RuntimeError(
-                "Unsloth: Please supply a token!\n"
+                "AtomGPT: Please supply a token!\n"
                 "Go to https://huggingface.co/settings/tokens"
             )
         pass
@@ -301,7 +287,7 @@ def unsloth_save_model(
         and save_method != "merged_4bit"
     ):
         raise RuntimeError(
-            "Unsloth: You must select one of 3 options when saving models:\n"
+            "AtomGPT: You must select one of 3 options when saving models:\n"
             '"lora"         ==> This is the fastest and easiet. Just saves LoRA modules.\n'
             '"merged_16bit" ==> This merges LoRA weights and saves to float16. Needed for llama.cpp / GGUF.\n'
             '"merged_4bit"  ==> This merges LoRA weights and saves to 4bit. Useful for DPO / inference.'
@@ -310,7 +296,7 @@ def unsloth_save_model(
 
     if save_method == "merged_4bit":
 
-        print("Unsloth: Merging 4bit and LoRA weights to 4bit...")
+        print("AtomGPT: Merging 4bit and LoRA weights to 4bit...")
         print("This might take 5 minutes...")
 
         # Counteract no LoRA adapters!
@@ -337,15 +323,15 @@ def unsloth_save_model(
     ) and push_to_hub:
         if token is None:
             raise RuntimeError(
-                "Unsloth: Pushing to HF requires a token. Pass `token = 'hf_....'`\n"
+                "AtomGPT: Pushing to HF requires a token. Pass `token = 'hf_....'`\n"
                 "Go to https://huggingface.co/settings/tokens."
             )
         pass
 
         if save_method == "lora":
-            print("Unsloth: Saving LoRA adapters. Please wait...")
+            print("AtomGPT: Saving LoRA adapters. Please wait...")
         elif save_method == "merged_4bit":
-            print("Unsloth: Saving 4bit Bitsandbytes model. Please wait...")
+            print("AtomGPT: Saving 4bit Bitsandbytes model. Please wait...")
         pass
 
         # Update model tag
@@ -480,7 +466,7 @@ def unsloth_save_model(
         pass
 
         if tokenizer is not None:
-            print("Unsloth: Saving tokenizer...", end="")
+            print("AtomGPT: Saving tokenizer...", end="")
 
             # Set padding side to left for inference
             old_padding_side = tokenizer.padding_side
@@ -495,7 +481,7 @@ def unsloth_save_model(
         else:
             print()
 
-        print("Unsloth: Saving model...", end="")
+        print("AtomGPT: Saving model...", end="")
         if save_method != "lora":
             print(" This might take 10 minutes for Llama-7b...", end="")
 
@@ -521,7 +507,7 @@ def unsloth_save_model(
         new_save_directory = save_directory[save_directory.find("/") + 1 :]
 
         logger.warning_once(
-            f"Unsloth: You are pushing to hub, but you passed your HF username = {username}.\n"
+            f"AtomGPT: You are pushing to hub, but you passed your HF username = {username}.\n"
             f"We shall truncate {save_directory} to {new_save_directory}"
         )
 
@@ -530,7 +516,7 @@ def unsloth_save_model(
         save_directory = new_save_directory
     pass
 
-    print("Unsloth: Merging 4bit and LoRA weights to 16bit...")
+    print("AtomGPT: Merging 4bit and LoRA weights to 16bit...")
 
     # Determine max RAM usage minus sharding
     max_ram = psutil.virtual_memory().available
@@ -563,7 +549,7 @@ def unsloth_save_model(
 
     elif safe_serialization and (n_cpus <= 2):
         logger.warning_once(
-            f"Unsloth: You have {n_cpus} CPUs. Using `safe_serialization` is 10x slower.\n"
+            f"AtomGPT: You have {n_cpus} CPUs. Using `safe_serialization` is 10x slower.\n"
             f"We shall switch to Pytorch saving, which will take 3 minutes and not 30 minutes.\n"
             f"To force `safe_serialization`, set it to `None` instead.",
         )
@@ -582,7 +568,7 @@ def unsloth_save_model(
 
     max_ram = int(max(0, max_ram) * maximum_memory_usage)
     print(
-        f"Unsloth: Will use up to "
+        f"AtomGPT: Will use up to "
         f"{round(max_ram/1024/1024/1024, 2)} out of "
         f"{round(psutil.virtual_memory().total/1024/1024/1024, 2)} RAM for saving."
     )
@@ -596,7 +582,7 @@ def unsloth_save_model(
     if IS_KAGGLE_ENVIRONMENT or IS_COLAB_ENVIRONMENT:
         # We free up 4GB of space
         logger.warning_once(
-            "Unsloth: Kaggle/Colab has limited disk space. We need to delete the downloaded\n"
+            "AtomGPT: Kaggle/Colab has limited disk space. We need to delete the downloaded\n"
             "model which will save 4-16GB of disk space, allowing you to save on Kaggle/Colab."
         )
         _free_cached_model(internal_model)
@@ -681,7 +667,7 @@ def unsloth_save_model(
             state_dict[key] = value = value.data
         if type(value) is not torch.Tensor:
             logger.warning_once(
-                f"Unsloth: {key} is not a Tensor but a {type(value)}."
+                f"AtomGPT: {key} is not a Tensor but a {type(value)}."
             )
         pass
     pass
@@ -754,7 +740,7 @@ def unsloth_save_model(
         username != actual_username
     ):
         print(
-            f"Unsloth: Saving to organization with address {new_save_directory}"
+            f"AtomGPT: Saving to organization with address {new_save_directory}"
         )
         # We upload everything at the end!
         tokenizer_save_settings["push_to_hub"] = False
@@ -763,7 +749,7 @@ def unsloth_save_model(
 
     # Save tokenizer
     if tokenizer is not None:
-        print("Unsloth: Saving tokenizer...", end="")
+        print("AtomGPT: Saving tokenizer...", end="")
 
         # Set padding side to left for inference
         old_padding_side = tokenizer.padding_side
@@ -779,7 +765,7 @@ def unsloth_save_model(
         print()
     pass
 
-    print("Unsloth: Saving model... This might take 5 minutes for Llama-7b...")
+    print("AtomGPT: Saving model... This might take 5 minutes for Llama-7b...")
 
     # Since merged, edit quantization_config
     old_config = model.config
@@ -800,7 +786,7 @@ def unsloth_save_model(
         username != actual_username
     ):
         print(
-            f"Unsloth: Saving to organization with address {new_save_directory}"
+            f"AtomGPT: Saving to organization with address {new_save_directory}"
         )
         # Pushing to organization!
         # Sadly .save_pretrained doesn't work :(
@@ -816,13 +802,13 @@ def unsloth_save_model(
 
         hf_api = HfApi(token=save_pretrained_settings["token"])
 
-        print("Unsloth: Uploading all files... Please wait...")
+        print("AtomGPT: Uploading all files... Please wait...")
         hf_api.upload_folder(
             folder_path=new_save_directory,
             path_in_repo=".",
             repo_id=new_save_directory,
             repo_type="model",
-            commit_message="(Trained with Unsloth)",
+            commit_message="(Trained with AtomGPT)",
             ignore_patterns="*.md",
         )
     else:
@@ -942,7 +928,7 @@ def install_llama_cpp_old(version=-10):
     if os.path.exists("llama.cpp"):
         print(
             "**[WARNING]** You have a llama.cpp old directory which is broken.\n"
-            "Unsloth will DELETE the broken directory and install a new one.\n"
+            "AtomGPT will DELETE the broken directory and install a new one.\n"
             "Press CTRL + C / cancel this if this is wrong. We shall wait 10 seconds.\n"
         )
         import time
@@ -982,8 +968,8 @@ def install_llama_cpp_old(version=-10):
     # Check if successful
     if not os.path.exists("llama.cpp/quantize"):
         raise RuntimeError(
-            "Unsloth: llama.cpp GGUF seems to be too buggy to install.\n"
-            "File a report to llama.cpp's main repo since this is not an Unsloth issue."
+            "AtomGPT: llama.cpp GGUF seems to be too buggy to install.\n"
+            "File a report to llama.cpp's main repo since this is not an AtomGPT issue."
         )
     pass
 
@@ -1089,13 +1075,13 @@ def save_to_gguf(
 ):
     # logger.warning(
     #     "NOTICE: llama.cpp GGUF conversion is currently unstable, since llama.cpp is\n"\
-    #     "undergoing some major bug fixes as at 5th of May 2024. This is not an Unsloth issue.\n"\
+    #     "undergoing some major bug fixes as at 5th of May 2024. This is not an AtomGPT issue.\n"\
     #     "Please be patient - GGUF saving should still work, but might not work as well."
     # )
 
     if quantization_method.startswith("iq2"):
         raise RuntimeError(
-            "Unsloth: Currently iq2 type quantizations aren't supported yet - sorry!"
+            "AtomGPT: Currently iq2 type quantizations aren't supported yet - sorry!"
         )
 
     # Careful convert.py is only for Llama / Mistral based archs
@@ -1108,7 +1094,7 @@ def save_to_gguf(
         use_fast_convert = True
     pass
     logger.warning_once(
-        f"Unsloth: Converting {model_type} model. Can use fast conversion = {use_fast_convert}."
+        f"AtomGPT: Converting {model_type} model. Can use fast conversion = {use_fast_convert}."
     )
 
     if quantization_method == "not_quantized":
@@ -1122,7 +1108,7 @@ def save_to_gguf(
     pass
 
     if quantization_method not in ALLOWED_QUANTS.keys():
-        error = f"Unsloth: Quant method = [{quantization_method}] not supported. Choose from below:\n"
+        error = f"AtomGPT: Quant method = [{quantization_method}] not supported. Choose from below:\n"
         for key, value in ALLOWED_QUANTS.items():
             error += f"[{key}] => {value}\n"
         raise RuntimeError(error)
@@ -1146,11 +1132,11 @@ def save_to_gguf(
         pass
     else:
         raise RuntimeError(
-            f"Unsloth: `first_conversion` can only be one of ['f16', 'f32', 'q8_0'] and not `{first_conversion}`."
+            f"AtomGPT: `first_conversion` can only be one of ['f16', 'f32', 'q8_0'] and not `{first_conversion}`."
         )
     pass
 
-    print("Unsloth: [0] Installing llama.cpp. This will take 3 minutes...")
+    print("AtomGPT: [0] Installing llama.cpp. This will take 3 minutes...")
     if _run_installer is not None:
         error = _run_installer.wait()
     else:
@@ -1159,7 +1145,7 @@ def save_to_gguf(
     pass
     # Check if successful. If not install 10th latest release
     if error != 0 or not os.path.exists("llama.cpp/quantize"):
-        print(f"Unsloth: llama.cpp error code = {error}.")
+        print(f"AtomGPT: llama.cpp error code = {error}.")
         install_llama_cpp_old(-10)
     pass
 
@@ -1177,7 +1163,7 @@ def save_to_gguf(
             pass
         elif first_conversion == "q8_0":
             logger.warning_once(
-                "Unsloth: Using q8_0 for the `first_conversion` will lose a bit of accuracy, "
+                "AtomGPT: Using q8_0 for the `first_conversion` will lose a bit of accuracy, "
                 "but saves disk space!"
             )
             # first_conversion = "f16"
@@ -1189,7 +1175,7 @@ def save_to_gguf(
         first_conversion != "f16" or first_conversion != "f32"
     ):
         logger.warning_once(
-            "Unsloth: We must use f16 for non Llama and Mistral models."
+            "AtomGPT: We must use f16 for non Llama and Mistral models."
         )
         first_conversion = "f16"
     pass
@@ -1205,7 +1191,7 @@ def save_to_gguf(
     )
 
     print(
-        f"Unsloth: [1] Converting model at {model_directory} into {first_conversion} GGUF format.\n"
+        f"AtomGPT: [1] Converting model at {model_directory} into {first_conversion} GGUF format.\n"
         f"The output location will be {final_location}\n"
         "This will take 3 minutes..."
     )
@@ -1253,7 +1239,7 @@ def save_to_gguf(
     if not os.path.isfile(final_location):
         if IS_KAGGLE_ENVIRONMENT:
             raise RuntimeError(
-                f"Unsloth: Quantization failed for {final_location}\n"
+                f"AtomGPT: Quantization failed for {final_location}\n"
                 "You are in a Kaggle environment, which might be the reason this is failing.\n"
                 "Kaggle only provides 20GB of disk space. Merging to 16bit for 7b models use 16GB of space.\n"
                 "This means using `model.{save_pretrained/push_to_hub}_merged` works, but\n"
@@ -1262,7 +1248,7 @@ def save_to_gguf(
             )
         else:
             raise RuntimeError(
-                f"Unsloth: Quantization failed for {final_location}\n"
+                f"AtomGPT: Quantization failed for {final_location}\n"
                 "You might have to compile llama.cpp yourself, then run this again.\n"
                 "You do not need to close this Python program. Run the following commands in a new terminal:\n"
                 "You must run this in the same folder as you're saving your model.\n"
@@ -1272,12 +1258,12 @@ def save_to_gguf(
             )
         pass
     pass
-    print(f"Unsloth: Conversion completed! Output location: {final_location}")
+    print(f"AtomGPT: Conversion completed! Output location: {final_location}")
 
     if quantization_method != first_conversion:
         old_location = final_location
         print(
-            f"Unsloth: [2] Converting GGUF 16bit into {quantization_method}. This will take 20 minutes..."
+            f"AtomGPT: [2] Converting GGUF 16bit into {quantization_method}. This will take 20 minutes..."
         )
         final_location = (
             f"./{model_directory}-unsloth.{quantization_method.upper()}.gguf"
@@ -1308,7 +1294,7 @@ def save_to_gguf(
         if not os.path.isfile(final_location):
             if IS_KAGGLE_ENVIRONMENT:
                 raise RuntimeError(
-                    f"Unsloth: Quantization failed for {final_location}\n"
+                    f"AtomGPT: Quantization failed for {final_location}\n"
                     "You are in a Kaggle environment, which might be the reason this is failing.\n"
                     "Kaggle only provides 20GB of disk space. Merging to 16bit for 7b models use 16GB of space.\n"
                     "This means using `model.{save_pretrained/push_to_hub}_merged` works, but\n"
@@ -1317,7 +1303,7 @@ def save_to_gguf(
                 )
             else:
                 raise RuntimeError(
-                    "Unsloth: Quantization failed! You might have to compile llama.cpp yourself, then run this again.\n"
+                    "AtomGPT: Quantization failed! You might have to compile llama.cpp yourself, then run this again.\n"
                     "You do not need to close this Python program. Run the following commands in a new terminal:\n"
                     "You must run this in the same folder as you're saving your model.\n"
                     "git clone --recursive https://github.com/ggerganov/llama.cpp\n"
@@ -1328,7 +1314,7 @@ def save_to_gguf(
         pass
 
         print(
-            f"Unsloth: Conversion completed! Output location: {final_location}"
+            f"AtomGPT: Conversion completed! Output location: {final_location}"
         )
     pass
 
@@ -1367,7 +1353,7 @@ def unsloth_save_pretrained_merged(
     """
     if tokenizer is None:
         logger.warning_once(
-            "Unsloth: You're not saving a tokenizer as well?\n"
+            "AtomGPT: You're not saving a tokenizer as well?\n"
             "You can do it separately via `tokenizer.save_pretrained(...)`"
         )
     pass
@@ -1389,14 +1375,14 @@ def unsloth_push_to_hub_merged(
     tokenizer=None,
     save_method: str = "merged_16bit",  # ["lora", "merged_16bit", "merged_4bit"]
     use_temp_dir: Optional[bool] = None,
-    commit_message: Optional[str] = "Trained with Unsloth",
+    commit_message: Optional[str] = "Trained with AtomGPT",
     private: Optional[bool] = None,
     token: Union[bool, str, None] = None,
     max_shard_size: Union[int, str, None] = "5GB",
     create_pr: bool = False,
     safe_serialization: bool = True,
     revision: str = None,
-    commit_description: str = "Upload model trained with Unsloth 2x faster",
+    commit_description: str = "Upload model trained with AtomGPT 2x faster",
     tags: Optional[List[str]] = None,
     temporary_location: str = "_unsloth_temporary_saved_buffers",
     maximum_memory_usage: float = 0.75,
@@ -1412,7 +1398,7 @@ def unsloth_push_to_hub_merged(
     """
     if tokenizer is None:
         logger.warning_once(
-            "Unsloth: You're not saving a tokenizer as well?\n"
+            "AtomGPT: You're not saving a tokenizer as well?\n"
             "You can do it separately via `tokenizer.push_to_hub(...)`"
         )
     pass
@@ -1450,7 +1436,7 @@ language:
 - **License:** apache-2.0
 - **Finetuned from model :** {base_model}
 
-This {model_type} model was trained 2x faster with [Unsloth](https://github.com/unslothai/unsloth) and Huggingface's TRL library.
+This {model_type} model was trained 2x faster with [AtomGPT](https://github.com/unslothai/unsloth) and Huggingface's TRL library.
 
 [<img src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/unsloth%20made%20with%20love.png" width="200"/>](https://github.com/unslothai/unsloth)
 """
@@ -1470,7 +1456,7 @@ def _determine_username(save_directory, old_username, token):
             save_directory = f"{username}/{save_directory}"
         except:
             raise RuntimeError(
-                f"Unsloth: {save_directory} is not a Huggingface directory."
+                f"AtomGPT: {save_directory} is not a Huggingface directory."
             )
     else:
         username = save_directory.split("/")[0]
@@ -1538,7 +1524,7 @@ def upload_to_huggingface(
             path_in_repo=uploaded_location,
             repo_id=save_directory,
             repo_type="model",
-            commit_message="(Trained with Unsloth)",
+            commit_message="(Trained with AtomGPT)",
         )
 
         # We also upload a config.json file
@@ -1552,7 +1538,7 @@ def upload_to_huggingface(
             path_in_repo="config.json",
             repo_id=save_directory,
             repo_type="model",
-            commit_message="(Trained with Unsloth)",
+            commit_message="(Trained with AtomGPT)",
         )
         os.remove("_temporary_unsloth_config.json")
     pass
@@ -1614,7 +1600,7 @@ def unsloth_save_pretrained_gguf(
     "q3_k_xs" : "3-bit extra small quantization",
     """
     if tokenizer is None:
-        raise ValueError("Unsloth: Saving to GGUF must have a tokenizer.")
+        raise ValueError("AtomGPT: Saving to GGUF must have a tokenizer.")
 
     arguments = dict(locals())
     arguments["model"] = self
@@ -1690,7 +1676,7 @@ def unsloth_save_pretrained_gguf(
     )
 
     if push_to_hub:
-        print("Unsloth: Uploading GGUF to Huggingface Hub...")
+        print("AtomGPT: Uploading GGUF to Huggingface Hub...")
         username = upload_to_huggingface(
             self,
             save_directory,
@@ -1720,14 +1706,14 @@ def unsloth_push_to_hub_gguf(
     quantization_method: str = "fast_quantized",
     first_conversion: str = "f16",
     use_temp_dir: Optional[bool] = None,
-    commit_message: Optional[str] = "Trained with Unsloth",
+    commit_message: Optional[str] = "Trained with AtomGPT",
     private: Optional[bool] = None,
     token: Union[bool, str, None] = None,
     max_shard_size: Union[int, str, None] = "5GB",
     create_pr: bool = False,
     safe_serialization: bool = True,
     revision: str = None,
-    commit_description: str = "Upload model trained with Unsloth 2x faster",
+    commit_description: str = "Upload model trained with AtomGPT 2x faster",
     tags: Optional[List[str]] = None,
     temporary_location: str = "_unsloth_temporary_saved_buffers",
     maximum_memory_usage: float = 0.85,
@@ -1758,7 +1744,7 @@ def unsloth_push_to_hub_gguf(
     "q6_k"    : "Uses Q8_K for all tensors",
     """
     if tokenizer is None:
-        raise ValueError("Unsloth: Saving to GGUF must have a tokenizer.")
+        raise ValueError("AtomGPT: Saving to GGUF must have a tokenizer.")
 
     arguments = dict(locals())
     arguments["model"] = self
@@ -1835,7 +1821,7 @@ def unsloth_push_to_hub_gguf(
         makefile,
     )
 
-    print("Unsloth: Uploading GGUF to Huggingface Hub...")
+    print("AtomGPT: Uploading GGUF to Huggingface Hub...")
     username = upload_to_huggingface(
         self,
         repo_id,
@@ -1863,14 +1849,14 @@ def unsloth_generic_push_to_hub_merged(
     tokenizer=None,
     save_method: str = "merged_16bit",  # ["lora", "merged_16bit", "merged_4bit"]
     use_temp_dir: Optional[bool] = None,
-    commit_message: Optional[str] = "Trained with Unsloth",
+    commit_message: Optional[str] = "Trained with AtomGPT",
     private: Optional[bool] = None,
     token: Union[bool, str, None] = None,
     max_shard_size: Union[int, str, None] = "5GB",
     create_pr: bool = False,
     safe_serialization: bool = True,
     revision: str = None,
-    commit_description: str = "Upload model trained with Unsloth 2x faster",
+    commit_description: str = "Upload model trained with AtomGPT 2x faster",
     tags: Optional[List[str]] = None,
     temporary_location: str = "_unsloth_temporary_saved_buffers",
     maximum_memory_usage: float = 0.75,
@@ -1886,7 +1872,7 @@ def unsloth_generic_push_to_hub_merged(
     """
     if tokenizer is None:
         logger.warning_once(
-            "Unsloth: You're not saving a tokenizer as well?\n"
+            "AtomGPT: You're not saving a tokenizer as well?\n"
             "You can do it separately via `tokenizer.push_to_hub(...)`"
         )
     pass
@@ -1934,7 +1920,7 @@ def unsloth_generic_save_pretrained_merged(
     """
     if tokenizer is None:
         logger.warning_once(
-            "Unsloth: You're not saving a tokenizer as well?\n"
+            "AtomGPT: You're not saving a tokenizer as well?\n"
             "You can do it separately via `tokenizer.save_pretrained(...)`"
         )
     pass
@@ -1961,7 +1947,7 @@ def save_to_gguf_generic(
     if token is None and repo_id is not None:
         token = get_token()
     if repo_id is not None and token is None:
-        raise RuntimeError("Unsloth: Please specify a token for uploading!")
+        raise RuntimeError("AtomGPT: Please specify a token for uploading!")
 
     if not os.path.exists(
         os.path.join("llama.cpp", "unsloth_convert_hf_to_gguf.py")
@@ -2037,20 +2023,20 @@ def patch_saving_functions(model, vision=False):
         commit_message = arguments["commit_message"]
         if commit_message is not None:
             if not commit_message.endswith(" "): commit_message += " "
-            if "Unsloth" not in commit_message:
-                commit_message += "(Trained with Unsloth)"
+            if "AtomGPT" not in commit_message:
+                commit_message += "(Trained with AtomGPT)"
         else:
-            commit_message = "Upload model trained with Unsloth"
+            commit_message = "Upload model trained with AtomGPT"
         arguments["commit_message"] = commit_message
 
     if "commit_description" in arguments:
         commit_description = arguments["commit_description"]
         if commit_description is not None:
             if not commit_description.endswith(" "): commit_description += " "
-            if "Unsloth" not in commit_description:
-                commit_description += "(Trained with Unsloth 2x faster)"
+            if "AtomGPT" not in commit_description:
+                commit_description += "(Trained with AtomGPT 2x faster)"
         else:
-            commit_description = "Upload model trained with Unsloth 2x faster"
+            commit_description = "Upload model trained with AtomGPT 2x faster"
         arguments["commit_description"] = commit_description
 
     # Update model tag
@@ -2174,20 +2160,20 @@ def patch_saving_functions_old(model):
         commit_message = arguments["commit_message"]
         if commit_message is not None:
             if not commit_message.endswith(" "): commit_message += " "
-            if "Unsloth" not in commit_message:
-                commit_message += "(Trained with Unsloth)"
+            if "AtomGPT" not in commit_message:
+                commit_message += "(Trained with AtomGPT)"
         else:
-            commit_message = "Upload model trained with Unsloth"
+            commit_message = "Upload model trained with AtomGPT"
         arguments["commit_message"] = commit_message
 
     if "commit_description" in arguments:
         commit_description = arguments["commit_description"]
         if commit_description is not None:
             if not commit_description.endswith(" "): commit_description += " "
-            if "Unsloth" not in commit_description:
-                commit_description += "(Trained with Unsloth 2x faster)"
+            if "AtomGPT" not in commit_description:
+                commit_description += "(Trained with AtomGPT 2x faster)"
         else:
-            commit_description = "Upload model trained with Unsloth 2x faster"
+            commit_description = "Upload model trained with AtomGPT 2x faster"
         arguments["commit_description"] = commit_description
 
     # Update model tag

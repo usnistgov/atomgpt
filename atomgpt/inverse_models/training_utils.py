@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import torch
 import math
 import datasets
@@ -42,7 +26,7 @@ def fix_zero_training_loss(model, tokenizer, train_dataset):
     Sometimes the labels get masked by all -100s, causing the loss
     to be 0. We check for this!
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if isinstance(train_dataset, datasets.IterableDataset):
         # Skip the check since the code below assumes
         # an indexable dataset
@@ -76,14 +60,14 @@ def fix_zero_training_loss(model, tokenizer, train_dataset):
 
         elif seen_bad / (seen_bad + seen_good) == 1:
             raise ZeroDivisionError(
-                "Unsloth: All labels in your dataset are -100. Training losses will be all 0.\n"
+                "AtomGPT: All labels in your dataset are -100. Training losses will be all 0.\n"
                 "For example, are you sure you used `train_on_responses_only` correctly?\n"
                 "Or did you mask our tokens incorrectly? Maybe this is intended?\n"
                 "Maybe you're using a Llama chat template on a non Llama model for example?"
             )
         elif seen_bad / (seen_bad + seen_good) >= 0.9:
             print(
-                "Unsloth: Nearly all labels in your dataset are -100. Training losses will be all 0.\n"
+                "AtomGPT: Nearly all labels in your dataset are -100. Training losses will be all 0.\n"
                 "For example, are you sure you used `train_on_responses_only` correctly?\n"
                 "Or did you mask our tokens incorrectly? Maybe this is intended?\n"
                 "Maybe you're using a Llama chat template on a non Llama model for example?"
@@ -105,7 +89,7 @@ def prepare_model_for_training(
     train_lm_head: Optional[bool] = False,
     float32_mixed_precision: Optional[bool] = True,
 ) -> Any:
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     assert use_gradient_checkpointing in (
         True,
         False,
@@ -231,7 +215,7 @@ def get_max_steps(training_args, n_training_samples, train_dataset):
     # Determines batch size, max steps, ga etc
     if training_args.world_size > 1:
         raise RuntimeError(
-            "Unsloth currently does not support multi GPU setups - but we are working on it!"
+            "AtomGPT currently does not support multi GPU setups - but we are working on it!"
         )
     pass
 
@@ -294,12 +278,12 @@ pass
 
 def unsloth_train(trainer):
     """
-    Unsloth Trainer
+    AtomGPT Trainer
     1. Fixes gradient accumulation
     2. Scaled down version of HF's trainer
     3. Much less feature complete
     """
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     assert hasattr(trainer, "args")
     assert hasattr(trainer, "model")
     assert hasattr(trainer, "train_dataset")
@@ -314,7 +298,7 @@ def unsloth_train(trainer):
 
     if training_args.dataloader_drop_last:
         raise NotImplementedError(
-            "Unsloth: Currently `dataloader_drop_last` is not yet implemented!"
+            "AtomGPT: Currently `dataloader_drop_last` is not yet implemented!"
         )
     pass
 
@@ -421,11 +405,11 @@ def unsloth_train(trainer):
     step = 0
     accumulated_loss = torch.zeros(1, device="cuda:0", dtype=torch.float32)[0]
     debug_info = (
-        f"==((====))==  Unsloth - 2x faster free finetuning | Num GPUs = {training_args.world_size}\n"
-        f"    \\   /|    Num examples = {n_training_samples:,} | Num Epochs = {num_train_epochs:,}\n"
-        f"O^O/ \\_/ \\    Batch size per device = {training_args.per_device_train_batch_size:,} | Gradient Accumulation steps = {training_args.gradient_accumulation_steps}\n"
-        f"\\        /    Total batch size = {total_train_batch_size:,} | Total steps = {max_steps:,}\n"
-        f' "-____-"     Number of trainable parameters = {n_parameters_to_train:,}'
+        f"AtomGPT - 2x faster free finetuning | Num GPUs = {training_args.world_size}\n"
+        f"Num examples = {n_training_samples:,} | Num Epochs = {num_train_epochs:,}\n"
+        f"Batch size per device = {training_args.per_device_train_batch_size:,} | Gradient Accumulation steps = {training_args.gradient_accumulation_steps}\n"
+        f"Total batch size = {total_train_batch_size:,} | Total steps = {max_steps:,}\n"
+        f"Number of trainable parameters = {n_parameters_to_train:,}"
     )
     print(debug_info)
 
@@ -531,7 +515,7 @@ def unsloth_train(trainer):
         pass
     pass
     unset_training(model)
-    print("Unsloth: Finished training!")
+    print("AtomGPT: Finished training!")
     end_time = time.time()
 
     # Return stats
@@ -542,19 +526,3 @@ def unsloth_train(trainer):
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.

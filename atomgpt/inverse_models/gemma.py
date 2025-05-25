@@ -1,17 +1,3 @@
-# Copyright 2023-present Daniel Han-Chen & the Unsloth team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from atomgpt.inverse_models.llama import *
 from atomgpt.inverse_models._utils import __version__
 import math
@@ -32,7 +18,7 @@ except:
     transformers_version = Version(transformers_version)
     if not transformers_version >= Version("4.38"):
         raise ImportError(
-            f"Unsloth: Your transformers version of {transformers_version} does not support Gemma.\n"
+            f"AtomGPT: Your transformers version of {transformers_version} does not support Gemma.\n"
             f"The minimum required version is 4.38.\n"
             f'Try `pip install --upgrade "transformers>=4.38"`\n'
             f"to obtain the latest transformers build, then restart this session."

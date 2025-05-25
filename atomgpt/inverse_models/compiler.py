@@ -1,19 +1,3 @@
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 __all__ = [
     "UNSLOTH_COMPILE_LOCATION",
     "get_transformers_model_type",
@@ -64,7 +48,7 @@ major, minor = torch.cuda.get_device_capability()
 OLD_CUDA_ARCH_VERSION = (major <= 7) and (minor < 5)
 OLD_TRITON_VERSION = Version(triton.__version__) < Version("3.0.0")
 
-# Check if Unsloth Studio is allowed
+# Check if AtomGPT Studio is allowed
 import importlib.util
 
 if importlib.util.find_spec("unsloth_studio") is None:
@@ -94,8 +78,8 @@ DISABLED_KEYWORDS = [
 ]
 
 _license_header = """
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
+# AtomGPT - Utilities for AtomGPT
+# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the AtomGPT team. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -162,7 +146,7 @@ def get_transformers_model_type(
     revision=None,
     trust_remote_code=False,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     from transformers import AutoConfig
     from huggingface_hub.utils import (
         disable_progress_bars,
@@ -215,7 +199,7 @@ def no_update_causal_mask(*args, **kwargs):
 
 # Patch SDPA
 def replace_with_grouped_query_attention(module, source):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     if (
         "enable_gqa"
         not in torch.nn.functional.scaled_dot_product_attention.__doc__
@@ -243,7 +227,7 @@ def replace_with_grouped_query_attention(module, source):
             found[0].count("key_states = ") >= 2
             and found[0].count("value_states = ") >= 2
         ):
-            print(f"Unsloth: Transforming {module}.")
+            print(f"AtomGPT: Transforming {module}.")
             all_source = source
             source = re.sub(
                 grouped_query_attention_finder,
@@ -265,7 +249,7 @@ def replace_with_grouped_query_attention(module, source):
 
     source = re.sub(
         r"if output_attentions\:.+?return super\(\)\.forward.+?\)",
-        "if output_attentions: raise RuntimeError('Unsloth: Not supported')",
+        "if output_attentions: raise RuntimeError('AtomGPT: Not supported')",
         source,
         flags=re.DOTALL | re.MULTILINE,
     )
@@ -285,7 +269,7 @@ def _get_compile_folder(use_tempfile=False):
         )
         if not os.path.exists(location):
             print(
-                f"Unsloth: We'll be using `{location}` for temporary Unsloth patches."
+                f"AtomGPT: We'll be using `{location}` for temporary AtomGPT patches."
             )
             os.makedirs(location, exist_ok=True)
     else:
@@ -301,7 +285,7 @@ def _get_compile_folder(use_tempfile=False):
             location = os.path.join(tempfile.gettempdir(), location)
             os.makedirs(location, exist_ok=True)
             print(
-                f"Unsloth: We'll be using `{location}` for temporary Unsloth patches."
+                f"AtomGPT: We'll be using `{location}` for temporary AtomGPT patches."
             )
     return location, UNSLOTH_COMPILE_USE_TEMP
 
@@ -329,7 +313,7 @@ def create_new_function(
     overwrite=True,
     add_torch_compile=False,
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     old_new_source = new_source
     do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
 
@@ -471,7 +455,7 @@ def create_new_function(
             old_path = list(sys.path)
             # Fail if name already exists!
             if name in old_path:
-                raise OSError(f"Unsloth: File {name} already exists")
+                raise OSError(f"AtomGPT: File {name} already exists")
             sys.path.insert(0, compile_folder)
         # Try standard import
         new_module = importlib.import_module(name)
@@ -528,7 +512,7 @@ def create_new_function(
 
     if new_module is None:
         raise ImportError(
-            f"Unsloth: Cannot import {name} from {UNSLOTH_COMPILE_LOCATION}"
+            f"AtomGPT: Cannot import {name} from {UNSLOTH_COMPILE_LOCATION}"
         )
 
     return new_module
@@ -547,7 +531,7 @@ def create_standalone_class(
     add_loss_kwargs=False,
     new_init=None,
 ) -> str:
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Create optimized standalone forward function
     f = eval(f"{model_location}.{module}")
     full_class = inspect.getsource(f)
@@ -660,7 +644,7 @@ pass
 # We need an empty logits flag to warn people logits will not be returned anymore unless asked ie
 # os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 LOGITS_ERROR_STRING = \\
-    "Unsloth: Logits are empty from 2024.11 onwards. To get raw logits again, please "\\
+    "AtomGPT: Logits are empty from 2024.11 onwards. To get raw logits again, please "\\
     'set the environment variable `UNSLOTH_RETURN_LOGITS` to `"1" BEFORE starting to train ie before `trainer.train()`. For example:\\n'\\
     "```\\nimport os\\n"\\
     "os.environ['UNSLOTH_RETURN_LOGITS'] = '1'\\n"\\
@@ -1056,7 +1040,7 @@ ce_finders = [
 
 
 def apply_fused_lm_head(forward):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     for cross_entropy_find, cross_entropy_replacement in ce_finders:
         cross_entropy_find = (
             cross_entropy_find.strip()
@@ -1318,7 +1302,7 @@ pass
 
 # Patch remaining functions
 def convert_attention_masks_to_bool(module, old_source):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     # Convert attention mask creation functions to boolean
     source = re.sub(r"\([\s]{0,}", "(", old_source)
     source = re.sub(r"[\s]{0,}\)", ")", source)
@@ -1352,7 +1336,7 @@ def convert_attention_masks_to_bool(module, old_source):
     pass
     all_splits[-1] = final
     new_source = "\n".join(all_splits)
-    print(f"Unsloth: Boolean mask for {module}")
+    print(f"AtomGPT: Boolean mask for {module}")
     return new_source
 
 
@@ -1371,7 +1355,7 @@ $    hidden_states = LAYER(ARGS)
 
 
 def patch_gradient_checkpointing(module, source):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     try:
         init = inspect.getsource(source.__init__)
     except:
@@ -1402,7 +1386,7 @@ def patch_gradient_checkpointing(module, source):
     )
     find = re.findall(finder, forward)
     if len(find) == 0:
-        print(f"Unsloth: Failed patching {module} with gradient checkpointing")
+        print(f"AtomGPT: Failed patching {module} with gradient checkpointing")
         return None
     pass
 
@@ -1494,7 +1478,7 @@ pass
 
 
 def patch_lora_forwards(torch_compile_options):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     Linear_LoRA_Layers = get_lora_layer_modules()
     success = 0
     for function, parent, child in Linear_LoRA_Layers:
@@ -1579,7 +1563,7 @@ def patch_lora_forwards(torch_compile_options):
 
     if success <= 5:
         print(
-            "Unsloth: Not an error, but could not optimize some PEFT modules."
+            "AtomGPT: Not an error, but could not optimize some PEFT modules."
         )
     return
 
@@ -1588,7 +1572,7 @@ pass
 
 
 def patch_residual_stream(source):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
 
     # if self.is_gated: hidden_state = self.gate_ffn.tanh() * hidden_state
     # if self.is_gated: hidden_state = self.gate_attn.tanh() * hidden_state
@@ -1639,7 +1623,7 @@ pass
 
 
 def patch_gradient_accumulation(modeling_file, module):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
 
     functions = dir(modeling_file)
     module = eval(f"modeling_file.{module}")
@@ -1678,7 +1662,7 @@ def patch_gradient_accumulation(modeling_file, module):
 
         total_has_kwargs = True
         print(
-            f"Unsloth: Patching {inner_class.__name__} within {module.__name__} to fix gradient accumulation."
+            f"AtomGPT: Patching {inner_class.__name__} within {module.__name__} to fix gradient accumulation."
         )
         regex_find = f"{call_class}\(([^\)]{{1,}})\)"
         source = re.sub(
@@ -1747,13 +1731,13 @@ def unsloth_compile_transformers(
 
     model_logger = transformers_logging.get_logger(f"modeling_{model_type}")
 
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All AtomGPT Zoo code licensed under LGPLv3
     disable = disable or (
         os.environ.get("UNSLOTH_COMPILE_DISABLE", "0") == "1"
     )
     if fast_residual_stream:
         raise NotImplementedError(
-            "Unsloth: Fast residual stream optimization makes things slower!"
+            "AtomGPT: Fast residual stream optimization makes things slower!"
         )
     pass
 
@@ -1776,12 +1760,12 @@ def unsloth_compile_transformers(
         from torch.hub import tqdm
 
         def replaced_tqdm(*args, **kwargs):
-            kwargs["desc"] = "Unsloth: Compiling kernels"
+            kwargs["desc"] = "AtomGPT: Compiling kernels"
             return tqdm(*args, **kwargs)
 
         torch._inductor.async_compile.tqdm = replaced_tqdm
     except:
-        print("Unsloth: Failed editing tqdm to replace Inductor Compilation:")
+        print("AtomGPT: Failed editing tqdm to replace Inductor Compilation:")
     pass
 
     # torch_compile_options
@@ -1836,7 +1820,7 @@ def unsloth_compile_transformers(
 
     # Patch PEFT lora forwards
     if (not disable) and fast_lora_forwards:
-        print("Unsloth: Patching LoRA to make it faster")
+        print("AtomGPT: Patching LoRA to make it faster")
         patch_lora_forwards(torch_compile_options)
     pass
 
@@ -2007,7 +1991,7 @@ def unsloth_compile_transformers(
         if sdpa_dynamic_mask:
             new_source = re.sub(
                 r"if output_attentions\:.+?return super\(\)\.forward.+?\)",
-                "if output_attentions: raise RuntimeError('Unsloth: Not supported')",
+                "if output_attentions: raise RuntimeError('AtomGPT: Not supported')",
                 new_source,
                 flags=re.DOTALL | re.MULTILINE,
             )
@@ -2079,7 +2063,7 @@ def unsloth_compile_transformers(
         ):
 
             print(
-                f"Unsloth: Will not compile {module} since it looks like it calls attention modules!"
+                f"AtomGPT: Will not compile {module} since it looks like it calls attention modules!"
             )
             bad_torch_modules.add(module)
         pass
@@ -2087,7 +2071,7 @@ def unsloth_compile_transformers(
         if "self.encoder" in source or "BaseModelOutput" in source:
 
             print(
-                f"Unsloth: Will not compile {module} since it looks like a vision encoder!"
+                f"AtomGPT: Will not compile {module} since it looks like a vision encoder!"
             )
             bad_torch_modules.add(module)
         pass
@@ -2100,7 +2084,7 @@ def unsloth_compile_transformers(
             or "torch.ones(" in source
         ):
             print(
-                f"Unsloth: Failed compiling function {module} since array creations are done."
+                f"AtomGPT: Failed compiling function {module} since array creations are done."
             )
             bad_torch_modules.add(module)
         pass
@@ -2108,7 +2092,7 @@ def unsloth_compile_transformers(
         # Remove decoder layers
         if "for layer in self." in source:
             print(
-                f"Unsloth: Failed compiling function {module} since it looks like a decoder!"
+                f"AtomGPT: Failed compiling function {module} since it looks like a decoder!"
             )
             bad_torch_modules.add(module)
         pass
@@ -2116,7 +2100,7 @@ def unsloth_compile_transformers(
         # Remove padding
         if "nn.functional.pad" in source or "padding" in source:
             print(
-                f"Unsloth: Failed compiling function {module} since there is padding done."
+                f"AtomGPT: Failed compiling function {module} since there is padding done."
             )
             bad_torch_modules.add(module)
         pass
@@ -2134,7 +2118,7 @@ def unsloth_compile_transformers(
                         disable=None,
                         forward_source=new_source,
                     )
-                    print(f"Unsloth: Faster residual stream for {module}")
+                    print(f"AtomGPT: Faster residual stream for {module}")
                     all_standalone_classes[module] = new_module
                 except:
                     continue
@@ -2156,7 +2140,7 @@ def unsloth_compile_transformers(
                     functions,
                     fullgraph=fullgraph,
                 )
-                print(f"Unsloth: Compiled module {module}.")
+                print(f"AtomGPT: Compiled module {module}.")
                 all_standalone_classes[module] = new_module
             except:
                 continue
@@ -2184,7 +2168,7 @@ def unsloth_compile_transformers(
                     disable=sdpa_dynamic_compile,
                     forward_source=forward_source,
                 )
-                print(f"Unsloth: Fast Attention patch for {module}.")
+                print(f"AtomGPT: Fast Attention patch for {module}.")
                 all_standalone_classes[module] = new_module
             except:
                 continue
@@ -2200,7 +2184,7 @@ def unsloth_compile_transformers(
                     fullgraph=False,
                     disable=True,
                 )
-                print(f"Unsloth: Slow Attention patch for {module}.")
+                print(f"AtomGPT: Slow Attention patch for {module}.")
                 all_standalone_classes[module] = new_module
             except:
                 continue
@@ -2213,7 +2197,7 @@ def unsloth_compile_transformers(
         if module.endswith(("ForConditionalGeneration", "Gemma3Model")):
             do_not_remove = True
             print(
-                f"Unsloth: Will not remove causal mask for {model_location} since it's a VLM!"
+                f"AtomGPT: Will not remove causal mask for {model_location} since it's a VLM!"
             )
             break
     pass
@@ -2228,7 +2212,7 @@ def unsloth_compile_transformers(
         # Don't remove for VLMs!
         if module.endswith(("ForConditionalGeneration")):
             print(
-                f"Unsloth: Will not remove causal mask for {module} since it's a VLM!"
+                f"AtomGPT: Will not remove causal mask for {module} since it's a VLM!"
             )
             continue
 
@@ -2237,7 +2221,7 @@ def unsloth_compile_transformers(
             globals(),
         )
         print(
-            f"Unsloth: Removed causal mask for {module} to reduce memory usage."
+            f"AtomGPT: Removed causal mask for {module} to reduce memory usage."
         )
     pass
 
@@ -2276,7 +2260,7 @@ def unsloth_compile_transformers(
                         add_loss_kwargs=True,
                     )
                     print(
-                        f"Unsloth: Fast fused linear cross entropy patch for {module}."
+                        f"AtomGPT: Fast fused linear cross entropy patch for {module}."
                     )
                     all_standalone_classes[module] = new_module
                 pass
@@ -2305,7 +2289,7 @@ def unsloth_compile_transformers(
             )
             all_standalone_classes[module] = new_module
             print(
-                f"Unsloth: Patched {module} by adding gradient checkpointing"
+                f"AtomGPT: Patched {module} by adding gradient checkpointing"
             )
         pass
     pass
@@ -2319,7 +2303,7 @@ def unsloth_compile_transformers(
                 or module in remove_causal_masks
             ):
 
-                print(f"Unsloth: Manual replacement for {module}")
+                print(f"AtomGPT: Manual replacement for {module}")
                 all_standalone_classes[module] = compiler_replacements[module]
         pass
     pass
@@ -2340,7 +2324,7 @@ def unsloth_compile_transformers(
             inner_training_loop = Trainer._original_training_loop
     except:
         raise RuntimeError(
-            "Unsloth: Unsuccessfully patched inner_training_loop"
+            "AtomGPT: Unsuccessfully patched inner_training_loop"
         )
     pass
 
@@ -2368,12 +2352,12 @@ def unsloth_compile_transformers(
     front_spaces = re.match(r"([\s\t]{1,})", inner_training_loop).group(0)
 
     debug_info = """debug_info = \\
-        f"==((====))==  Unsloth - 2x faster free finetuning | Num GPUs used = {len(set(p.device for p in model.parameters()))}\\n"\\
-        f"   {chr(92)}{chr(92)}   /|    Num examples = {num_examples:,} | Num Epochs = {num_train_epochs:,} | Total steps = {max_steps:,}\\n"\\
-        f"O^O/ {chr(92)}_/ {chr(92)}    Batch size per device = {self._train_batch_size:,} | Gradient accumulation steps = {args.gradient_accumulation_steps}\\n"\\
-        f"{chr(92)}        /    Data Parallel GPUs = {args.world_size} | Total batch size ({self._train_batch_size} x {args.gradient_accumulation_steps} x {args.world_size}) = {total_train_batch_size:,}\\n"\\
-        f' "-____-"     Trainable parameters = {get_model_param_count(model, trainable_only=True):,}/{get_model_param_count(model):,} ({get_model_param_count(model, trainable_only=True)/get_model_param_count(model)*100:.2f}% trained)'
-        f"🦥 Unsloth needs about 1-3 minutes to load everything - please wait!"
+        f"AtomGPT - 2x faster free finetuning | Num GPUs used = {len(set(p.device for p in model.parameters()))}\\n"\\
+        f"Num examples = {num_examples:,} | Num Epochs = {num_train_epochs:,} | Total steps = {max_steps:,}\\n"\\
+        f"Batch size per device = {self._train_batch_size:,} | Gradient accumulation steps = {args.gradient_accumulation_steps}\\n"\\
+        f"Data Parallel GPUs = {args.world_size} | Total batch size ({self._train_batch_size} x {args.gradient_accumulation_steps} x {args.world_size}) = {total_train_batch_size:,}\\n"\\
+        f'Trainable parameters = {get_model_param_count(model, trainable_only=True):,}/{get_model_param_count(model):,} ({get_model_param_count(model, trainable_only=True)/get_model_param_count(model)*100:.2f}% trained)'
+        f"AtomGPT needs about 1-3 minutes to load everything - please wait!"
         logger.warning(debug_info)
         import gc
         for _ in range(3):
@@ -2391,7 +2375,7 @@ def unsloth_compile_transformers(
     debug_info = """n_total_devices = total_train_batch_size // \\
             args.gradient_accumulation_steps // self._train_batch_size
         if n_total_devices > 1:
-            logger.warning_once('Unsloth is running with multi GPUs - the effective batch size is multiplied by ' + str(n_total_devices))
+            logger.warning_once('AtomGPT is running with multi GPUs - the effective batch size is multiplied by ' + str(n_total_devices))
         debug_info ="""
     debug_info = debug_info.split("\n")
     debug_info = "\n".join(
@@ -2407,7 +2391,7 @@ def unsloth_compile_transformers(
     )
     inner_training_loop = inner_training_loop.replace(
         "train_dataloader = tpu_spmd_dataloader(train_dataloader)",
-        "raise RuntimeError('Unsloth: TPUs are not yet supported!')",
+        "raise RuntimeError('AtomGPT: TPUs are not yet supported!')",
     )
     inner_training_loop = inner_training_loop.replace(
         "_inner_training_loop",
@@ -2458,7 +2442,7 @@ def unsloth_compile_transformers(
                 )
             pass
             parameters = f"def {module}" + parameters + code_section
-            print(f"Unsloth: Fixed up function {module}.")
+            print(f"AtomGPT: Fixed up function {module}.")
 
             parameters = f"@torch.compile(fullgraph = {UNSLOTH_FULLGRAPH}, dynamic = True, options = torch_compile_options)\n{parameters}"
             all_standalone_classes[module] = parameters
@@ -2482,10 +2466,10 @@ def unsloth_compile_transformers(
             pass
             if not bad:
                 source = f"@torch.compile(fullgraph = {UNSLOTH_FULLGRAPH}, dynamic = True, options = torch_compile_options)\n{source}"
-                print(f"Unsloth: Compiled function {module}.")
+                print(f"AtomGPT: Compiled function {module}.")
             else:
                 print(
-                    f"Unsloth: Cannot compile function {module} since disabled keyword is in it."
+                    f"AtomGPT: Cannot compile function {module} since disabled keyword is in it."
                 )
             all_standalone_classes[module] = source
         pass
@@ -2499,7 +2483,7 @@ def unsloth_compile_transformers(
                 continue
             if module in all_standalone_classes:
                 print(
-                    f"Unsloth: Will override already patched {module} with gradient accumulation fix."
+                    f"AtomGPT: Will override already patched {module} with gradient accumulation fix."
                 )
             all_standalone_classes[module] = new_source
         pass
@@ -2626,7 +2610,7 @@ def unsloth_compile_transformers(
                         globals(),
                         locals(),
                     )
-                    # print(f"Unsloth: Replacing {check} with {replaced_class}")
+                    # print(f"AtomGPT: Replacing {check} with {replaced_class}")
                     break
                 pass
             pass
@@ -2636,19 +2620,3 @@ def unsloth_compile_transformers(
 
 
 pass
-
-# Unsloth Zoo - Utilities for Unsloth
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
