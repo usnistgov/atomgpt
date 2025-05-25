@@ -1,6 +1,5 @@
 # coverage run --omit="*scripts/*,*cache/*,*__pycache__/*" -m pytest -s -v atomgpt/tests/
 #  coverage report -m -i
-from atomgpt.inverse_models.inverse_models import main
 import os
 import atomgpt
 import torch
@@ -14,6 +13,7 @@ print("config", config)
 # """
 def test_inverse():
     if torch.cuda.is_available():
+        from atomgpt.inverse_models.inverse_models import main
         from atomgpt.inverse_models.loader import (
             FastLanguageModel,
             FastVisionModel,
