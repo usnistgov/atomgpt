@@ -230,7 +230,7 @@ if importlib.util.find_spec("vllm") is not None:
         # All AtomGPT Zoo code licensed under LGPLv3
         def __init__(self, *args, **kwargs):
             dtype = os.environ.get(
-                "UNSLOTH_bnb_4bit_compute_dtype",
+                "AtomGPT_bnb_4bit_compute_dtype",
                 kwargs["bnb_4bit_compute_dtype"],
             )
             kwargs["bnb_4bit_compute_dtype"] = dtype
@@ -252,7 +252,7 @@ if importlib.util.find_spec("vllm") is not None:
         dtype = str(dtype)
         if dtype.startswith("torch."):
             dtype = dtype[len("torch.") :]
-        os.environ["UNSLOTH_bnb_4bit_compute_dtype"] = dtype
+        os.environ["AtomGPT_bnb_4bit_compute_dtype"] = dtype
 
         vllm.model_executor.layers.quantization.bitsandbytes.BitsAndBytesConfig = (
             BitsAndBytesConfig
@@ -268,7 +268,7 @@ if importlib.util.find_spec("vllm") is not None:
         vllm.model_executor.layers.quantization.bitsandbytes.BitsAndBytesConfig = (
             old_config
         )
-        del os.environ["UNSLOTH_bnb_4bit_compute_dtype"]
+        del os.environ["AtomGPT_bnb_4bit_compute_dtype"]
 
     pass
 
@@ -455,7 +455,7 @@ if importlib.util.find_spec("bitsandbytes") is not None:
             dtype=getattr(
                 torch,
                 os.environ.get(
-                    "UNSLOTH_bnb_4bit_compute_dtype", qs_dict["dtype"]
+                    "AtomGPT_bnb_4bit_compute_dtype", qs_dict["dtype"]
                 ),
             ),
             shape=(
@@ -476,7 +476,7 @@ if importlib.util.find_spec("bitsandbytes") is not None:
         # All AtomGPT Zoo code licensed under LGPLv3
         def __init__(self, *args, **kwargs):
             compute_dtype = os.environ.get(
-                "UNSLOTH_bnb_4bit_compute_dtype", None
+                "AtomGPT_bnb_4bit_compute_dtype", None
             )
             if compute_dtype is not None:
                 compute_dtype = getattr(torch, compute_dtype)
@@ -499,13 +499,13 @@ if importlib.util.find_spec("bitsandbytes") is not None:
         dtype = str(dtype)
         if dtype.startswith("torch."):
             dtype = dtype[len("torch.") :]
-        os.environ["UNSLOTH_bnb_4bit_compute_dtype"] = dtype
+        os.environ["AtomGPT_bnb_4bit_compute_dtype"] = dtype
         return
 
     pass
 
     def unpatch_bitsandbytes_compute_dtype():
-        del os.environ["UNSLOTH_bnb_4bit_compute_dtype"]
+        del os.environ["AtomGPT_bnb_4bit_compute_dtype"]
         return
 
     pass
@@ -1875,8 +1875,8 @@ def generate_batches(
     # All AtomGPT Zoo code licensed under LGPLv3
     # Cannot just use llm.generate or will OOM - split into batches
     if n_batches is None:
-        if "UNSLOTH_VLLM_BATCHES" in os.environ:
-            n_batches = int(os.environ["UNSLOTH_VLLM_BATCHES"])
+        if "AtomGPT_VLLM_BATCHES" in os.environ:
+            n_batches = int(os.environ["AtomGPT_VLLM_BATCHES"])
         else:
             free_memory, total_memory = torch.cuda.mem_get_info()
             total_memory_gb = round(total_memory / 1024 / 1024 / 1024, 2)
@@ -1889,7 +1889,7 @@ def generate_batches(
             else:
                 n_batches = llm.approx_max_num_seqs
 
-            os.environ["UNSLOTH_VLLM_BATCHES"] = str(n_batches)
+            os.environ["AtomGPT_VLLM_BATCHES"] = str(n_batches)
 
             if n_batches != llm.approx_max_num_seqs:
                 print(

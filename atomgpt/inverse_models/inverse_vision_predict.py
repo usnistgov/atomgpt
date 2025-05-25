@@ -1,43 +1,36 @@
-from unsloth import is_bf16_supported
-from unsloth.trainer import AtomGPTVisionDataCollator
-from atomgpt.inverse_models.vision_dataset import generate_dataset
 import torch
 import os
-from jarvis.db.figshare import data
-from tqdm import tqdm
-from jarvis.core.atoms import Atoms, get_supercell_dims, crop_square
-from jarvis.analysis.stem.convolution_apprx import STEMConv
-from jarvis.core.specie import Specie
 from PIL import Image
 import numpy as np
 from jarvis.io.vasp.inputs import Poscar
-from jarvis.analysis.defects.surface import Surface
-from trl import SFTTrainer, SFTConfig
 from transformers import TrainerCallback, TrainerState, TrainerControl
-from atomgpt.inverse_models.callbacks import (
-    PrintGPUUsageCallback,
-    ExampleTrainerCallback,
-)
-import json
+import sys
 from tqdm import tqdm
 from atomgpt.inverse_models.loader import (
     FastVisionModel,
 )  # FastLanguageModel for LLMs
-
-from jarvis.db.jsonutils import loadjson
-from datasets import Dataset
-
-from PIL import Image
-
-
-# model_name="unsloth/llava-v1.6-mistral-7b-hf-bnb-4bit"
-# model_name="unsloth/Llama-3.2-11B-Vision-Instruct"
-# model_name="unsloth/Pixtral-12B-2409"
-
-from transformers import TrainerCallback
 from jarvis.core.atoms import Atoms
-import numpy as np
 from jarvis.core.lattice import Lattice
+import argparse
+
+parser = argparse.ArgumentParser(
+    description="Atomistic Generative Pre-trained Transformer."
+)
+parser.add_argument(
+    "--model_name",
+    default="knc6/microscopy_gpt_llama3.2_vision_11b",
+    help="Name/path of the model",
+)
+parser.add_argument(
+    "--image_path",
+    default="atomgpt/examples/inverse_model_vision/C.png",
+    help="Path of STEM image",
+)
+parser.add_argument(
+    "--formula",
+    default="C",
+    help="Chemical formula of system",
+)
 
 
 def text2atoms(response):
@@ -105,10 +98,6 @@ def get_model(model_name="unsloth/Pixtral-12B-2409"):
         pass
 
     return model, tokenizer
-
-
-from PIL import Image
-import numpy as np
 
 
 def relax_atoms(
@@ -185,26 +174,32 @@ def process_image_to_bw_256(pil_image, size=256):
 
 
 def inference(
-    # model_name, image_path="Exp/MoS2.png"
-    # model_name, image_path="Exp/FeTe.png"
-    model_name,
-    image_path="Exp/C.png",
+    model_name="knc6/microscopy_gpt_llama3.2_vision_11b",
+    image_path="atomgpt/examples/inverse_model_vision/C.png",
+    formula="C",
     # model_name, image_path="dft_2d_formula_based/JVASP-6070_1x1x1_001.jpg"
 ):
     model, tokenizer = get_model(model_name=model_name)
     model.eval()
+    instruction = (
+        "The chemical formula is "
+        + str(formula)
+        + ". "
+        + "Generate atomic structure description with lattice lengths"
+        + ", angles, coordinates, and atom types. Also predict the Miller index."
+    )
 
     FastVisionModel.for_inference(model)  # Enable for training!
     print(f"\n🔍 Running evaluation on samples...")
 
     sample = {
-        "id": "JVASP-6070_1x1x1_001",
+        "id": "New",
         "messages": [
             {
                 "content": [
                     {
                         "type": "text",
-                        "text": "The chemical formula is TaS2. Generate atomic structure description with lattice lengths, angles, coordinates, and atom types. Also predict the Miller index.",
+                        "text": instruction,
                     },
                     {"type": "image", "text": None},
                 ],
@@ -214,7 +209,7 @@ def inference(
                 "content": [
                     {
                         "type": "text",
-                        "text": "\n3.34 3.34 25.76\n90 90 120\nTa 0.000 0.000 0.134\nS 0.667 0.333 0.073\nS 0.667 0.333 0.194. The miller index is (0 0 1). ",
+                        "text": "\n3.34 3.34 25.76\n90 90 120\nTa 0.000 0.000 0.1...",
                     }
                 ],
                 "role": "assistant",
@@ -222,15 +217,10 @@ def inference(
         ],
     }
 
-    # instruction = "The chemical formula is TaS2. Generate atomic structure description with lattice lengths, angles, coordinates, and atom types. Also predict the Miller index."
-    instruction = "The chemical formula is C. Generate atomic structure description with lattice lengths, angles, coordinates, and atom types. Also predict the Miller index."
-    # instruction = "The chemical formula is FeTe. Generate atomic structure description with lattice lengths, angles, coordinates, and atom types. Also predict the Miller index."
-    # instruction = "The chemical formula is MoS2. Generate atomic structure description with lattice lengths, angles, coordinates, and atom types. Also predict the Miller index."
-
     image = Image.open(image_path)
-    print("size", image.size)
+    # print("size", image.size)
     image = process_image_to_bw_256(image)
-    print("size", image.size)
+    # print("size", image.size)
 
     # Format prompt
     messages = [
@@ -260,29 +250,24 @@ def inference(
     generated = tokenizer.batch_decode(outputs)[0]
 
     # Target atoms
-    target_text = sample["messages"][1]["content"][0]["text"]
+    # target_text = sample["messages"][1]["content"][0]["text"]
 
-    target_atoms = text2atoms("assistant<|end_header_id|>\n" + target_text)
+    # target_atoms = text2atoms("assistant<|end_header_id|>\n" + target_text)
     pred_atoms = text2atoms(generated)
-    print("target_atoms", target_atoms)
-    print()
+    # print("target_atoms", target_atoms)
+    # print()
     print("pred_atoms", pred_atoms)
     print()
-    rel = relax_atoms(atoms=pred_atoms)
-    print("rel_atoms", rel)
-    print()
+    # rel = relax_atoms(atoms=pred_atoms)
+    # print("rel_atoms", rel)
+    # print()
 
 
 if __name__ == "__main__":
     # run(model_name="formula_output_dir_dft_2d_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-620")
-    d = loadjson("dft_2d_formula_based/dft_2d_test_dataset.json")[0:2]
-
+    args = parser.parse_args(sys.argv[1:])
     inference(
-        model_name="knc6/microscopy_gpt_llama3.2_vision_11b"
-        # model_name="c2db_formula_based_c2db_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-1970"
-        # model_name="formula_output_dir_dft_2d_formula_output_dir_dft_2d_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-620/checkpoint-11/"
+        model_name=args.model_name,
+        image_path=args.image_path,
+        formula=args.formula,
     )
-    # inference(model_name="formula_output_dir_dft_3d_dft_2d_unsloth/Pixtral-12B-2409/checkpoint-1240",datasets=d)
-    # inference(model_name="unsloth/Llama-3.2-11B-Vision-Instruct")
-    # d = loadjson(os.path.join("formula_based", "dft_2d_test_dataset.json"))
-    # db_inference(d=d,model_path="formula_output_dir_dft_3d_dft_2d_unsloth/Pixtral-12B-2409/checkpoint-1240",output_folder="formula_based")

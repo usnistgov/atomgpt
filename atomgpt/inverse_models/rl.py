@@ -279,10 +279,10 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "use_bf16 = getattr(args, 'bf16', False)\n"
             "use_fp16 = getattr(args, 'fp16', False)\n"
             "force_float32 = False\n"
-            "if os.environ.get('UNSLOTH_FORCE_FLOAT32', '0') == '1':\n"
+            "if os.environ.get('AtomGPT_FORCE_FLOAT32', '0') == '1':\n"
             "    print('AtomGPT: Switching to float32 training since model cannot work with float16')\n"
             "    force_float32 = True\n"
-            "mixed_precision_dtype = os.environ.get('UNSLOTH_MIXED_PRECISION', 'float32')\n"
+            "mixed_precision_dtype = os.environ.get('AtomGPT_MIXED_PRECISION', 'float32')\n"
             "dtype = getattr(model.config, 'torch_dtype', None)\n"
             "if dtype is None: dtype = model.get_input_embeddings().dtype\n"
             "from atomgpt.inverse_models._utils2 import _get_dtype\n"
@@ -340,7 +340,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "if force_float32:\n"
             "    args.bf16_full_eval = False\n"
             "    args.fp16_full_eval = False\n"
-            "elif os.environ.get('UNSLOTH_MIXED_PRECISION', 'float32') == 'bfloat16':\n"
+            "elif os.environ.get('AtomGPT_MIXED_PRECISION', 'float32') == 'bfloat16':\n"
             "    args.bf16_full_eval = True\n"
             "    args.fp16_full_eval = False\n"
             "elif not bf16_full_eval and not fp16_full_eval:\n"
@@ -357,7 +357,7 @@ def _patch_trl_rl_trainers(trainer_file="grpo_trainer"):
             "if locals().get('compute_metrics', None) is not None: _output_logits = True\n"
             "if locals().get('preprocess_logits_for_metrics', None) is not None: _output_logits = True\n"
             "if _output_logits:\n"
-            "    os.environ['UNSLOTH_RETURN_LOGITS'] = '1'\n"
+            "    os.environ['AtomGPT_RETURN_LOGITS'] = '1'\n"
         )
         extra_args += logits_check
     pass

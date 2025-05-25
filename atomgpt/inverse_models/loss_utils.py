@@ -9,17 +9,17 @@ major, minor = torch.cuda.get_device_capability()
 import inspect
 
 global HAS_CUT_CROSS_ENTROPY
-global UNSLOTH_STUDIO_ENABLED
+global AtomGPT_STUDIO_ENABLED
 import importlib.util
 
 if importlib.util.find_spec("unsloth_studio") is None:
-    UNSLOTH_STUDIO_ENABLED = False
+    AtomGPT_STUDIO_ENABLED = False
 else:
-    UNSLOTH_STUDIO_ENABLED = (
-        os.environ.get("UNSLOTH_STUDIO_DISABLED", "0") == "0"
+    AtomGPT_STUDIO_ENABLED = (
+        os.environ.get("AtomGPT_STUDIO_DISABLED", "0") == "0"
     )
 pass
-if UNSLOTH_STUDIO_ENABLED:
+if AtomGPT_STUDIO_ENABLED:
     from unsloth_studio.losses import (
         unsloth_efficient_ce_loss,
     )
@@ -123,7 +123,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
             "epilogue_fusion": True,
             "max_autotune": False,
             "shape_padding": True,
-            "trace.enabled": os.environ.get("UNSLOTH_COMPILE_DEBUG", "0")
+            "trace.enabled": os.environ.get("AtomGPT_COMPILE_DEBUG", "0")
             == "1",
             "triton.cudagraphs": False,
         }
@@ -153,7 +153,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile=True):
         )
     pass
     print("AtomGPT: Patched cross entropy losses.")
-    os.environ["UNSLOTH_PATCHED"] = "1"
+    os.environ["AtomGPT_PATCHED"] = "1"
 
 
 pass

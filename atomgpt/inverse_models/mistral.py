@@ -260,7 +260,7 @@ def MistralForCausalLM_fast_forward(
         labels = labels.to(lm_head_device)
 
     # If we are in GRPO mode, return raw hidden states
-    if os.environ.get("UNSLOTH_RETURN_HIDDEN_STATES", "0") == "1":
+    if os.environ.get("AtomGPT_RETURN_HIDDEN_STATES", "0") == "1":
         num_logits_to_keep = max(num_logits_to_keep, logits_to_keep)
         if num_logits_to_keep != 0:
             hidden_states = hidden_states[:, -num_logits_to_keep:, :]
@@ -281,7 +281,7 @@ def MistralForCausalLM_fast_forward(
             hidden_states[:, -num_logits_to_keep:, :].to(lm_head.dtype)
         )
     else:
-        RETURN_LOGITS = os.environ.get("UNSLOTH_RETURN_LOGITS", "0") == "1"
+        RETURN_LOGITS = os.environ.get("AtomGPT_RETURN_LOGITS", "0") == "1"
         # < 1024 Normal AtomGPT uses less VRAM!
         if bsz * q_len <= 1024:
             RETURN_LOGITS = True

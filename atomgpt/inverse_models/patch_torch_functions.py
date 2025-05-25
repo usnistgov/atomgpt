@@ -4,12 +4,12 @@ __all__ = [
 
 import os
 
-UNSLOTH_COMPILE_DEBUG = os.environ.get("UNSLOTH_COMPILE_DEBUG", "0") == "1"
+AtomGPT_COMPILE_DEBUG = os.environ.get("AtomGPT_COMPILE_DEBUG", "0") == "1"
 torch_compile_options = {
     "epilogue_fusion": True,
     "max_autotune": False,
     "shape_padding": True,
-    "trace.enabled": UNSLOTH_COMPILE_DEBUG,
+    "trace.enabled": AtomGPT_COMPILE_DEBUG,
     "triton.cudagraphs": False,
 }
 from torch import Tensor

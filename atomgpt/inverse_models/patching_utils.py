@@ -11,14 +11,14 @@ __all__ = [
     "patch_compiled_autograd",
 ]
 
-from atomgpt.inverse_models.compiler import UNSLOTH_COMPILE_LOCATION
+from atomgpt.inverse_models.compiler import AtomGPT_COMPILE_LOCATION
 from atomgpt.inverse_models._utils2 import _get_dtype
 
 
 # Also disable compiling on bitsandbytes
 def patch_compiling_bitsandbytes():
     # All AtomGPT Zoo code licensed under LGPLv3
-    os.environ["UNSLOTH_PATCHED"] = "1"
+    os.environ["AtomGPT_PATCHED"] = "1"
 
     # Disable dynamo on Linear4bit, Linear8bit and other future modules
     for x in [
@@ -59,7 +59,7 @@ def patch_layernorm(fast_layernorm):
     import torch.nn
 
     if torch.nn.LayerNorm.__name__ != "AtomGPT_LayerNorm":
-        os.environ["UNSLOTH_PATCHED"] = "1"
+        os.environ["AtomGPT_PATCHED"] = "1"
 
         from torch.nn import LayerNorm
 
@@ -110,17 +110,17 @@ def patch_torch_compile(debug=False, O3=False, ignore_errors=True):
         torch._logging.set_logs(all=logging.CRITICAL)
         torch._dynamo.config.verbose = False
     pass
-    try:
-        print(
-            f"AtomGPT will now patch everything{DEBUGGING} to make training faster!"
-        )
-    except:
-        print(
-            f"AtomGPT will now patch everything{DEBUGGING} to make training faster!"
-        )
-    pass
+    # try:
+    #    print(
+    #        f"AtomGPT will now patch everything{DEBUGGING} to make training faster!"
+    #    )
+    # except:
+    #    print(
+    #        f"AtomGPT will now patch everything{DEBUGGING} to make training faster!"
+    #    )
+    # pass
 
-    os.environ["UNSLOTH_PATCHED"] = "1"
+    os.environ["AtomGPT_PATCHED"] = "1"
     # See https://pytorch.org/tutorials/recipes/torch_compile_caching_tutorial.html
     # Caches kernel generations for faster restarts
     # https://dev-discuss.pytorch.org/t/impact-of-multithreading-and-local-caching-on-torch-compile/2498/3
@@ -129,7 +129,7 @@ def patch_torch_compile(debug=False, O3=False, ignore_errors=True):
     os.environ.pop("TORCHINDUCTOR_CACHE_DIR", None)
 
     # Duplicate functions will cause hashing issues
-    # os.environ["TORCHINDUCTOR_CACHE_DIR"] = UNSLOTH_COMPILE_LOCATION
+    # os.environ["TORCHINDUCTOR_CACHE_DIR"] = AtomGPT_COMPILE_LOCATION
 
     # https://github.com/sayakpaul/diffusers-torchao?tab=readme-ov-file#things-to-keep-in-mind-when-benchmarking
     os.environ["ENABLE_AOT_AUTOGRAD_CACHE"] = "1"
@@ -569,7 +569,7 @@ def check_conversion_mappings(model, current_key_name_str, skip_modules):
                 except Exception as e:
                     # skip this pattern but log
                     do_logging = (
-                        os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
+                        os.environ.get("AtomGPT_ENABLE_LOGGING", "0") == "1"
                     )
                     if do_logging:
                         print(f"AtomGPT: Replace bnb issue: {str(e)}")
@@ -688,7 +688,7 @@ if hasattr(
             "_mark_parent" not in new_source
             and "_unmark_parent" not in new_source
         ):
-            do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
+            do_logging = os.environ.get("AtomGPT_ENABLE_LOGGING", "0") == "1"
             if do_logging:
                 print(
                     f"AtomGPT: Could not wrap replace_with_bnb_linear but may not be an issue"
@@ -698,7 +698,7 @@ if hasattr(
             source = new_source
 
     except Exception as e:
-        do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
+        do_logging = os.environ.get("AtomGPT_ENABLE_LOGGING", "0") == "1"
         if do_logging:
             print(
                 f"AtomGPT: Could not wrap replace_with_bnb_linear but may not be an issue. {str(e)}"

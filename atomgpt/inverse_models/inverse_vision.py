@@ -19,25 +19,51 @@ from atomgpt.inverse_models.callbacks import (
 )
 import json
 from tqdm import tqdm
-
-# from inference import db_inference
+import argparse
 from atomgpt.inverse_models.loader import (
     FastVisionModel,
 )  # FastLanguageModel for LLMs
 from jarvis.db.jsonutils import loadjson
 from datasets import Dataset
-
-
-# model_name="unsloth/llava-v1.6-mistral-7b-hf-bnb-4bit"
-# model_name="unsloth/Llama-3.2-11B-Vision-Instruct"
-# model_name="unsloth/Pixtral-12B-2409"
-
 from transformers import TrainerCallback
 from jarvis.core.atoms import Atoms
 import numpy as np
 from jarvis.core.lattice import Lattice
+import sys
 
 is_bf16_supported = torch.cuda.is_bf16_supported
+
+parser = argparse.ArgumentParser(
+    description="Atomistic Generative Pre-trained Transformer."
+)
+parser.add_argument(
+    "--model_name",
+    default="knc6/microscopy_gpt_llama3.2_vision_11b",
+    help="Name of the model",
+)
+parser.add_argument(
+    "--dataset",
+    default="dft_2d",
+    help="Name of the dataset"
+    + "from https://pages.nist.gov/jarvis/databases/",
+)
+parser.add_argument(
+    "--id_tag",
+    default="jid",
+    help="ID tag",
+)
+
+parser.add_argument(
+    "--output_folder",
+    default="formula_based",
+    help="Chemical information format",
+)
+
+parser.add_argument(
+    "--max_samples",
+    default=None,
+    help="Max. no. of samples, None=all",
+)
 
 
 def text2atoms(response):
@@ -310,13 +336,17 @@ def run(
     id_tag="jid",
     model_name="unsloth/Llama-3.2-11B-Vision-Instruct",
     output_folder="formula_based",
+    max_samples=None,
 ):
     # def run(datasets=["dft_3d", "dft_2d"], model_name="unsloth/Pixtral-12B-2409"):
     train_datasets = []
     test_datasets = []
     for i in datasets:
         train_dataset, test_dataset = generate_dataset(
-            dataset_name=i, output_folder=output_folder, id_tag=id_tag
+            dataset_name=i,
+            output_folder=output_folder,
+            id_tag=id_tag,
+            max_samples=max_samples,
         )
         train_datasets.extend(train_dataset)
         test_datasets.extend(test_dataset)
@@ -399,10 +429,22 @@ def run(
 
 if __name__ == "__main__":
     # run(model_name="formula_output_dir_dft_2d_unsloth/Llama-3.2-11B-Vision-Instruct/checkpoint-620")
+    args = parser.parse_args(sys.argv[1:])
+    max_samples = None
+    if args.max_samples is not None:
+        max_samples = int(args.max_samples)
     run(
-        model_name="knc6/microscopy_gpt_llama3.2_vision_11b",
-        datasets=["dft_2d"],
-        # model_name="unsloth/Llama-3.2-11B-Vision-Instruct", datasets=["dft_2d"]
+        model_name=args.model_name,
+        datasets=[args.dataset],
+        id_tag=args.id_tag,
+        output_folder=args.output_folder,
+        max_samples=max_samples,
     )
+
+    # run(
+    #    model_name="knc6/microscopy_gpt_llama3.2_vision_11b",
+    #    datasets=["dft_2d"],
+    #    # model_name="unsloth/Llama-3.2-11B-Vision-Instruct", datasets=["dft_2d"]
+    # )
     # d = loadjson(os.path.join("formula_based", "dft_2d_test_dataset.json"))
     # db_inference(d=d,model_path="formula_output_dir_dft_3d_dft_2d_unsloth/Pixtral-12B-2409/checkpoint-1240",output_folder="formula_based")

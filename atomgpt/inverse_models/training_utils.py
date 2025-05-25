@@ -107,16 +107,16 @@ def prepare_model_for_training(
     if dtype == torch.float16:
         # We need to upcast to float32
         mixed_precision_dtype = torch.float32
-        os.environ["UNSLOTH_MIXED_PRECISION"] = "float32"
+        os.environ["AtomGPT_MIXED_PRECISION"] = "float32"
     elif dtype == torch.bfloat16 and float32_mixed_precision:
         mixed_precision_dtype = torch.float32
-        os.environ["UNSLOTH_MIXED_PRECISION"] = "float32"
+        os.environ["AtomGPT_MIXED_PRECISION"] = "float32"
     elif dtype == torch.bfloat16:
         mixed_precision_dtype = torch.bfloat16
-        os.environ["UNSLOTH_MIXED_PRECISION"] = "bfloat16"
+        os.environ["AtomGPT_MIXED_PRECISION"] = "bfloat16"
     else:
         mixed_precision_dtype = torch.float32
-        os.environ["UNSLOTH_MIXED_PRECISION"] = "float32"
+        os.environ["AtomGPT_MIXED_PRECISION"] = "float32"
     pass
     for name, param in model.named_parameters():
         upcast = False

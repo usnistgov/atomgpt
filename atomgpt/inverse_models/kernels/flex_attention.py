@@ -7,7 +7,7 @@ torch_compile_options = {
     "epilogue_fusion": True,
     "max_autotune": True,
     "shape_padding": True,
-    "trace.enabled": os.environ.get("UNSLOTH_COMPILE_DEBUG", "0") == "1",
+    "trace.enabled": os.environ.get("AtomGPT_COMPILE_DEBUG", "0") == "1",
     "triton.cudagraphs": False,
 }
 

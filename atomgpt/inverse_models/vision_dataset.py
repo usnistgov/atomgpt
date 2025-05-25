@@ -1,5 +1,6 @@
 """Module to simulate STEM images using convoltuin approximation."""
 
+# AtomVision: https://github.com/usnistgov/atomvision
 # Adapted from https://github.com/jacobjma/fourier-scale-calibration
 import numpy as np
 from scipy.interpolate import interp1d
@@ -553,7 +554,7 @@ def generate_dataset(
     output_folder="pi_image_dataset_with_artifacts",
     train_ratio=0.9,
     miller_indices=[],
-    max_samples=10,
+    max_samples=None,
     id_tag="jid",
 ):
     # if dataset_name == "dft_2d":

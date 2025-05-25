@@ -4,10 +4,7 @@ import os
 import atomgpt
 import torch
 
-config = os.path.join(
-    atomgpt.__path__[0], "examples", "inverse_model", "config.json"
-)
-print("config", config)
+# print("config", config)
 
 
 # """
@@ -31,14 +28,17 @@ def test_inverse():
         model, tokenizer = FastVisionModel.from_pretrained(
             model_name="knc6/microscopy_gpt_llama3.2_vision_11b"
         )
-        # try:
-        #    main(config)
-        # except Exception as exp:
-        #    print("exp", exp)
-        #    pass
+        try:
+            config = os.path.join(
+                atomgpt.__path__[0], "examples", "inverse_model", "config.json"
+            )
+            main(config)
+        except Exception as exp:
+            print("exp", exp)
+            pass
 
 
-# test_inverse()
+test_inverse()
 # """
 
 # atomgpt/examples/inverse_model/config.json

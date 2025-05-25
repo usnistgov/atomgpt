@@ -62,6 +62,7 @@ class TrainingPropConfig(BaseSettings):
     convert: bool = True
     pretrained_path: str = ""
     seed_val: int = 42
+    output_length: int = 1
     n_train: Optional[int] = None
     n_val: Optional[int] = None
     n_test: Optional[int] = None
@@ -488,7 +489,7 @@ def main(config_file=None):
         # torch.nn.Dropout(p=0.2),
         # torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=latent_dim, nhead=4), num_layers=2),
         # torch.nn.Linear(256, 1),
-        torch.nn.Linear(latent_dim, 1),
+        torch.nn.Linear(latent_dim, config.output_length),
     )
     if pretrained_path != "":
         model.load_state_dict(torch.load(pretrained_path, map_location=device))

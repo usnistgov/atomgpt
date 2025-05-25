@@ -172,7 +172,7 @@ def unsloth_base_fast_generate(
         pass
 
     # Mixed precision autocast
-    if os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "1":
+    if os.environ.get("AtomGPT_FORCE_FLOAT32", "0") == "1":
         autocaster = torch.autocast(device_type="cuda", dtype=torch.float16)
         dtype = torch.float16
     else:
@@ -195,7 +195,7 @@ def unsloth_base_fast_generate(
     # Use hybrid if sliding window seen, otherwise try static
     cache_implementation = getattr(self.config, "cache_implementation", None)
     if getattr(self, "_supports_static_cache", True):
-        if os.environ.get("UNSLOTH_DISABLE_STATIC_GENERATION", "0") == "0":
+        if os.environ.get("AtomGPT_DISABLE_STATIC_GENERATION", "0") == "0":
             cache_implementation = "static"
         else:
             cache_implementation = None
@@ -269,7 +269,7 @@ class FastBaseModel:
                 "AtomGPT: Please use FastModel or FastVisionModel and not use FastBaseModel directly!"
             )
 
-        os.environ["UNSLOTH_USE_NEW_MODEL"] = "1"
+        os.environ["AtomGPT_USE_NEW_MODEL"] = "1"
         if trust_remote_code:
             print(
                 "AtomGPT: WARNING `trust_remote_code` is True.\n"
@@ -325,7 +325,7 @@ class FastBaseModel:
 
         if dtype is None:
             dtype = torch.float16 if not SUPPORTS_BFLOAT16 else torch.bfloat16
-        elif os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "1":
+        elif os.environ.get("AtomGPT_FORCE_FLOAT32", "0") == "1":
             if dtype == torch.float16:
                 dtype = torch.bfloat16
         elif dtype == torch.bfloat16 and not SUPPORTS_BFLOAT16:
@@ -338,7 +338,7 @@ class FastBaseModel:
 
         bnb_compute_dtype = dtype
         do_forced_float32 = False
-        if os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "1":
+        if os.environ.get("AtomGPT_FORCE_FLOAT32", "0") == "1":
             print(
                 f"AtomGPT: Using float16 precision for {model_type_arch} won't work! Using float32."
             )
@@ -349,8 +349,8 @@ class FastBaseModel:
         # Check for custom data-types
         custom_datatype = None
         correct_dtype = None
-        if os.environ.get("UNSLOTH_FORCE_CUSTOM_DTYPE", "") != "":
-            custom_datatype = os.environ["UNSLOTH_FORCE_CUSTOM_DTYPE"]
+        if os.environ.get("AtomGPT_FORCE_CUSTOM_DTYPE", "") != "":
+            custom_datatype = os.environ["AtomGPT_FORCE_CUSTOM_DTYPE"]
             assert custom_datatype.count(";") == 1
             bnb_compute_dtype, custom_datatype = custom_datatype.split(";", 1)
             dtype = torch.float32
@@ -401,7 +401,7 @@ class FastBaseModel:
         pass
 
         if full_finetuning:
-            os.environ["UNSLOTH_ENABLE_FULL_FINETUNING"] = "1"
+            os.environ["AtomGPT_ENABLE_FULL_FINETUNING"] = "1"
             if dtype == torch.bfloat16:
                 print(
                     "AtomGPT: Using bfloat16 full finetuning which cuts memory usage by 50%."
@@ -411,7 +411,7 @@ class FastBaseModel:
                     "AtomGPT: Float16 full finetuning uses more memory since we upcast weights to float32."
                 )
         else:
-            os.environ["UNSLOTH_ENABLE_FULL_FINETUNING"] = "0"
+            os.environ["AtomGPT_ENABLE_FULL_FINETUNING"] = "0"
         pass
 
         # Cannot be None, since HF now checks for the config
@@ -524,7 +524,7 @@ class FastBaseModel:
         m.is_loaded_in_8bit = True if not full_finetuning else False
 
         # Patch generate
-        if os.environ.get("UNSLOTH_DISABLE_FAST_GENERATION", "0") == "0":
+        if os.environ.get("AtomGPT_DISABLE_FAST_GENERATION", "0") == "0":
             if model.generate.__name__ != "unsloth_base_fast_generate":
                 model._old_generate = model.generate
                 unsloth_base_fast_generate.__doc__ = (
@@ -575,7 +575,7 @@ class FastBaseModel:
         temporary_location="_unsloth_temporary_saved_buffers",
         **kwargs,
     ):
-        if os.environ.get("UNSLOTH_ENABLE_FULL_FINETUNING", "0") == "1":
+        if os.environ.get("AtomGPT_ENABLE_FULL_FINETUNING", "0") == "1":
             print(
                 "AtomGPT: Full finetuning is enabled, so .get_peft_model has no effect"
             )
@@ -670,7 +670,7 @@ class FastBaseModel:
         trust_remote_code=False,
     ):
         full_finetuning = (
-            os.environ.get("UNSLOTH_ENABLE_FULL_FINETUNING", "0") == "1"
+            os.environ.get("AtomGPT_ENABLE_FULL_FINETUNING", "0") == "1"
         )
 
         float32_mixed_precision = True

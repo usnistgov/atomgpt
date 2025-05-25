@@ -53,7 +53,7 @@ from atomgpt.inverse_models.kernels.flex_attention import (
 )
 
 # import os
-# if "UNSLOTH_ZOO_IS_PRESENT" not in os.environ:
+# if "AtomGPT_ZOO_IS_PRESENT" not in os.environ:
 #    try:
 #        print("AtomGPT: Will patch your computer to enable 2x faster free finetuning.")
 #    except:

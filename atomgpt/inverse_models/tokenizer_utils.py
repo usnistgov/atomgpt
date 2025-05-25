@@ -720,7 +720,7 @@ IGNORED_TOKENIZER_NAMES = frozenset(
     [x.lower() for x in IGNORED_TOKENIZER_NAMES]
     + [x.lower() + "-bnb-4bit" for x in IGNORED_TOKENIZER_NAMES]
 )
-os.environ["UNSLOTH_IGNORED_TOKENIZER_NAMES"] = "\n".join(
+os.environ["AtomGPT_IGNORED_TOKENIZER_NAMES"] = "\n".join(
     IGNORED_TOKENIZER_NAMES
 )
 

@@ -335,7 +335,7 @@ def grpo_accumulated_loss(
         if os.environ.get("ACCELERATE_MIXED_PRECISION", "fp16") == "fp16"
         else torch.bfloat16
     )
-    os.environ["UNSLOTH_RETURN_HIDDEN_STATES"] = "1"
+    os.environ["AtomGPT_RETURN_HIDDEN_STATES"] = "1"
 
     completion_input_ids = input_ids[:, -logits_to_keep:]
     lm_head = trainer.model.get_output_embeddings().weight
@@ -399,7 +399,7 @@ def sft_trainer_fix_untrained_tokens(call_args, extra_args):
     """
     if "model" in call_args and "train_dataset" in call_args:
         fix_tokenizer = \
-        "IGNORED_TOKENIZER_NAMES = os.environ.get('UNSLOTH_IGNORED_TOKENIZER_NAMES', '').split('\\n')\n"\
+        "IGNORED_TOKENIZER_NAMES = os.environ.get('AtomGPT_IGNORED_TOKENIZER_NAMES', '').split('\\n')\n"\
         "from atomgpt.inverse_models.tokenizer_utils import fix_untrained_tokens\n"\
         "from atomgpt.inverse_models.training_utils  import fix_zero_training_loss\n"\
         "if 'tokenizer' not in locals(): tokenizer = processing_class\n"\
@@ -557,7 +557,7 @@ def grpo_trainer__prepare_inputs(function_name, function):
         "torch.amp.autocast(device_type = 'cuda', "
         "dtype = ((torch.float16 if os.environ.get('ACCELERATE_MIXED_PRECISION', 'fp16') == 'fp16' else torch.bfloat16) "
         "if not torch.is_autocast_enabled('cuda') else nullcontext())"
-        "if os.environ.get('UNSLOTH_FORCE_FLOAT32', '0') == '0' else torch.float16):",
+        "if os.environ.get('AtomGPT_FORCE_FLOAT32', '0') == '0' else torch.float16):",
     )
 
     # Disable attaching a float32 conversion hook which upcasts logits to FP32
@@ -596,7 +596,7 @@ def grpo_trainer__get_per_token_logps(function_name, function):
     def _get_per_token_logps(
         self, model, input_ids, attention_mask, logits_to_keep
     ):
-        if os.environ.get("UNSLOTH_USE_NEW_MODEL", "0") == "0":
+        if os.environ.get("AtomGPT_USE_NEW_MODEL", "0") == "0":
             return None  # AtomGPT efficient GRPO
         # Otherwise, calculate normally:
         if not hasattr(self, "_autocast_dtype"):
@@ -606,7 +606,7 @@ def grpo_trainer__get_per_token_logps(function_name, function):
                 == "fp16"
                 else torch.bfloat16
             )
-            if os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "1":
+            if os.environ.get("AtomGPT_FORCE_FLOAT32", "0") == "1":
                 self._autocast_dtype = torch.float16
         with torch.amp.autocast(
             device_type="cuda", dtype=self._autocast_dtype

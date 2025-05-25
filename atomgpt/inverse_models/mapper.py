@@ -839,7 +839,7 @@ __INT_TO_FLOAT_MAPPER = {
 
 INT_TO_FLOAT_MAPPER = {}
 FLOAT_TO_INT_MAPPER = {}
-MAP_TO_UNSLOTH_16bit = {}
+MAP_TO_AtomGPT_16bit = {}
 
 for key, values in __INT_TO_FLOAT_MAPPER.items():
     INT_TO_FLOAT_MAPPER[key] = values[0]
@@ -851,16 +851,16 @@ for key, values in __INT_TO_FLOAT_MAPPER.items():
     # Map to AtomGPT version for 16bit versions
     if len(values) == 2:
         if values[0].startswith("unsloth"):
-            MAP_TO_UNSLOTH_16bit[values[1]] = values[0]
-            MAP_TO_UNSLOTH_16bit[values[1].lower()] = values[0]
+            MAP_TO_AtomGPT_16bit[values[1]] = values[0]
+            MAP_TO_AtomGPT_16bit[values[1].lower()] = values[0]
         pass
     elif len(values) == 3:
         # Dynamic AtomGPT quantization
         if values[0].startswith("unsloth"):
-            MAP_TO_UNSLOTH_16bit[values[1]] = values[0]
-            MAP_TO_UNSLOTH_16bit[values[1].lower()] = values[0]
-            MAP_TO_UNSLOTH_16bit[values[2]] = values[0]
-            MAP_TO_UNSLOTH_16bit[values[2].lower()] = values[0]
+            MAP_TO_AtomGPT_16bit[values[1]] = values[0]
+            MAP_TO_AtomGPT_16bit[values[1].lower()] = values[0]
+            MAP_TO_AtomGPT_16bit[values[2]] = values[0]
+            MAP_TO_AtomGPT_16bit[values[2].lower()] = values[0]
         pass
     pass
 

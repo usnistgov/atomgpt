@@ -678,10 +678,10 @@ pass
 
 # =============================================
 # Torch compile settings
-UNSLOTH_COMPILE_DEBUG = os.environ.get("UNSLOTH_COMPILE_DEBUG", "0") == "1"
-UNSLOTH_COMPILE_MAXIMUM = os.environ.get("UNSLOTH_COMPILE_MAXIMUM", "0") == "1"
-UNSLOTH_COMPILE_IGNORE_ERRORS = (
-    os.environ.get("UNSLOTH_COMPILE_IGNORE_ERRORS", "1") == "1"
+AtomGPT_COMPILE_DEBUG = os.environ.get("AtomGPT_COMPILE_DEBUG", "0") == "1"
+AtomGPT_COMPILE_MAXIMUM = os.environ.get("AtomGPT_COMPILE_MAXIMUM", "0") == "1"
+AtomGPT_COMPILE_IGNORE_ERRORS = (
+    os.environ.get("AtomGPT_COMPILE_IGNORE_ERRORS", "1") == "1"
 )
 # Just remove max_autotune_gemm warning
 import functools
@@ -700,16 +700,16 @@ import torch._inductor.utils
 
 torch._inductor.utils.is_big_gpu = is_big_gpu
 patch_torch_compile(
-    debug=UNSLOTH_COMPILE_DEBUG,
-    O3=UNSLOTH_COMPILE_MAXIMUM,
-    ignore_errors=UNSLOTH_COMPILE_IGNORE_ERRORS,
+    debug=AtomGPT_COMPILE_DEBUG,
+    O3=AtomGPT_COMPILE_MAXIMUM,
+    ignore_errors=AtomGPT_COMPILE_IGNORE_ERRORS,
 )
 
 torch_compile_options = {
     "epilogue_fusion": True,
     "max_autotune": True,
     "shape_padding": True,
-    "trace.enabled": UNSLOTH_COMPILE_DEBUG,
+    "trace.enabled": AtomGPT_COMPILE_DEBUG,
     "triton.cudagraphs": False,
 }
 
@@ -742,7 +742,7 @@ def patch_regional_compilation():
         return
 
     old_module_list = torch.nn.ModuleList
-    os.environ["UNSLOTH_PATCHED"] = "1"
+    os.environ["AtomGPT_PATCHED"] = "1"
 
     def AtomGPTModuleList(*args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and type(args[0]) is list:
@@ -912,10 +912,10 @@ def get_statistics():
     # We log some basic stats about which environment is being used.
     # We simply download a README.md file from HF - all data is made public.
     # This is simply so we can check if some envs are broken or not.
-    # You can disable this by setting UNSLOTH_DISABLE_STATISTICS
+    # You can disable this by setting AtomGPT_DISABLE_STATISTICS
     import os
 
-    if "UNSLOTH_DISABLE_STATISTICS" in os.environ:
+    if "AtomGPT_DISABLE_STATISTICS" in os.environ:
         return
     from huggingface_hub.utils import (
         disable_progress_bars,
@@ -1634,14 +1634,14 @@ def unsloth_compile_transformers(
 pass
 
 # We need an empty logits flag to warn people logits will not be returned anymore unless asked ie
-# os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+# os.environ['AtomGPT_RETURN_LOGITS'] = '1'
 LOGITS_ERROR_STRING = (
     "AtomGPT: Logits are empty from 2024.11 onwards. To get raw logits again, please "
-    'set the environment variable `UNSLOTH_RETURN_LOGITS` to `"1" BEFORE starting to train ie before `trainer.train()`. For example:\n'
+    'set the environment variable `AtomGPT_RETURN_LOGITS` to `"1" BEFORE starting to train ie before `trainer.train()`. For example:\n'
     "```\nimport os\n"
-    "os.environ['UNSLOTH_RETURN_LOGITS'] = '1'\n"
+    "os.environ['AtomGPT_RETURN_LOGITS'] = '1'\n"
     "trainer.train()\n```\n"
-    "No need to restart your console - just add `os.environ['UNSLOTH_RETURN_LOGITS'] = '1'` before trainer.train() and re-run the cell!"
+    "No need to restart your console - just add `os.environ['AtomGPT_RETURN_LOGITS'] = '1'` before trainer.train() and re-run the cell!"
 )
 
 
@@ -1688,7 +1688,7 @@ pass
 
 import importlib
 
-USE_MODELSCOPE = os.environ.get("UNSLOTH_USE_MODELSCOPE", "0") == "1"
+USE_MODELSCOPE = os.environ.get("AtomGPT_USE_MODELSCOPE", "0") == "1"
 if USE_MODELSCOPE:
     if importlib.util.find_spec("modelscope") is None:
         raise ImportError(

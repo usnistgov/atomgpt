@@ -1,7 +1,7 @@
 from atomgpt.inverse_models.mapper import (
     INT_TO_FLOAT_MAPPER,
     FLOAT_TO_INT_MAPPER,
-    MAP_TO_UNSLOTH_16bit,
+    MAP_TO_AtomGPT_16bit,
 )
 
 # https://github.com/huggingface/transformers/pull/26037 allows 4 bit loading!
@@ -25,7 +25,7 @@ def __get_model_name(
     load_in_4bit=True,
     INT_TO_FLOAT_MAPPER=None,
     FLOAT_TO_INT_MAPPER=None,
-    MAP_TO_UNSLOTH_16bit=None,
+    MAP_TO_AtomGPT_16bit=None,
 ):
     model_name = str(model_name)
     lower_model_name = model_name.lower()
@@ -51,9 +51,9 @@ def __get_model_name(
         # )
         return new_model_name
 
-    elif not load_in_4bit and lower_model_name in MAP_TO_UNSLOTH_16bit:
+    elif not load_in_4bit and lower_model_name in MAP_TO_AtomGPT_16bit:
 
-        new_model_name = MAP_TO_UNSLOTH_16bit[lower_model_name]
+        new_model_name = MAP_TO_AtomGPT_16bit[lower_model_name]
         return new_model_name
 
     elif (
@@ -94,14 +94,14 @@ def _get_new_mapper():
                 "INT_TO_FLOAT_MAPPER", "NEW_INT_TO_FLOAT_MAPPER"
             )
             .replace("FLOAT_TO_INT_MAPPER", "NEW_FLOAT_TO_INT_MAPPER")
-            .replace("MAP_TO_UNSLOTH_16bit", "NEW_MAP_TO_UNSLOTH_16bit")
+            .replace("MAP_TO_AtomGPT_16bit", "NEW_MAP_TO_AtomGPT_16bit")
         )
 
         exec(new_mapper, globals())
         return (
             NEW_INT_TO_FLOAT_MAPPER,
             NEW_FLOAT_TO_INT_MAPPER,
-            NEW_MAP_TO_UNSLOTH_16bit,
+            NEW_MAP_TO_AtomGPT_16bit,
         )
     except:
         return {}, {}, {}
@@ -117,7 +117,7 @@ def get_model_name(model_name, load_in_4bit=True):
         load_in_4bit=load_in_4bit,
         INT_TO_FLOAT_MAPPER=INT_TO_FLOAT_MAPPER,
         FLOAT_TO_INT_MAPPER=FLOAT_TO_INT_MAPPER,
-        MAP_TO_UNSLOTH_16bit=MAP_TO_UNSLOTH_16bit,
+        MAP_TO_AtomGPT_16bit=MAP_TO_AtomGPT_16bit,
     )
     # In the rare case, we convert bad model names to other names
     # For eg too large dynamic quants or MoEs
@@ -137,14 +137,14 @@ def get_model_name(model_name, load_in_4bit=True):
         (
             NEW_INT_TO_FLOAT_MAPPER,
             NEW_FLOAT_TO_INT_MAPPER,
-            NEW_MAP_TO_UNSLOTH_16bit,
+            NEW_MAP_TO_AtomGPT_16bit,
         ) = _get_new_mapper()
         upgraded_model_name = __get_model_name(
             model_name=model_name,
             load_in_4bit=load_in_4bit,
             INT_TO_FLOAT_MAPPER=NEW_INT_TO_FLOAT_MAPPER,
             FLOAT_TO_INT_MAPPER=NEW_FLOAT_TO_INT_MAPPER,
-            MAP_TO_UNSLOTH_16bit=NEW_MAP_TO_UNSLOTH_16bit,
+            MAP_TO_AtomGPT_16bit=NEW_MAP_TO_AtomGPT_16bit,
         )
         if upgraded_model_name is not None:
             raise NotImplementedError(

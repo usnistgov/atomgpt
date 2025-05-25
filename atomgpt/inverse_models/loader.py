@@ -617,10 +617,10 @@ class FastModel(FastBaseModel):
                 + NIGHTLY
             )
         elif "csm-1b" in lowered_model_name:
-            os.environ["UNSLOTH_DISABLE_STATIC_GENERATION"] = (
+            os.environ["AtomGPT_DISABLE_STATIC_GENERATION"] = (
                 "1"  # Sesame fails
             )
-            os.environ["UNSLOTH_FORCE_CUSTOM_DTYPE"] = (
+            os.environ["AtomGPT_FORCE_CUSTOM_DTYPE"] = (
                 "torch.float16;if name.endswith(('_proj', 'fc1', 'fc2', 'codebook', 'head')): module.to(torch.float16)"
             )
         elif "olmo-2" in lowered_model_name and transformers_version < Version(
@@ -633,8 +633,8 @@ class FastModel(FastBaseModel):
         else:
             for check_model_name in DISABLE_COMPILE_MODEL_NAMES:
                 if check_model_name in lowered_model_name:
-                    os.environ["UNSLOTH_COMPILE_DISABLE"] = "1"
-                    os.environ["UNSLOTH_DISABLE_STATIC_GENERATION"] = "1"
+                    os.environ["AtomGPT_COMPILE_DISABLE"] = "1"
+                    os.environ["AtomGPT_DISABLE_STATIC_GENERATION"] = "1"
                     if transformers_version < Version("4.50.0.dev0"):
                         raise RuntimeError(
                             f"AtomGPT: {check_model_name} only works on transformers >= 4.50.0."
@@ -645,7 +645,7 @@ class FastModel(FastBaseModel):
 
         if auto_model is not None:
             # All other models need to disable static cache
-            os.environ["UNSLOTH_DISABLE_STATIC_GENERATION"] = "1"
+            os.environ["AtomGPT_DISABLE_STATIC_GENERATION"] = "1"
         pass
 
         if USE_MODELSCOPE and not os.path.exists(model_name):
@@ -766,7 +766,7 @@ class FastModel(FastBaseModel):
         if not was_disabled:
             enable_progress_bars()
 
-        do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
+        do_logging = os.environ.get("AtomGPT_ENABLE_LOGGING", "0") == "1"
         if do_logging:
             redirector = contextlib.nullcontext()
         else:
@@ -782,7 +782,7 @@ class FastModel(FastBaseModel):
         model_types = ["siglip"] + model_types
 
         # Set forced float32 env flag
-        os.environ["UNSLOTH_FORCE_FLOAT32"] = "0"
+        os.environ["AtomGPT_FORCE_FLOAT32"] = "0"
         do_forced_float32 = False
         for model_type_arch in model_types:
             if model_type_arch != "siglip":
@@ -793,7 +793,7 @@ class FastModel(FastBaseModel):
                 disable_name.lower() == model_type_arch.lower()
                 or disable_name.lower() in model_name.lower()
             ) and ((dtype == torch.float16) or not SUPPORTS_BFLOAT16):
-                os.environ["UNSLOTH_FORCE_FLOAT32"] = "1"
+                os.environ["AtomGPT_FORCE_FLOAT32"] = "1"
                 dtype = torch.bfloat16  # Change to bfloat16 loading
                 break
         pass

@@ -246,7 +246,7 @@ def patch_unsloth_gradient_checkpointing():
     transformers.modeling_utils.checkpoint = (
         unsloth_offloaded_gradient_checkpoint
     )
-    os.environ["UNSLOTH_PATCHED"] = "1"
+    os.environ["AtomGPT_PATCHED"] = "1"
 
 
 pass
@@ -266,7 +266,7 @@ def patch_gradient_checkpointing():
     import transformers.modeling_utils
 
     transformers.modeling_utils.checkpoint = unsloth_gradient_checkpoint
-    os.environ["UNSLOTH_PATCHED"] = "1"
+    os.environ["AtomGPT_PATCHED"] = "1"
 
 
 pass
@@ -343,7 +343,7 @@ global BACKWARD_PASS
 global EXTRA_STREAMS
 global MAIN_STREAMS
 global MINIMUM_SIZE
-global USE_UNSLOTH_GC
+global USE_AtomGPT_GC
 global LAST_GC_INDEX
 global FIRST_PASS
 global CURRENT_GC_INDEX
@@ -361,7 +361,7 @@ def initialize_unsloth_gradient_checkpointing(dtype=None):
     global EXTRA_STREAMS
     global MAIN_STREAMS
     global MINIMUM_SIZE
-    global USE_UNSLOTH_GC
+    global USE_AtomGPT_GC
     global LAST_GC_INDEX
     global FIRST_PASS
     global CURRENT_GC_INDEX
@@ -400,7 +400,7 @@ def initialize_unsloth_gradient_checkpointing(dtype=None):
     # Minimum size to enable AtomGPT GC is 2MB -> 32 layers = 64MB
     n_bytes = torch.finfo(dtype).bits // 8
     MINIMUM_SIZE = 2 * 1024 * 1024 // n_bytes
-    USE_UNSLOTH_GC = True
+    USE_AtomGPT_GC = True
 
     # Disable offloading on the last layer - uses more VRAM and is slower
     # See https://github.com/pytorch/torchtune/pull/1443
@@ -525,12 +525,12 @@ class AtomGPTCheckpointFunction(torch.autograd.Function):
                         CPU_INDEX += 1
                         tensor_inputs.append(None)
 
-                        global USE_UNSLOTH_GC
-                        if USE_UNSLOTH_GC:
+                        global USE_AtomGPT_GC
+                        if USE_AtomGPT_GC:
                             print(
                                 "AtomGPT: Will smartly offload gradients to save VRAM!"
                             )
-                            USE_UNSLOTH_GC = False
+                            USE_AtomGPT_GC = False
                     else:
                         ctx._saved_metadata = (
                             None,

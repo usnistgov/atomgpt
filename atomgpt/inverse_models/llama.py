@@ -1322,7 +1322,7 @@ def CausalLM_fast_forward(fast_forward_inference):
             labels = labels.to(lm_head_device)
 
         # Output last hidden states without logits if asked
-        if os.environ.get("UNSLOTH_RETURN_HIDDEN_STATES", "0") == "1":
+        if os.environ.get("AtomGPT_RETURN_HIDDEN_STATES", "0") == "1":
             if num_logits_to_keep != 0:
                 hidden_states = hidden_states[:, -num_logits_to_keep:, :]
             return CausalLMOutputWithPast(
@@ -1342,7 +1342,7 @@ def CausalLM_fast_forward(fast_forward_inference):
                 hidden_states[:, -num_logits_to_keep:, :].to(dtype)
             )
         else:
-            RETURN_LOGITS = os.environ.get("UNSLOTH_RETURN_LOGITS", "0") == "1"
+            RETURN_LOGITS = os.environ.get("AtomGPT_RETURN_LOGITS", "0") == "1"
             # < 1024 Normal AtomGPT uses less VRAM!
             if bsz * q_len <= 1024:
                 RETURN_LOGITS = True
@@ -2115,7 +2115,7 @@ class FastLlamaModel:
         disable_log_stats=False,
         **kwargs,
     ):
-        os.environ["UNSLOTH_USE_NEW_MODEL"] = "0"
+        os.environ["AtomGPT_USE_NEW_MODEL"] = "0"
         if trust_remote_code:
             if fast_inference:
                 raise NotImplementedError(
@@ -2576,7 +2576,7 @@ class FastLlamaModel:
         temporary_location="_unsloth_temporary_saved_buffers",
         **kwargs,
     ):
-        if os.environ.get("UNSLOTH_USE_NEW_MODEL", "0") == "1":
+        if os.environ.get("AtomGPT_USE_NEW_MODEL", "0") == "1":
             # Check for other PEFT args in kwargs
             for peft_arg, flag in (
                 ("finetune_vision_layers", False),
@@ -2606,7 +2606,7 @@ class FastLlamaModel:
                 **kwargs,
             )
         pass
-        if os.environ.get("UNSLOTH_ENABLE_FULL_FINETUNING", "0") == "1":
+        if os.environ.get("AtomGPT_ENABLE_FULL_FINETUNING", "0") == "1":
             print(
                 "AtomGPT: Full finetuning is enabled, so .get_peft_model has no effect"
             )
@@ -3108,7 +3108,7 @@ class FastLlamaModel:
         model,
         use_gradient_checkpointing=True,
     ):
-        if os.environ.get("UNSLOTH_USE_NEW_MODEL", "0") == "1":
+        if os.environ.get("AtomGPT_USE_NEW_MODEL", "0") == "1":
             return FastBaseModel.patch_peft_model(
                 model=model,
                 use_gradient_checkpointing=use_gradient_checkpointing,

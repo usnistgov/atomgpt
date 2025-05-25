@@ -1,5 +1,5 @@
 __all__ = [
-    "UNSLOTH_COMPILE_LOCATION",
+    "AtomGPT_COMPILE_LOCATION",
     "get_transformers_model_type",
     "unsloth_compile_transformers",
     "create_new_function",
@@ -33,14 +33,14 @@ import functools
 from atomgpt.inverse_models.compiler_replacements import compiler_replacements
 
 # Compiled cache location
-global COMBINED_UNSLOTH_NAME
-COMBINED_UNSLOTH_NAME = "atomgpt_compiled_module"
+global COMBINED_AtomGPT_NAME
+COMBINED_AtomGPT_NAME = "atomgpt_compiled_module"
 
-global UNSLOTH_COMPILE_LOCATION
-UNSLOTH_COMPILE_LOCATION = "atomgpt_compiled_cache"
+global AtomGPT_COMPILE_LOCATION
+AtomGPT_COMPILE_LOCATION = "atomgpt_compiled_cache"
 
-global UNSLOTH_COMPILE_USE_TEMP
-UNSLOTH_COMPILE_USE_TEMP = False
+global AtomGPT_COMPILE_USE_TEMP
+AtomGPT_COMPILE_USE_TEMP = False
 
 # Disable some compilations if old versions are seen
 OLD_TORCH_VERSION = Version(torch.__version__) < Version("2.5.0")
@@ -52,10 +52,10 @@ OLD_TRITON_VERSION = Version(triton.__version__) < Version("3.0.0")
 import importlib.util
 
 if importlib.util.find_spec("unsloth_studio") is None:
-    UNSLOTH_STUDIO_ENABLED = False
+    AtomGPT_STUDIO_ENABLED = False
 else:
-    UNSLOTH_STUDIO_ENABLED = (
-        os.environ.get("UNSLOTH_STUDIO_DISABLED", "0") == "0"
+    AtomGPT_STUDIO_ENABLED = (
+        os.environ.get("AtomGPT_STUDIO_DISABLED", "0") == "0"
     )
 pass
 
@@ -97,9 +97,9 @@ _license_header = """
 import os
 import importlib.util
 if importlib.util.find_spec("unsloth_studio") is None:
-    UNSLOTH_STUDIO_ENABLED = False
+    AtomGPT_STUDIO_ENABLED = False
 else:
-    UNSLOTH_STUDIO_ENABLED = os.environ.get("UNSLOTH_STUDIO_DISABLED", "0") == "0"
+    AtomGPT_STUDIO_ENABLED = os.environ.get("AtomGPT_STUDIO_DISABLED", "0") == "0"
 pass
 from typing import List, Dict, Tuple, Optional, Any, Callable
 import math
@@ -111,7 +111,7 @@ import os
 import torch
 from atomgpt.inverse_models.loss_utils import fused_linear_cross_entropy
 
-if UNSLOTH_STUDIO_ENABLED:
+if AtomGPT_STUDIO_ENABLED:
     from atomgpt.inverse_models.loss_utils import fast_linear_cross_entropy
 
 scaled_dot_product_attention = torch.nn.functional.scaled_dot_product_attention
@@ -260,12 +260,12 @@ pass
 
 
 def _get_compile_folder(use_tempfile=False):
-    global UNSLOTH_COMPILE_LOCATION
-    global UNSLOTH_COMPILE_USE_TEMP
-    if UNSLOTH_COMPILE_USE_TEMP or use_tempfile:
-        UNSLOTH_COMPILE_USE_TEMP = True
+    global AtomGPT_COMPILE_LOCATION
+    global AtomGPT_COMPILE_USE_TEMP
+    if AtomGPT_COMPILE_USE_TEMP or use_tempfile:
+        AtomGPT_COMPILE_USE_TEMP = True
         location = os.path.join(
-            tempfile.gettempdir(), UNSLOTH_COMPILE_LOCATION
+            tempfile.gettempdir(), AtomGPT_COMPILE_LOCATION
         )
         if not os.path.exists(location):
             print(
@@ -273,31 +273,31 @@ def _get_compile_folder(use_tempfile=False):
             )
             os.makedirs(location, exist_ok=True)
     else:
-        location = UNSLOTH_COMPILE_LOCATION
+        location = AtomGPT_COMPILE_LOCATION
         if os.path.exists(location):
-            return location, UNSLOTH_COMPILE_USE_TEMP
+            return location, AtomGPT_COMPILE_USE_TEMP
         try:
             # Try creating the directory
             os.makedirs(location, exist_ok=True)
         except:
             # Instead use a temporary location!
-            UNSLOTH_COMPILE_USE_TEMP = True
+            AtomGPT_COMPILE_USE_TEMP = True
             location = os.path.join(tempfile.gettempdir(), location)
             os.makedirs(location, exist_ok=True)
             print(
                 f"AtomGPT: We'll be using `{location}` for temporary AtomGPT patches."
             )
-    return location, UNSLOTH_COMPILE_USE_TEMP
+    return location, AtomGPT_COMPILE_USE_TEMP
 
 
 pass
 
 
 def get_compile_folder(use_tempfile=False):
-    location, UNSLOTH_COMPILE_USE_TEMP = distributed_function(
+    location, AtomGPT_COMPILE_USE_TEMP = distributed_function(
         2, _get_compile_folder, use_tempfile
     )
-    return location, UNSLOTH_COMPILE_USE_TEMP
+    return location, AtomGPT_COMPILE_USE_TEMP
 
 
 pass
@@ -315,7 +315,7 @@ def create_new_function(
 ):
     # All AtomGPT Zoo code licensed under LGPLv3
     old_new_source = new_source
-    do_logging = os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
+    do_logging = os.environ.get("AtomGPT_ENABLE_LOGGING", "0") == "1"
 
     if new_source[0] == " ":
         spaces = new_source.find("def")
@@ -378,15 +378,15 @@ def create_new_function(
         '"""\n' + f"{unsloth_zoo_version}\n"
         f"{unsloth_version}\n"
         f"{transformers_version}\n"
-        f"{trl_version}\n__UNSLOTH_VERSIONING__\n" + '"""\n'
+        f"{trl_version}\n__AtomGPT_VERSIONING__\n" + '"""\n'
     )
 
     write_new_source = versioning + new_source
 
     # Write function
-    global UNSLOTH_COMPILE_USE_TEMP
+    global AtomGPT_COMPILE_USE_TEMP
     file_source = None
-    compile_folder, UNSLOTH_COMPILE_USE_TEMP = get_compile_folder(
+    compile_folder, AtomGPT_COMPILE_USE_TEMP = get_compile_folder(
         use_tempfile=False
     )
     function_location = os.path.join(compile_folder, f"{name}.py")
@@ -401,14 +401,14 @@ def create_new_function(
         if file_source != write_new_source:
             overwrite = True
         elif not overwrite:
-            if "__UNSLOTH_VERSIONING__" not in file_source:
+            if "__AtomGPT_VERSIONING__" not in file_source:
                 overwrite = True
             else:
                 versions = file_source[
-                    : file_source.find("__UNSLOTH_VERSIONING__")
+                    : file_source.find("__AtomGPT_VERSIONING__")
                 ]
                 if (
-                    versioning[: versioning.find("__UNSLOTH_VERSIONING__")]
+                    versioning[: versioning.find("__AtomGPT_VERSIONING__")]
                     != versions
                 ):
                     overwrite = True
@@ -430,11 +430,11 @@ def create_new_function(
                 1, write_file, function_location, write_new_source
             )
         except Exception as error:
-            if UNSLOTH_COMPILE_USE_TEMP:
+            if AtomGPT_COMPILE_USE_TEMP:
                 raise RuntimeError(error)
             else:
                 # Failed so instead use a temporary directory
-                compile_folder, UNSLOTH_COMPILE_USE_TEMP = get_compile_folder(
+                compile_folder, AtomGPT_COMPILE_USE_TEMP = get_compile_folder(
                     use_tempfile=True
                 )
                 function_location = os.path.join(compile_folder, f"{name}.py")
@@ -468,8 +468,8 @@ def create_new_function(
     except Exception as e:
         new_module = None
         # Try using temp directory instead!
-        if not UNSLOTH_COMPILE_USE_TEMP:
-            compile_folder, UNSLOTH_COMPILE_USE_TEMP = get_compile_folder(
+        if not AtomGPT_COMPILE_USE_TEMP:
+            compile_folder, AtomGPT_COMPILE_USE_TEMP = get_compile_folder(
                 use_tempfile=True
             )
             function_location = os.path.join(compile_folder, f"{name}.py")
@@ -512,7 +512,7 @@ def create_new_function(
 
     if new_module is None:
         raise ImportError(
-            f"AtomGPT: Cannot import {name} from {UNSLOTH_COMPILE_LOCATION}"
+            f"AtomGPT: Cannot import {name} from {AtomGPT_COMPILE_LOCATION}"
         )
 
     return new_module
@@ -642,14 +642,14 @@ def normal_cross_entropy_loss(self, hidden_states, labels):
 pass
 
 # We need an empty logits flag to warn people logits will not be returned anymore unless asked ie
-# os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+# os.environ['AtomGPT_RETURN_LOGITS'] = '1'
 LOGITS_ERROR_STRING = \\
     "AtomGPT: Logits are empty from 2024.11 onwards. To get raw logits again, please "\\
-    'set the environment variable `UNSLOTH_RETURN_LOGITS` to `"1" BEFORE starting to train ie before `trainer.train()`. For example:\\n'\\
+    'set the environment variable `AtomGPT_RETURN_LOGITS` to `"1" BEFORE starting to train ie before `trainer.train()`. For example:\\n'\\
     "```\\nimport os\\n"\\
-    "os.environ['UNSLOTH_RETURN_LOGITS'] = '1'\\n"\\
+    "os.environ['AtomGPT_RETURN_LOGITS'] = '1'\\n"\\
     "trainer.train()\\n```\\n"\\
-    "No need to restart your console - just add `os.environ['UNSLOTH_RETURN_LOGITS'] = '1'` before trainer.train() and re-run the cell!"
+    "No need to restart your console - just add `os.environ['AtomGPT_RETURN_LOGITS'] = '1'` before trainer.train() and re-run the cell!"
 
 def raise_logits_error(*args, **kwargs): raise NotImplementedError(LOGITS_ERROR_STRING)
 def return_none(*args, **kwargs): return None
@@ -693,7 +693,7 @@ loss = loss_fct(shift_logits, shift_labels)
 """
 
 cross_entropy_replacement_1 = """
-NOT_RETURN_LOGITS = os.environ.get('UNSLOTH_RETURN_LOGITS', '0') == '0'
+NOT_RETURN_LOGITS = os.environ.get('AtomGPT_RETURN_LOGITS', '0') == '0'
 
 all_locals = locals()
 n_items = None
@@ -706,7 +706,7 @@ requires_grad_ = requires_grad_ or self.lm_head.weight.dtype == torch.float32
 
 if labels is None:
     logits = self.lm_head(hidden_states\\1)
-elif (UNSLOTH_STUDIO_ENABLED and NOT_RETURN_LOGITS and labels is not None and not requires_grad_):
+elif (AtomGPT_STUDIO_ENABLED and NOT_RETURN_LOGITS and labels is not None and not requires_grad_):
     loss = fast_linear_cross_entropy(
         hidden_states        = hidden_states\\1,
         lm_head              = self.lm_head,
@@ -819,14 +819,14 @@ if labels is not None:$SPACES$loss = self.loss_function($LOGITS$, $LABELS$, $VOC
 """
 
 cross_entropy_replacement_2 = """
-NOT_RETURN_LOGITS = os.environ.get('UNSLOTH_RETURN_LOGITS', '0') == '0'
+NOT_RETURN_LOGITS = os.environ.get('AtomGPT_RETURN_LOGITS', '0') == '0'
 n_items = (\\9).get("num_items_in_batch", None) or (\\9).get("n_items", None)
 requires_grad_ = self.lm_head.weight.requires_grad
 requires_grad_ = requires_grad_ or self.lm_head.weight.dtype == torch.float32
 
 if labels is None:
     logits = self.lm_head(hidden_states\\1)
-elif (UNSLOTH_STUDIO_ENABLED and NOT_RETURN_LOGITS and labels is not None) and not requires_grad_:
+elif (AtomGPT_STUDIO_ENABLED and NOT_RETURN_LOGITS and labels is not None) and not requires_grad_:
     loss = fast_linear_cross_entropy(
         hidden_states        = hidden_states\\1,
         lm_head              = self.lm_head,
@@ -943,7 +943,7 @@ loss = loss_fct(shift_logits, shift_labels)
 """
 
 cross_entropy_replacement_3 = """
-NOT_RETURN_LOGITS = os.environ.get('UNSLOTH_RETURN_LOGITS', '0') == '0'
+NOT_RETURN_LOGITS = os.environ.get('AtomGPT_RETURN_LOGITS', '0') == '0'
 
 all_locals = locals()
 n_items = None
@@ -1523,7 +1523,7 @@ def patch_lora_forwards(torch_compile_options):
             "x = x.to(lora_A.weight.dtype)",
             "x = self._cast_input_dtype(x, lora_A.weight.dtype)",
         ]
-        if os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "0":
+        if os.environ.get("AtomGPT_FORCE_FLOAT32", "0") == "0":
             if "torch.is_autocast_enabled()" not in source:
                 new = (
                     "if not torch.is_autocast_enabled(): "
@@ -1546,7 +1546,7 @@ def patch_lora_forwards(torch_compile_options):
             success += 1
             compiled_lora_forward = (
                 COMPILED_LORA_FORWARD
-                if os.environ.get("UNSLOTH_FORCE_FLOAT32", "0") == "0"
+                if os.environ.get("AtomGPT_FORCE_FLOAT32", "0") == "0"
                 else COMPILED_LORA_FORWARD_forced_float32
             )
 
@@ -1733,7 +1733,7 @@ def unsloth_compile_transformers(
 
     # All AtomGPT Zoo code licensed under LGPLv3
     disable = disable or (
-        os.environ.get("UNSLOTH_COMPILE_DISABLE", "0") == "1"
+        os.environ.get("AtomGPT_COMPILE_DISABLE", "0") == "1"
     )
     if fast_residual_stream:
         raise NotImplementedError(
@@ -1744,7 +1744,7 @@ def unsloth_compile_transformers(
     model_location = f"transformers.models.{model_type}.modeling_{model_type}"
     exec(f"import {model_location}", globals())
     modeling_file = eval(model_location)
-    if hasattr(modeling_file, "__UNSLOTH_PATCHED__"):
+    if hasattr(modeling_file, "__AtomGPT_PATCHED__"):
         return
 
     # Use transformers model_type logger to supress message: Remove `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`
@@ -1769,32 +1769,32 @@ def unsloth_compile_transformers(
     pass
 
     # torch_compile_options
-    UNSLOTH_COMPILE_DEBUG = os.environ.get("UNSLOTH_COMPILE_DEBUG", "0") == "1"
-    UNSLOTH_COMPILE_MAXIMUM = (
-        os.environ.get("UNSLOTH_COMPILE_MAXIMUM", "0") == "1"
+    AtomGPT_COMPILE_DEBUG = os.environ.get("AtomGPT_COMPILE_DEBUG", "0") == "1"
+    AtomGPT_COMPILE_MAXIMUM = (
+        os.environ.get("AtomGPT_COMPILE_MAXIMUM", "0") == "1"
     )
-    UNSLOTH_COMPILE_IGNORE_ERRORS = (
-        os.environ.get("UNSLOTH_COMPILE_IGNORE_ERRORS", "0") == "1"
+    AtomGPT_COMPILE_IGNORE_ERRORS = (
+        os.environ.get("AtomGPT_COMPILE_IGNORE_ERRORS", "0") == "1"
     )
-    UNSLOTH_ENABLE_LOGGING = (
-        os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1"
+    AtomGPT_ENABLE_LOGGING = (
+        os.environ.get("AtomGPT_ENABLE_LOGGING", "0") == "1"
     )
     torch_compile_options = {
         "epilogue_fusion": epilogue_fusion,
         "max_autotune": max_autotune,
         "shape_padding": shape_padding,
-        "trace.enabled": UNSLOTH_COMPILE_DEBUG or debug,
+        "trace.enabled": AtomGPT_COMPILE_DEBUG or debug,
         "triton.cudagraphs": cudagraphs,
-        "debug": UNSLOTH_COMPILE_DEBUG or debug,
+        "debug": AtomGPT_COMPILE_DEBUG or debug,
         "dce": True,
         "memory_planning": True,
-        "coordinate_descent_tuning": UNSLOTH_COMPILE_MAXIMUM,
-        "trace.graph_diagram": UNSLOTH_COMPILE_DEBUG or debug,
+        "coordinate_descent_tuning": AtomGPT_COMPILE_MAXIMUM,
+        "trace.graph_diagram": AtomGPT_COMPILE_DEBUG or debug,
         "compile_threads": 24,
         "combo_kernels": False,  # Causes incompatible gradient sizes on 2.6
         "group_fusion": True,
-        "disable_progress": not UNSLOTH_ENABLE_LOGGING,
-        "verbose_progress": UNSLOTH_ENABLE_LOGGING,
+        "disable_progress": not AtomGPT_ENABLE_LOGGING,
+        "verbose_progress": AtomGPT_ENABLE_LOGGING,
         "triton.multi_kernel": False,  # Sometimes fails
         "triton.use_block_ptr": False,
         "triton.enable_persistent_tma_matmul": True,
@@ -1802,21 +1802,21 @@ def unsloth_compile_transformers(
     }
 
     # Return logits
-    UNSLOTH_RETURN_LOGITS = "0" if not return_logits else "1"
-    if "UNSLOTH_RETURN_LOGITS" not in os.environ:
-        os.environ["UNSLOTH_RETURN_LOGITS"] = UNSLOTH_RETURN_LOGITS
+    AtomGPT_RETURN_LOGITS = "0" if not return_logits else "1"
+    if "AtomGPT_RETURN_LOGITS" not in os.environ:
+        os.environ["AtomGPT_RETURN_LOGITS"] = AtomGPT_RETURN_LOGITS
     else:
-        UNSLOTH_RETURN_LOGITS = os.environ["UNSLOTH_RETURN_LOGITS"] == "1"
+        AtomGPT_RETURN_LOGITS = os.environ["AtomGPT_RETURN_LOGITS"] == "1"
     pass
 
     # Fullgraph
-    UNSLOTH_FULLGRAPH = "1" if fullgraph else "0"
-    if "UNSLOTH_FULLGRAPH" not in os.environ:
-        os.environ["UNSLOTH_FULLGRAPH"] = UNSLOTH_FULLGRAPH
+    AtomGPT_FULLGRAPH = "1" if fullgraph else "0"
+    if "AtomGPT_FULLGRAPH" not in os.environ:
+        os.environ["AtomGPT_FULLGRAPH"] = AtomGPT_FULLGRAPH
     else:
-        UNSLOTH_FULLGRAPH = os.environ["UNSLOTH_FULLGRAPH"]
+        AtomGPT_FULLGRAPH = os.environ["AtomGPT_FULLGRAPH"]
     pass
-    UNSLOTH_FULLGRAPH = UNSLOTH_FULLGRAPH == "1"
+    AtomGPT_FULLGRAPH = AtomGPT_FULLGRAPH == "1"
 
     # Patch PEFT lora forwards
     if (not disable) and fast_lora_forwards:
@@ -1824,7 +1824,7 @@ def unsloth_compile_transformers(
         patch_lora_forwards(torch_compile_options)
     pass
 
-    modeling_file.__UNSLOTH_PATCHED__ = True
+    modeling_file.__AtomGPT_PATCHED__ = True
     functions = dir(modeling_file)
     full_source = inspect.getsource(modeling_file)
     # Order functions by ascending order
@@ -1954,7 +1954,7 @@ def unsloth_compile_transformers(
             if another_module in source:
                 fullgraph = fullgraph and torch_modules[another_module]
         pass
-        torch_modules[module] = fullgraph if UNSLOTH_FULLGRAPH else False
+        torch_modules[module] = fullgraph if AtomGPT_FULLGRAPH else False
     pass
 
     # Get other classes
@@ -2444,7 +2444,7 @@ def unsloth_compile_transformers(
             parameters = f"def {module}" + parameters + code_section
             print(f"AtomGPT: Fixed up function {module}.")
 
-            parameters = f"@torch.compile(fullgraph = {UNSLOTH_FULLGRAPH}, dynamic = True, options = torch_compile_options)\n{parameters}"
+            parameters = f"@torch.compile(fullgraph = {AtomGPT_FULLGRAPH}, dynamic = True, options = torch_compile_options)\n{parameters}"
             all_standalone_classes[module] = parameters
         pass
 
@@ -2465,7 +2465,7 @@ def unsloth_compile_transformers(
                     break
             pass
             if not bad:
-                source = f"@torch.compile(fullgraph = {UNSLOTH_FULLGRAPH}, dynamic = True, options = torch_compile_options)\n{source}"
+                source = f"@torch.compile(fullgraph = {AtomGPT_FULLGRAPH}, dynamic = True, options = torch_compile_options)\n{source}"
                 print(f"AtomGPT: Compiled function {module}.")
             else:
                 print(
@@ -2501,7 +2501,7 @@ def unsloth_compile_transformers(
 
     try:
         combined_module = create_new_function(
-            f"{COMBINED_UNSLOTH_NAME}_{model_type}",
+            f"{COMBINED_AtomGPT_NAME}_{model_type}",
             all_code,
             model_location,
             functions,

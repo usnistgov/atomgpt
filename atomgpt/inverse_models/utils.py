@@ -354,7 +354,13 @@ def gen_atoms(
         ],
         return_tensors="pt",
     ).to(device)
-
+    # print("model",model)
+    # print("prompt",prompt)
+    # print("tokenizer",tokenizer)
+    # print("max_new_tokens",max_new_tokens)
+    # print("alpaca_prompt",alpaca_prompt)
+    # print("device",device)
+    # print("instruction",instruction)
     outputs = model.generate(
         **inputs, max_new_tokens=max_new_tokens, use_cache=True
     )
@@ -734,7 +740,9 @@ def parse_formula(formula):
     return compact_formula
 
 
-def load_exp_file(filename="", intvl=0.3, background_subs=True, tol=0.1):
+def load_exp_file(
+    filename="", formula="", intvl=0.3, background_subs=True, tol=0.1
+):
     # df = pd.read_csv(
     #     filename,
     #     skiprows=1,
@@ -755,29 +763,32 @@ def load_exp_file(filename="", intvl=0.3, background_subs=True, tol=0.1):
     # df = pd.read_csv(filename, skiprows=1, sep=" ", names=["X", "Y"], comment="#")
     print("df")
     print(df)
+
     if ".txt" in filename:
 
         with open(filename, "r") as f:
             lines = f.read().splitlines()
         for i in lines:
             if "##IDEAL CHEMISTRY=" in i:
-                formula = Composition.from_string(
-                    i.split("##IDEAL CHEMISTRY=")[1]
-                    .replace("_", "")
-                    .replace("^", "")
-                    .replace("+", "")
-                ).reduced_formula
+                if formula is None:
+                    formula = Composition.from_string(
+                        i.split("##IDEAL CHEMISTRY=")[1]
+                        .replace("_", "")
+                        .replace("^", "")
+                        .replace("+", "")
+                    ).reduced_formula
 
-                tmp = (
-                    i.split("##IDEAL CHEMISTRY=")[1]
-                    .replace("_", "")
-                    .split("&#")[0]
-                )
-                formula = parse_formula(tmp)
-                print(formula, i)
+                    tmp = (
+                        i.split("##IDEAL CHEMISTRY=")[1]
+                        .replace("_", "")
+                        .split("&#")[0]
+                    )
+                    formula = parse_formula(tmp)
+                    # print(formula, i)
 
     else:
-        formula = filename.split(".dat")[0]
+        if formula is None:
+            formula = filename.split(".dat")[0]
     x = df["X"].values
     y = df["Y"].values
     # if df["Z"].isnull()[0]:
