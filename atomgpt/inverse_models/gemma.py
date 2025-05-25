@@ -242,7 +242,7 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
         # in FP32. They are applied (multiplied) in FP32 as well.
         self.max_seq_len_cached = seq_len
 
-        # The difference is we do division explicity instead of t * (1/x) ie we do t/x.
+        # The difference is we do division explicitly instead of t * (1/x) ie we do t/x.
         freq_exponents = (2.0 / self.dim) * (
             torch.arange(
                 self.dim // 2, dtype=torch.int64, device="cpu"
