@@ -53,6 +53,8 @@ jobs:
           echo 'Listing files'
           ls -l atomgpt/examples/forward_model/
           echo 'Running forward model'
+          coverage run --omit="*scripts/*,*cache/*,*__pycache__/*" -m pytest -s -v atomgpt/tests/
+          coverage report -m -i
           python atomgpt/forward_models/forward_models.py --config_name atomgpt/examples/forward_model/config.json
 
       # Uncomment below to run inverse model + coverage tests
