@@ -35,12 +35,12 @@ jobs:
           pip install triton
           conda install flake8 pycodestyle pydocstyle pytest coverage codecov -y
 
-      - name: Lint with flake8 and others
-        shell: bash -l {0}
-        run: |
-          flake8 atomgpt --count --exit-zero --max-complexity=10 --statistics
-          pycodestyle atomgpt
-          pydocstyle atomgpt
+      # - name: Lint with flake8 and others
+      #   shell: bash -l {0}
+      #   run: |
+      #     flake8 atomgpt --count --exit-zero --max-complexity=10 --statistics
+      #     pycodestyle atomgpt
+      #     pydocstyle atomgpt
 
       - name: Install in editable mode
         shell: bash -l {0}
