@@ -53,6 +53,11 @@ parser.add_argument(
     help="Chemical formula ",
 )
 parser.add_argument(
+    "--prop_val",
+    default=None,
+    help="Property values ",
+)
+parser.add_argument(
     "--config_path",
     default=None,
     help="Chemical formula ",
@@ -98,9 +103,11 @@ def predict(
     background_subs=False,
     filename="Q4_K_M.gguf",
     formula=None,
+    prop_val=None,
     dtype=None,
     max_seq_length=1058,
     load_in_4bit=False,  # temp_config["load_in_4bit"]
+    verbose=True,  # temp_config["load_in_4bit"]
 ):
     # if not os.path.exists("config_name"):
 
@@ -115,21 +122,26 @@ def predict(
             model_name = output_dir  # temp_config["model_name"]
     if config_path is not None:
         config_name = config_path
-        print("config used", config_name)
+        if verbose:
+            print("config used", config_name)
         temp_config = loadjson(config_name)
-        print("config used", temp_config)
+        if verbose:
+            print("config used", temp_config)
         temp_config = TrainingPropConfig(**temp_config).dict()
         max_seq_length = temp_config["max_seq_length"]
         dtype = temp_config["dtype"]
-    temp_config = TrainingPropConfig().dict()
+    # temp_config = TrainingPropConfig().dict()
+    temp_config = TrainingPropConfig(**temp_config).dict()
     pprint.pprint(temp_config)
     if model_name is None:
         model_name = temp_config["model_name"]
     # output_dir = temp_config["output_dir"]
     load_in_4bit = load_in_4bit  # temp_config["load_in_4bit"]
 
-    print("Model used:", model_name)
-    print("formula:", formula)
+    if verbose:
+        print("Model used:", model_name)
+        print("config used:", config_path)
+        print("formula:", formula)
     model = None
     tokenizer = None
     try:
@@ -189,7 +201,10 @@ def predict(
             prompt = (
                 "The chemical formula is "
                 + formula
-                + " The XRD is "
+                + " The "
+                + temp_config["prop"]
+                + " is "
+                # + " The XRD is "
                 + y_new_str
                 + ". Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
             )
@@ -198,10 +213,16 @@ def predict(
                 prompt = (
                     "The chemical formula is "
                     + formula
+                    + " The "
+                    + temp_config["prop"]
+                    + " is "
+                    # + " The XRD is "
+                    + str(prop_val)
                     + ". Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
                 )
 
-        print("prompt here", prompt.replace("\n", ","))
+        if verbose:
+            print("prompt here", prompt.replace("\n", ","))
         gen_mat = gen_atoms(
             prompt=prompt,
             model=model,
@@ -210,18 +231,21 @@ def predict(
             instruction=temp_config["instruction"],
             device=device,
         )
-        print("gen atoms", gen_mat)
-        print("gen atoms spacegroup", gen_mat.spacegroup())
-        print("intvl", intvl)
+        if verbose:
+            print("gen atoms", gen_mat)
+            print("gen atoms spacegroup", gen_mat.spacegroup())
+            print("intvl", intvl)
         if relax:
             gen_mat = relax_atoms(atoms=gen_mat)
-            print("gen atoms relax", gen_mat, gen_mat.spacegroup())
+            if verbose:
+                print("gen atoms relax", gen_mat, gen_mat.spacegroup())
         atoms_arr.append(gen_mat.to_dict())
         info = {}
         info["prompt"] = prompt
         info["atoms"] = gen_mat.to_dict()
         mem.append(info)
     dumpjson(data=mem, filename=fname)
+    return model, tokenizer, temp_config
 
 
 if __name__ == "__main__":
@@ -236,5 +260,6 @@ if __name__ == "__main__":
         dat_path=args.dat_path,
         formula=args.formula,
         config_path=args.config_path,
+        prop_val=args.prop_val,
         # config_name=args.config_name,
     )

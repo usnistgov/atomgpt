@@ -128,7 +128,7 @@ python atomgpt/inverse_models/inverse_predict.py --model_name knc6/diffractgpt_m
 For multiple files/formats
 
 ```
-python atomgpt/inverse_models/inverse_predict.py --output_dir outputs_xrd --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv
+python atomgpt/inverse_models/inverse_predict.py --output_dir outputs_xrd/checkpoint-2 --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv --config_path atomgpt/examples/inverse_model_multi/config.json
 ```
 
 <a name="micro"></a>
