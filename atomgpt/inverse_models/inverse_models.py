@@ -602,14 +602,15 @@ def main(config_file=None):
     trainer.save_model(config.model_save_path)
     # model.save_pretrained(config.model_save_path)
 
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=config.model_save_path,  # YOUR MODEL YOU USED FOR TRAINING
-        max_seq_length=config.max_seq_length,
-        dtype=config.dtype,
-        load_in_4bit=config.load_in_4bit,
-    )
+    # model, tokenizer = FastLanguageModel.from_pretrained(
+    #    model_name=config.model_save_path,  # YOUR MODEL YOU USED FOR TRAINING
+    #    max_seq_length=config.max_seq_length,
+    #    dtype=config.dtype,
+    #    load_in_4bit=config.load_in_4bit,
+    # )
+    model = trainer.model
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-    model, tokenizer, config = load_model(path=config.model_save_path)
+    # model, tokenizer, config = load_model(path=config.model_save_path)
     # batch_evaluate(
     #   prompts=[i["input"] for i in m_test],
     #   model=model,

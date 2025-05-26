@@ -76,8 +76,14 @@ For inference:
 python atomgpt/inverse_models/inverse_predict.py --output_dir outputs/checkpoint-2/  --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
 ```
 
-or use `atomgpt_inverse_predict` global executable.
 
+If you want to use the huggingface model:
+
+```
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
+```
+
+or use `atomgpt_inverse_predict` global executable.
 
 ## DiffractGPT model example (spectral property to structure)
 
