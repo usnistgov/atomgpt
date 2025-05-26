@@ -100,7 +100,13 @@ If you want to use the huggingface model:
 python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
 ```
 
-or use `atomgpt_inverse_predict` global executable.
+or if you want infer for just one compound
+
+```
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --formula FeTe  --config_path atomgpt/examples/inverse_model/config.json
+```
+
+Instead of python atomgpt/inverse_models/inverse_predict.py you can also use `atomgpt_inverse_predict` global executable.
 
 <a name="diffract"></a>
 # DiffractGPT model example (spectral property to structure)

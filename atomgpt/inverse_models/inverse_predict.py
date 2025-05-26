@@ -129,7 +129,7 @@ def predict(
     load_in_4bit = load_in_4bit  # temp_config["load_in_4bit"]
 
     print("Model used:", model_name)
-    print("formulaaa:", formula)
+    print("formula:", formula)
     model = None
     tokenizer = None
     try:
@@ -150,12 +150,17 @@ def predict(
         )
         pass
     atoms_arr = []
-    if dat_path is None:
+    lines = []
+    if formula is None:
+        # if dat_path is None:
         f = open(pred_csv, "r")
         lines = f.read().splitlines()
         f.close()
     else:
-        lines = [dat_path]
+        if dat_path is not None:
+            lines = [dat_path]
+        lines = [formula]
+
     mem = []
 
     for i in lines:
@@ -188,6 +193,14 @@ def predict(
                 + y_new_str
                 + ". Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
             )
+        else:
+            if formula is not None:
+                prompt = (
+                    "The chemical formula is "
+                    + formula
+                    + ". Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
+                )
+
         print("prompt here", prompt.replace("\n", ","))
         gen_mat = gen_atoms(
             prompt=prompt,

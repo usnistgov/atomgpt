@@ -36,6 +36,25 @@ def test_inverse():
         except Exception as exp:
             print("exp", exp)
             pass
+        try:
+            config = os.path.join(
+                atomgpt.__path__[0],
+                "examples",
+                "inverse_model_multi",
+                "config.json",
+            )
+            main(config)
+        except Exception as exp:
+            print("exp", exp)
+            pass
+
+        from atomgpt.inverse_models.inverse_vision import run
+
+        try:
+            run(max_samples=10)
+        except Exception as exp:
+            print("exp", exp)
+            pass
 
 
 test_inverse()
