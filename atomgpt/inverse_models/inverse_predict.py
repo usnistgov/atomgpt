@@ -106,7 +106,7 @@ def predict(
     prop_val=None,
     dtype=None,
     max_seq_length=1058,
-    load_in_4bit=False,  # temp_config["load_in_4bit"]
+    load_in_4bit=None,  # temp_config["load_in_4bit"]
     verbose=True,  # temp_config["load_in_4bit"]
 ):
     # if not os.path.exists("config_name"):
@@ -136,7 +136,8 @@ def predict(
     if model_name is None:
         model_name = temp_config["model_name"]
     # output_dir = temp_config["output_dir"]
-    load_in_4bit = load_in_4bit  # temp_config["load_in_4bit"]
+    if load_in_4bit is None:
+        load_in_4bit = temp_config["load_in_4bit"]
 
     if verbose:
         print("Model used:", model_name)
