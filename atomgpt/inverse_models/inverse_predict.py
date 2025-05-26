@@ -132,7 +132,8 @@ def predict(
         dtype = temp_config["dtype"]
     # temp_config = TrainingPropConfig().dict()
     temp_config = TrainingPropConfig(**temp_config).dict()
-    pprint.pprint(temp_config)
+    if verbose:
+        pprint.pprint(temp_config)
     if model_name is None:
         model_name = temp_config["model_name"]
     # output_dir = temp_config["output_dir"]

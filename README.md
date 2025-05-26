@@ -102,8 +102,9 @@ python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistr
 
 or if you want infer for just one compound
 
+
 ```
-python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --formula FeTe  --config_path atomgpt/examples/inverse_model/config.json
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --formula FeTe  --config_path atomgpt/examples/inverse_model/config.json --prop_val 10
 ```
 
 Instead of python atomgpt/inverse_models/inverse_predict.py you can also use `atomgpt_inverse_predict` global executable.
