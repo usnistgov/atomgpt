@@ -1,9 +1,14 @@
 from transformers import (
     GPT2Tokenizer,
     GPT2Model,
-    AdamW,
+    # AdamW,
     get_linear_schedule_with_warmup,
 )
+
+# from transformers.optimization import AdamW
+from torch.optim import AdamW
+
+
 from jarvis.core.atoms import Atoms
 from jarvis.analysis.structure.spacegroup import Spacegroup3D
 from jarvis.analysis.diffraction.xrd import XRD

@@ -1,15 +1,31 @@
-from .llama import *
-from ._utils import __version__
+from atomgpt.inverse_models.llama import *
+from atomgpt.inverse_models._utils import __version__
+import math
 
-from transformers.models.gemma.modeling_gemma import (
-    GemmaAttention,
-    GemmaDecoderLayer,
-    GemmaModel,
-    GemmaForCausalLM,
-    GemmaRotaryEmbedding,
-    apply_rotary_pos_emb,
-    repeat_kv,
-)
+try:
+    from transformers.models.gemma.modeling_gemma import (
+        GemmaAttention,
+        GemmaDecoderLayer,
+        GemmaModel,
+        GemmaForCausalLM,
+        GemmaRotaryEmbedding,
+        apply_rotary_pos_emb,
+        repeat_kv,
+    )
+except:
+    from packaging.version import Version
+
+    transformers_version = Version(transformers_version)
+    if not transformers_version >= Version("4.38"):
+        raise ImportError(
+            f"AtomGPT: Your transformers version of {transformers_version} does not support Gemma.\n"
+            f"The minimum required version is 4.38.\n"
+            f'Try `pip install --upgrade "transformers>=4.38"`\n'
+            f"to obtain the latest transformers build, then restart this session."
+        )
+    pass
+pass
+
 from transformers.modeling_attn_mask_utils import (
     _prepare_4d_causal_attention_mask_for_sdpa,
 )
@@ -34,7 +50,7 @@ def fast_geglu_inference(self, X):
     # up   = self.up_proj(X)
     bsz, _, hd = X.shape
     # mlp_size = self.config.intermediate_size
-    # temp = torch.empty((2, bsz, 1, mlp_size), dtype = X.dtype, device = "cuda")
+    # temp = torch.empty((2, bsz, 1, mlp_size), dtype = X.dtype, device = "cuda:0")
 
     gate = fast_linear_forward(self.gate_proj, X)  # , out = temp[0])
     up = fast_linear_forward(self.up_proj, X)  # , out = temp[1])
@@ -53,7 +69,7 @@ pass
 def GemmaDecoderLayer_fast_forward(
     self,
     hidden_states: torch.Tensor,
-    causal_mask: Optional[xformers.attn_bias.BlockDiagonalCausalMask] = None,
+    causal_mask: Optional[BlockDiagonalCausalMask] = None,
     attention_mask: Optional[torch.Tensor] = None,
     position_ids: Optional[torch.LongTensor] = None,
     past_key_value: Optional[Tuple[torch.Tensor]] = None,
@@ -69,7 +85,7 @@ def GemmaDecoderLayer_fast_forward(
         out_weight = torch.empty(
             self.input_layernorm.weight.shape,
             dtype=torch.float32,
-            device="cuda",
+            device="cuda:0",
         )
 
         # Self Attention
@@ -148,7 +164,7 @@ def GemmaModel_fast_forward_inference(
     out_weight = torch.empty_like(
         self.model.layers[0].input_layernorm.weight,
         dtype=torch.float32,
-        device="cuda",
+        device="cuda:0",
     )
     input_ids = input_ids[:, : self.max_seq_length]
     hidden_states = self.model.embed_tokens(input_ids)
@@ -221,16 +237,37 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
     # https://github.com/microsoft/DeepSpeed/issues/4932
     # The precision of RoPE buffers is not correct, so we cast to int64.
     def __init__(
-        self, dim, max_position_embeddings=2048, base=10000, device=None
+        self,
+        dim=None,
+        max_position_embeddings=2048,
+        base=10000,
+        device=None,
+        config=None,  # [TODO] Hack to pass in config - need to remove later
     ):
         super().__init__()
+        if config is not None:
+            # [TODO] Hack to pass in config - need to remove later
+            base = config.rope_theta
+            partial_rotary_factor = (
+                config.partial_rotary_factor
+                if hasattr(config, "partial_rotary_factor")
+                else 1.0
+            )
+            dim = getattr(config, "head_dim", None)
+            if dim is None:
+                dim = int((config.hidden_size // config.num_attention_heads))
+            device = "cuda"
+            max_position_embeddings = config.max_position_embeddings
+        pass
         self.dim = dim
         self.max_position_embeddings = max_position_embeddings
         self.base = base
+        # Dynamic RoPE we first set it to a max of 4 * 8192 tokens then we iteratively grow this
+        self.current_rope_size = min(4 * 8192, self.max_position_embeddings)
 
         # Build here to make `torch.jit.trace` work.
         self._set_cos_sin_cache(
-            seq_len=max_position_embeddings,
+            seq_len=self.current_rope_size,
             device=device,
             dtype=torch.get_default_dtype(),
         )
@@ -240,7 +277,7 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
     def _set_cos_sin_cache(self, seq_len, device, dtype):
         # Note: on the original Llama codebase, these tensors are created on the target device (and not on CPU) and
         # in FP32. They are applied (multiplied) in FP32 as well.
-        self.max_seq_len_cached = seq_len
+        self.current_rope_size = seq_len
 
         # The difference is we do division explicity instead of t * (1/x) ie we do t/x.
         freq_exponents = (2.0 / self.dim) * (
@@ -250,7 +287,7 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
         )
         timescale = self.base**freq_exponents
         positions = torch.arange(
-            self.max_seq_len_cached, device="cpu", dtype=torch.int64
+            self.current_rope_size, device="cpu", dtype=torch.int64
         ).float()
         radians_new = positions[..., None] / timescale[None, None, :]
         radians_new = radians_new.squeeze(0)
@@ -258,10 +295,10 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
         emb = torch.cat((radians_new, radians_new), dim=-1)
         # We must do RoPE in float32!
         cos = emb.cos().to(
-            device=device, non_blocking=True
+            device="cuda", non_blocking=True
         )  # , dtype = dtype)
         sin = emb.sin().to(
-            device=device, non_blocking=True
+            device="cuda", non_blocking=True
         )  # , dtype = dtype)
         self.register_buffer("cos_cached", cos, persistent=False)
         self.register_buffer("sin_cached", sin, persistent=False)
@@ -270,7 +307,7 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
 
     def forward(self, x, position_ids=None, seq_len=None):
         # x: [bs, num_attention_heads, seq_len, head_size]
-        if seq_len > self.max_seq_len_cached:
+        if seq_len > self.current_rope_size:
             self._set_cos_sin_cache(
                 seq_len=seq_len, device=x.device, dtype=x.dtype
             )
@@ -282,6 +319,84 @@ class GemmaFixedRotaryEmbedding(torch.nn.Module):
 
     pass
 
+    def get_cached(self, seq_len=None):
+        return self.cos_cached, self.sin_cached
+
+    pass
+
+    def extend_rope_embedding(self, x, seq_len):
+        if seq_len <= self.current_rope_size:
+            return
+        # Iteratively grow by increments of 8192
+        self.current_rope_size = math.ceil(seq_len / 8192) * 8192
+        self._set_cos_sin_cache(
+            self.current_rope_size, device="cuda", dtype=x.dtype
+        )
+
+    pass
+
+
+pass
+
+
+class GemmaFixedLinearScalingRotaryEmbedding(GemmaFixedRotaryEmbedding):
+    """LlamaRotaryEmbedding extended with linear scaling. Credits to the Reddit user /u/kaiokendev"""
+
+    # Fixes https://github.com/huggingface/transformers/pull/28837
+    # https://github.com/microsoft/DeepSpeed/issues/4932
+    # The precision of RoPE buffers is not correct, so we cast to int64.
+    def __init__(
+        self,
+        dim=None,
+        max_position_embeddings=2048,
+        base=10000,
+        device=None,
+        scaling_factor=1.0,
+        config=None,  # [TODO] Hack to pass in config - need to remove later
+    ):
+        self.scaling_factor = scaling_factor
+        super().__init__(
+            dim=dim,
+            max_position_embeddings=max_position_embeddings,
+            base=base,
+            device=device,
+            config=config,
+        )
+
+    pass
+
+    def _set_cos_sin_cache(self, seq_len, device, dtype):
+        # Note: on the original Llama codebase, these tensors are created on the target device (and not on CPU) and
+        # in FP32. They are applied (multiplied) in FP32 as well.
+        self.current_rope_size = seq_len
+
+        # The difference is we do division explicity instead of t * (1/x) ie we do t/x.
+        freq_exponents = (2.0 / self.dim) * (
+            torch.arange(
+                self.dim // 2, dtype=torch.int64, device="cpu"
+            ).float()
+        )
+        timescale = self.base**freq_exponents
+        positions = torch.arange(
+            self.current_rope_size, device="cpu", dtype=torch.int64
+        ).float()
+        positions = positions / self.scaling_factor
+        radians_new = positions[..., None] / timescale[None, None, :]
+        radians_new = radians_new.squeeze(0)
+
+        emb = torch.cat((radians_new, radians_new), dim=-1)
+        # We must do RoPE in float32!
+        cos = emb.cos().to(
+            device="cuda", non_blocking=True
+        )  # , dtype = dtype)
+        sin = emb.sin().to(
+            device="cuda", non_blocking=True
+        )  # , dtype = dtype)
+        self.register_buffer("cos_cached", cos, persistent=False)
+        self.register_buffer("sin_cached", sin, persistent=False)
+
+    pass
+
 
 pass
 
@@ -290,6 +405,16 @@ class FastGemmaModel(FastLlamaModel):
 
     @staticmethod
     def pre_patch():
+        init_name, function = patch_linear_scaling(
+            model_name="gemma",
+            rope_module=GemmaFixedRotaryEmbedding,
+            scaled_rope_module=GemmaFixedLinearScalingRotaryEmbedding,
+            attention_module=GemmaAttention,
+        )
+        if init_name is not None:
+            exec(function, globals())
+            GemmaAttention.__init__ = eval(init_name)
+        pass
         GemmaAttention.forward = LlamaAttention_fast_forward
         GemmaSdpaAttention.forward = LlamaAttention_fast_forward
         GemmaFlashAttention2.forward = LlamaAttention_fast_forward
@@ -299,6 +424,8 @@ class FastGemmaModel(FastLlamaModel):
             GemmaModel_fast_forward_inference
         )
         PeftModelForCausalLM.forward = PeftModelForCausalLM_fast_forward
+        fix_prepare_inputs_for_generation(GemmaForCausalLM)
+
         # Solves https://github.com/unslothai/unsloth/issues/168
         # Static KV Cache was introduced in 4.38.0, causing training to be much slower.
         # Inferene can now be CUDAGraphed, but we shall retain the old rotary embeddings.
@@ -314,67 +441,11 @@ class FastGemmaModel(FastLlamaModel):
     pass
 
     @staticmethod
-    def post_patch(model):
-        # Patch model for Gemma
-        layers = model.model.layers
-
-        # Torch.compile fails on embedding matrix??
-        # Workaround randomnly fixes it for torch versions < 2.2
-        model.model.embed_tokens = torch.nn.Embedding.from_pretrained(
-            model.model.embed_tokens.weight
+    def post_patch(model, tokenizer):
+        # Gemma does not downcast RoPE
+        model, tokenizer = patch_model_and_tokenizer(
+            model, tokenizer, downcast_rope=False
         )
-        model.config.update({"unsloth_version": __version__})
-
-        # We also do this for the lm_head
-        lm_head = torch.nn.Linear(1, 1, bias=None)
-        del lm_head.weight
-        lm_head.weight = model.lm_head.weight
-        lm_head.in_features = lm_head.weight.shape[1]
-        lm_head.out_features = lm_head.weight.shape[0]
-        model.lm_head = lm_head
-
-        # Gemma has tied weights! This means lm_head == embed_tokens
-        if (
-            model.model.embed_tokens.weight.data_ptr()
-            != model.lm_head.weight.data_ptr()
-        ):
-            lm_head = torch.nn.Linear(1, 1, bias=None)
-            del lm_head.weight
-            lm_head.weight = model.model.embed_tokens.weight
-            lm_head.in_features = lm_head.weight.shape[1]
-            lm_head.out_features = lm_head.weight.shape[0]
-            model.lm_head = lm_head
-        pass
-
-        # Also patch all dtypes - BnB seems to not allocate the correct type?
-        # BnB default dtype seems to be float16!
-        correct_dtype = lm_head.weight.dtype
-
-        for name, module in model.named_modules():
-            if isinstance(module, (Bnb_Linear4bit, Peft_Linear4bit)):
-                weight = module.weight
-                quant_state = weight.quant_state
-
-                if type(quant_state) is list:
-                    # BnB seems to have float16 as default!
-                    module.weight.quant_state[2] = (
-                        correct_dtype  # Cast to correct dtype
-                    )
-                else:
-                    # https://github.com/TimDettmers/bitsandbytes/pull/763/files
-                    quant_state.dtype = correct_dtype
-                pass
-            pass
-            # Downcast RoPE embedding to correct data type
-            # RoPE must be done in float32 for Gemma
-            # if (name.endswith("rotary_emb") or hasattr(module, "cos_cached")) \
-            #     and (module.cos_cached.dtype != correct_dtype):
-
-            #     module.cos_cached = module.cos_cached.to(correct_dtype)
-            #     module.sin_cached = module.sin_cached.to(correct_dtype)
-            #     pass
-            # pass
-        pass
 
         # Add 1 to weight
         # return output * (1 + self.weight)
@@ -410,7 +481,7 @@ class FastGemmaModel(FastLlamaModel):
         for _ in range(3):
             gc.collect()
             torch.cuda.empty_cache()
-        return model
+        return model, tokenizer
 
     pass
 

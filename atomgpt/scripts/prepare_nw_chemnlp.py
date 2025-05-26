@@ -174,7 +174,7 @@ def get_crystal_string_t(atoms):
         )
     )
 
-    crystal_str = atoms_describer(atoms)['desc_2'] + "\n*\n" + crystal_str
+    crystal_str = atoms_describer(atoms)["desc_2"] + "\n*\n" + crystal_str
     return crystal_str
 
 
@@ -186,6 +186,6 @@ for i in tqdm(dft_3d):
     desc = get_crystal_string_t(atoms)
     info["id"] = i["jid"]
     info["desc"] = desc
-    #print(desc)
+    # print(desc)
     mem.append(info)
 dumpjson(data=mem, filename="chemnlp_new_desc.json")

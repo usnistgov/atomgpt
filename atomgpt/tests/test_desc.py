@@ -4,9 +4,10 @@ from atomgpt.data.dataset import get_crystal_string
 
 
 def test_desc():
- atoms=Atoms.from_dict(get_jid_data(jid='JVASP-1174',dataset='dft_3d')['atoms'])
- get_crystal_string(atoms)
-
+    atoms = Atoms.from_dict(
+        get_jid_data(jid="JVASP-1174", dataset="dft_3d")["atoms"]
+    )
+    get_crystal_string(atoms)
 
 
 def get_ff():
@@ -51,4 +52,3 @@ def get_ff():
         num_epochs=10,
         pretrained_model_name="gpt2",
     )
-
