@@ -13,7 +13,8 @@ import os
 from jarvis.core.atoms import Atoms
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
-#from describe import atoms_describer
+
+# from describe import atoms_describer
 import json
 from jarvis.db.figshare import get_jid_data
 from jarvis.core.atoms import Atoms
@@ -28,12 +29,18 @@ import time
 import json
 import zipfile
 
+
 def atoms_describer(
-    atoms=[], xrd_peaks=5, xrd_round=1, cutoff=4, take_n_bomds=2,include_spg=True
+    atoms=[],
+    xrd_peaks=5,
+    xrd_round=1,
+    cutoff=4,
+    take_n_bomds=2,
+    include_spg=True,
 ):
     """Describe an atomic structure."""
     if include_spg:
-       spg = Spacegroup3D(atoms)
+        spg = Spacegroup3D(atoms)
     theta, d_hkls, intens = XRD().simulate(atoms=(atoms))
     #     x = atoms.atomwise_angle_and_radial_distribution()
     #     bond_distances = {}
@@ -76,8 +83,8 @@ def atoms_describer(
         "lattice_angles": ", ".join(
             map(str, [round(j, 2) for j in atoms.lattice.angles])
         ),
-        #"spg_number": spg.space_group_number,
-        #"spg_symbol": spg.space_group_symbol,
+        # "spg_number": spg.space_group_number,
+        # "spg_symbol": spg.space_group_symbol,
         "top_k_xrd_peaks": ", ".join(
             map(
                 str,
@@ -87,39 +94,44 @@ def atoms_describer(
             )
         ),
         "density": round(atoms.density, 3),
-        #"crystal_system": spg.crystal_system,
-        #"point_group": spg.point_group_symbol,
-        #"wyckoff": ", ".join(list(set(spg._dataset["wyckoffs"]))),
+        # "crystal_system": spg.crystal_system,
+        # "point_group": spg.point_group_symbol,
+        # "wyckoff": ", ".join(list(set(spg._dataset["wyckoffs"]))),
         "bond_distances": bond_distances,
-        #"natoms_primitive": spg.primitive_atoms.num_atoms,
-        #"natoms_conventional": spg.conventional_standard_structure.num_atoms,
+        # "natoms_primitive": spg.primitive_atoms.num_atoms,
+        # "natoms_conventional": spg.conventional_standard_structure.num_atoms,
     }
     if include_spg:
-        struct_info["spg_number"]=spg.space_group_number
-        struct_info["spg_symbol"]=spg.space_group_symbol
-        struct_info["crystal_system"]=spg.crystal_system
-        struct_info["point_group"]=spg.point_group_symbol
-        struct_info["wyckoff"]=", ".join(list(set(spg._dataset["wyckoffs"])))
-        struct_info["natoms_primitive"]=spg.primitive_atoms.num_atoms
-        struct_info["natoms_conventional"]=spg.conventional_standard_structure.num_atoms
+        struct_info["spg_number"] = spg.space_group_number
+        struct_info["spg_symbol"] = spg.space_group_symbol
+        struct_info["crystal_system"] = spg.crystal_system
+        struct_info["point_group"] = spg.point_group_symbol
+        struct_info["wyckoff"] = ", ".join(list(set(spg._dataset["wyckoffs"])))
+        struct_info["natoms_primitive"] = spg.primitive_atoms.num_atoms
+        struct_info["natoms_conventional"] = (
+            spg.conventional_standard_structure.num_atoms
+        )
     info["chemical_info"] = chem_info
     info["structure_info"] = struct_info
-    line = "The number of atoms are: "+str(atoms.num_atoms) #+"., The elements are: "+",".join(atoms.elements)+". "
+    line = "The number of atoms are: " + str(
+        atoms.num_atoms
+    )  # +"., The elements are: "+",".join(atoms.elements)+". "
     for i, j in info.items():
         if not isinstance(j, dict):
             line += "The " + i + " is " + j + ". "
         else:
-            #print("i",i)
-            #print("j",j)
+            # print("i",i)
+            # print("j",j)
             for ii, jj in j.items():
-                tmp=''
-                if isinstance(jj,dict):
-                   for iii,jjj in jj.items():
-                        tmp+=iii+": "+str(jjj)+" "
+                tmp = ""
+                if isinstance(jj, dict):
+                    for iii, jjj in jj.items():
+                        tmp += iii + ": " + str(jjj) + " "
                 else:
-                   tmp=jj
+                    tmp = jj
                 line += "The " + ii + " is " + str(tmp) + ". "
     return line
+
 
 ###
 # from robocrys import StructureCondenser, StructureDescriber
@@ -166,11 +178,11 @@ IGNORE_INDEX = -100
 device = "cpu"
 if torch.cuda.is_available():
     device = torch.device("cuda")
-#device = "cpu"
+# device = "cpu"
 parser = argparse.ArgumentParser(description="AtomGPT")
 parser.add_argument(
     "--benchmark_file",
-    #default="AI-SinglePropertyPrediction-Tc_supercon-dft_3d-test-mae.csv.zip",
+    # default="AI-SinglePropertyPrediction-Tc_supercon-dft_3d-test-mae.csv.zip",
     default="AI-SinglePropertyPrediction-PBE_gap-halide_peroskites-test-mae.csv.zip",
     # default="AI-SinglePropertyPrediction-ead-tinnet_N-test-mae.csv.zip",
     # default="AI-SinglePropertyPrediction-exfoliation_energy-dft_3d-test-mae",
@@ -297,7 +309,7 @@ def run_atomgpt(
     prefix="ss",
     model_name="gpt2",
     benchmark_file="AI-SinglePropertyPrediction-Tc_supercon-dft_3d-test-mae.csv.zip",
-    #benchmark_file="AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip",
+    # benchmark_file="AI-SinglePropertyPrediction-optb88vdw_bandgap-dft_3d-test-mae.csv.zip",
     root_dir="/wrk/knc6/AFFBench/jarvis_leaderboard/jarvis_leaderboard",
     batch_size=8,
     max_length=512,
@@ -732,14 +744,14 @@ def run_atomgpt(
 
 
 if __name__ == "__main__":
-    #box = [[2.715, 2.715, 0], [0, 2.715, 2.715], [2.715, 0, 2.715]]
-    #coords = [[0, 0, 0], [0.25, 0.2, 0.25]]
-    #elements = ["Si", "Si"]
-    #Si = Atoms(lattice_mat=box, coords=coords, elements=elements)
-    #tmp=atoms_describer(Si)    
-    #print(tmp)
-    #import sys
-    #sys.exit()
+    # box = [[2.715, 2.715, 0], [0, 2.715, 2.715], [2.715, 0, 2.715]]
+    # coords = [[0, 0, 0], [0.25, 0.2, 0.25]]
+    # elements = ["Si", "Si"]
+    # Si = Atoms(lattice_mat=box, coords=coords, elements=elements)
+    # tmp=atoms_describer(Si)
+    # print(tmp)
+    # import sys
+    # sys.exit()
     args = parser.parse_args(sys.argv[1:])
     benchmark_file = args.benchmark_file
     model_name = "facebook/opt-350m"

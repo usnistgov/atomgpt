@@ -4,6 +4,7 @@ import random
 import numpy as np
 import os
 
+
 def set_seed():
     os.environ["WANDB_ANONYMOUS"] = "must"
     random_seed = 42
@@ -13,6 +14,7 @@ def set_seed():
     torch.cuda.manual_seed_all(random_seed)
     try:
         import torch_xla.core.xla_model as xm
+
         xm.set_rng_state(random_seed)
     except ImportError:
         pass
@@ -22,9 +24,15 @@ def set_seed():
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = str(":4096:8")
     torch.use_deterministic_algorithms(True)
 
+
 class AtomGPTPredictorLMhead(torch.nn.Module):
     def __init__(
-        self, model_name=None, n_out=1, latent_dim=1024, tokenizer="",low_cpu_mem_usage=True
+        self,
+        model_name=None,
+        n_out=1,
+        latent_dim=1024,
+        tokenizer="",
+        low_cpu_mem_usage=True,
     ):
 
         super(AtomGPTPredictorLMhead, self).__init__()
@@ -61,4 +69,3 @@ class AtomGPTPredictorLMhead(torch.nn.Module):
         else:
             outputs = self.model(input_ids)
         return outputs
-

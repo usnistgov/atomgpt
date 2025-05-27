@@ -7,6 +7,8 @@ from robocrys.cli import robocrystallographer
 from jarvis.core.atoms import Atoms
 
 import os
+
+
 def get_robo(structure=None):
     description = robocrystallographer(structure)
 
@@ -29,17 +31,17 @@ def get_robo(structure=None):
 # desc = get_robo(atoms)
 dft_3d = data("dft_3d")
 for i in tqdm(dft_3d):
- fname = i["jid"] + ".json"
- if not os.path.exists(fname):
- #if i['Tc_supercon']!='na':
-    #try:
-        print('fname',fname)
+    fname = i["jid"] + ".json"
+    if not os.path.exists(fname):
+        # if i['Tc_supercon']!='na':
+        # try:
+        print("fname", fname)
         info = {}
         atoms = Atoms.from_dict(i["atoms"]).pymatgen_converter()
         desc = get_robo(atoms)
         info["desc"] = desc
         info["jid"] = i["jid"]
         dumpjson(data=info, filename=fname)
-    #except:
+    # except:
     #    print("Failed", i["jid"])
     #    pass

@@ -1,12 +1,26 @@
-# AtomGPT & DiffractGPT: atomistic generative pre-trained transformer for forward and inverse materials design
+# AtomGPT : Atomistic Generative Pre-trained Transformer for Forward and Inverse Materials Design
 
-Large language models (LLMs) such as [ChatGPT](https://openai.com/chatgpt/) have shown immense potential for various commercial applications, but their applicability for materials design remains underexplored. In this work, AtomGPT is introduced as a model specifically developed for materials design based on transformer architectures, demonstrating capabilities for both atomistic property prediction and structure generation tasks. This study shows that a combination of chemical and structural text descriptions can efficiently predict material properties with accuracy comparable to graph neural network models, including formation energies, electronic bandgaps from two different methods, and superconducting transition temperatures. Furthermore, AtomGPT can generate atomic structures for tasks such as designing new superconductors, with the predictions validated through density functional theory calculations. This work paves the way for leveraging LLMs in forward and inverse materials design, offering an efficient approach to the discovery and optimization of materials.
+# Table of Contents
+* [Introduction](#intro)
+* [Installation](#install)
+* [Forward Property Prediction Model](#forward)
+* [Inverse Property Prediction Model](#inverse)
+* [DiffractGPT Model](#diffract)
+* [MicroscopyGPT Model](#micro)
+* [Notebooks](#notebooks)
+* [HuggingFace](#hug)
+* [References](#refs)
+* [How to contribute](#contrib)
+* [Correspondence](#corres)
+* [Funding support](#fund)
 
-![AtomGPT layer schematic](https://github.com/usnistgov/atomgpt/blob/main/atomgpt/data/schematic.jpeg)
+<a name="intro"></a>
+# Introduction
 
-Both forward and inverse models take a config.json file as an input. Such a config file provides basic training parameters, and an `id_prop.csv` file path similar to the ALIGNN (https://github.com/usnistgov/alignn) model. See an example here: [id_prop.csv](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/examples/forward_model/id_prop.csv). 
+Large language models (LLMs), such as [ChatGPT](https://openai.com/chatgpt/), have demonstrated immense potential across various commercial applications; however, their applicability to materials design remains underexplored. In this work, we introduce AtomGPT, a transformer-based model specifically developed for materials design, capable of both atomistic property prediction and structure generation. AtomGPT can be used with both theoretical and experimental data, primarily taking input in `.csv` format. It has been successfully applied to the computational discovery of new superconductors and semiconductors, as well as to the acceleration of experimental workflows such as X-ray diffraction and microscopy.
 
-## Installation
+<a name="install"></a>
+# Installation
 
 First create a conda environment:
 Install miniforge https://github.com/conda-forge/miniforge
@@ -36,9 +50,12 @@ cd atomgpt
 pip install -e .
 ```
 
-## Forward model example (structure to property)
+<a name="forward"></a>
+# Forward model example (structure to scalar property)
 
-Forwards model are used for developing surrogate models for atomic structure to property predictions. It requires text input which can be either the raw POSCAR type files or a text description of the material. After that, we can use Google-T5/ OpenAI GPT2 etc. models with customizing language head for accomplishing such a task. The description of a material is generated with [ChemNLP/describer](https://github.com/usnistgov/jarvis/blob/master/jarvis/core/atoms.py#L1567) function. If you turn [`convert`](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/forward_models/forward_models.py#L277) to `False`, you can also train on bare POSCAR files.
+Forwards model are used for developing surrogate models for atomic structure to property predictions. It requires text input which can be either the raw POSCAR type files or a text description of the material. After that, we can use Google-T5/ OpenAI GPT2 etc. models with customizing langauage head for accomplishing such a task. The description of a material is generated with [ChemNLP/describer](https://github.com/usnistgov/jarvis/blob/master/jarvis/core/atoms.py#L1567) function. If you turn [`convert`](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/forward_models/forward_models.py#L277) to `False`, you can also train on bare POSCAR files.
+
+Both forward and inverse models take a config.json file as an input. Such a config file provides basic training parameters, and an `id_prop.csv` file path similar to the ALIGNN (https://github.com/usnistgov/alignn) model. See an example here: [id_prop.csv](https://github.com/usnistgov/atomgpt/blob/develop/atomgpt/examples/forward_model/id_prop.csv). 
 
 For training:
 
@@ -57,8 +74,8 @@ python atomgpt/forward_models/forward_predict.py --output_dir out --pred_csv ato
 
 or use `atomgpt_forward_predict` global executable.
 
-
-## Inverse model example (property to structure)
+<a name="inverse"></a>
+# Inverse model example (scalar property to structure)
 
 Inverse models are used for generating materials given property and description such as chemical formula. Currently, we use Mistral model, but other models such as Gemma, Lllama etc. can also be easily used. After the structure generation, we can optimize the structure with ALIGNN-FF model (example [here](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/ALIGNN_Structure_Relaxation_Phonons_Interface.ipynb) and then subject to density functional theory calculations for a few selected candidates using JARVIS-DFT or similar workflow (tutorial for example [here](https://pages.nist.gov/jarvis/tutorials/). Note that currently, the inversely model training as well as conference requires GPUs.
 
@@ -73,13 +90,26 @@ or use `atomgpt_inverse_train` global executable.
 For inference:
 
 ```
-python atomgpt/inverse_models/inverse_predict.py --output_dir outputs/checkpoint-2/  --config_name outputs/config.json --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
+python atomgpt/inverse_models/inverse_predict.py --output_dir outputs/checkpoint-2/  --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
 ```
 
-or use `atomgpt_inverse_predict` global executable.
 
+If you want to use the huggingface model:
 
-## DiffractGPT model example (spectral property to structure)
+```
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --pred_csv "atomgpt/examples/inverse_model/pred_list_inverse.csv"
+```
+
+or if you want infer for just one compound
+
+```
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --formula FeTe  --config_path atomgpt/examples/inverse_model/config.json
+```
+
+Instead of python atomgpt/inverse_models/inverse_predict.py you can also use `atomgpt_inverse_predict` global executable.
+
+<a name="diffract"></a>
+# DiffractGPT model example (spectral property to structure)
 
 Inverse models are also used for generating materials given spectra/multi value property such as X-ray diffraction and description such as chemical formula. 
 
@@ -92,70 +122,33 @@ python atomgpt/inverse_models/inverse_models.py --config_name atomgpt/examples/i
 For inference:
 
 ```
-python atomgpt/inverse_models/inverse_predict.py --output_dir outputs_xrd --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/diffractgpt_mistral_chemical_formula --formula LaB6 --dat_path atomgpt/examples/inverse_model_multi/my_data.dat --config_path atomgpt/examples/inverse_model_multi/config.json
 ```
 
-or if you want to use the original model:
+For multiple files/formats
 
 ```
-python atomgpt/inverse_models/inverse_predict.py --output_dir atomgpt/examples/inverse_model_multi --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv
+python atomgpt/inverse_models/inverse_predict.py --output_dir outputs_xrd/checkpoint-2 --pred_csv atomgpt/examples/inverse_model_multi/pred_list_inverse.csv --config_path atomgpt/examples/inverse_model_multi/config.json
 ```
 
+<a name="micro"></a>
+# MicorscopyGPT model example (image property to structure)
 
-Example inference only case:
-
-Make a `tmp/pred_list.csv`
-
-```
-LaB6.dat
-```
-You can add multiple .dat file with 2theta, intentisty values in this csv file.
-
-Then add a `tmp/config.json`
+Example training:
 
 ```
-{
-    "id_prop_path": "atomgpt/examples/inverse_model_multi/id_prop.csv",
-    "prefix": "atomgpt_run",
-    "model_name": "knc6/diffractgpt_mistral_chemical_formula",
-    "batch_size": 2,
-    "num_epochs": 2,
-    "logging_steps": 1,
-    "dataset_num_proc": 2,
-    "seed_val": 3407,
-    "learning_rate": 0.0002,
-    "per_device_train_batch_size": 2,
-    "gradient_accumulation_steps": 4,
-    "num_train": 2,
-    "num_val": 0,
-    "num_test": 2,
-    "model_save_path": "",
-    "loss_type": "default",
-    "optim": "adamw_8bit",
-    "lr_scheduler_type": "linear",
-    "output_dir": "outputs_xrd",
-    "csv_out": "AI-AtomGen-prop-dft_3d-test-rmse.csv",
-    "chem_info": "formula",
-    "max_seq_length": 2048,
-    "prop": "XRD",
-    "dtype": null,
-    "load_in_4bit": true,
-    "instruction": "Below is a description of a material.",
-    "alpaca_prompt": "### Instruction:\n{}\n### Input:\n{}\n### Output:\n{}",
-    "output_prompt": " Generate atomic structure description with lattice lengths, angles, coordinates and atom types."
-}
-
+python atomgpt/inverse_models/inverse_vision.py --max_samples 10
 ```
 
-This data was generated with example script: `atomgpt/scripts/gen_data.py`
+Example inference:
 
 ```
-python atomgpt/inverse_models/inverse_predict.py --output_dir atomgpt/examples/inverse_model_multi/tmp  --pred_csv atomgpt/examples/inverse_model_multi/tmp/pred_list.csv
+python atomgpt/inverse_models/inverse_vision_predict.py --image_path atomgpt/examples/inverse_model_vision/FeTe.png --formula FeTe
 ```
-
 
 More detailed examples/case-studies would be added here soon.
 
+<a name="notebooks"></a>
 # Google colab/Jupyter notebook
 
 
@@ -174,12 +167,13 @@ More detailed examples/case-studies would be added here soon.
 
 For similar other notebook examples, see [JARVIS-Tools-Notebook Collection](https://github.com/JARVIS-Materials-Design/jarvis-tools-notebooks)
 
+<a name="hug"></a>
 # HuggingFace link :hugs:
 
 https://huggingface.co/knc6
 
-
-# References:
+<a name="refs"></a>
+# Referenes:
 
 1. [AtomGPT: Atomistic Generative Pretrained Transformer for Forward and Inverse Materials Design](https://pubs.acs.org/doi/full/10.1021/acs.jpclett.4c01126)
 2. [DiffractGPT: Atomic Structure Determination from X-ray Diffraction Patterns using Generative Pre-trained Transformer](https://pubs.acs.org/doi/10.1021/acs.jpclett.4c03137)
