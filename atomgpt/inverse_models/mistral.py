@@ -372,7 +372,7 @@ class FastMistralModel(FastLlamaModel):
         model_config = AutoConfig.from_pretrained(model_name, token=token)
         model_max_seq_length = model_config.max_position_embeddings
 
-        # If max_seq_length is not specified, use maximum fron config
+        # If max_seq_length is not specified, use maximum from config
         if max_seq_length is None:
             max_seq_length = model_max_seq_length
         pass
