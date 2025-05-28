@@ -467,7 +467,7 @@ class CustomSFTTrainer(SFTTrainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         if self.loss_type == "default":  # crossentropy
-            # Currently recommneded to use default
+            # Currently recommended to use default
             return super().compute_loss(model, inputs, return_outputs)
 
         outputs = model(**inputs)
