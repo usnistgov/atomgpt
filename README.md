@@ -102,8 +102,9 @@ python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistr
 
 or if you want infer for just one compound
 
+
 ```
-python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --formula FeTe  --config_path atomgpt/examples/inverse_model/config.json
+python atomgpt/inverse_models/inverse_predict.py --model_name knc6/atomgpt_mistral_tc_supercon  --formula FeTe  --config_path atomgpt/examples/inverse_model/config.json --prop_val 10
 ```
 
 Instead of python atomgpt/inverse_models/inverse_predict.py you can also use `atomgpt_inverse_predict` global executable.
@@ -132,7 +133,7 @@ python atomgpt/inverse_models/inverse_predict.py --output_dir outputs_xrd/checkp
 ```
 
 <a name="micro"></a>
-# MicorscopyGPT model example (image property to structure)
+# MicroscopyGPT model example (image property to structure)
 
 Example training:
 
@@ -157,7 +158,8 @@ More detailed examples/case-studies would be added here soon.
 | [Forward Model training](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_forward_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_forward_example.ipynb)                                 | Example of forward model training for exfoliation energy.                                                                                                                                                                                                                                                                       |
 | [Inverse Model training](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)                                 | Example of installing AtomGPT, inverse model training for 5 sample materials, using the trained model for inference, relaxing structures with ALIGNN-FF, generating a database of atomic structures.                                                                                                                                                                                                                                                                       |
  [HuggingFace AtomGPT model inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                                                  | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example_huggingface.ipynb)                            | AtomGPT Structure Generation/Inference example with a model hosted on Huggingface.                                                                                                  | 
- [Inverse Model DiffractGPT inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/DiffractGPT_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/DiffractGPT_example.ipynb)                                 | Example of predicting crystal structure from X-ray diffraction data.                                                                                                                                                                                                                       |                                                                                                                                  |
+ [DiffractGPT inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/DiffractGPT_example.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/DiffractGPT_example.ipynb)                                 | Example of predicting crystal structure from X-ray diffraction data.                                                                                                                                                                                                                       |                                                                                                                                  |
+ [MicroscopyGPT inference](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/MicroscopyGPT.ipynb)                                                       | [![Open in Google Colab]](https://colab.research.google.com/github/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/MicroscopyGPT.ipynb)                                 | Example of predicting crystal structure from STEM image data.                                                                                                                                                                                                                       |                                                                                                                                  |
 
 
 [Open in Google Colab]: https://colab.research.google.com/assets/colab-badge.svg
