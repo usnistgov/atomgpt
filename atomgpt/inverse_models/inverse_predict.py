@@ -38,6 +38,11 @@ parser.add_argument(
     help="Relax cell or not",
 )
 parser.add_argument(
+    "--background_subs",
+    default="False",
+    help="Perform background subtraction",
+)
+parser.add_argument(
     "--model_name",
     default=None,
     help="Name or path of model if not using config.json",
@@ -90,7 +95,7 @@ def relax_atoms(
 
 
 def predict(
-    output_dir="outputs",
+    output_dir=None,
     config_path=None,
     pred_csv="pred_list_inverse.csv",
     fname="out_inv.json",
@@ -112,6 +117,7 @@ def predict(
     # if not os.path.exists("config_name"):
 
     #    config_name=os.path.join(output_dir,"config.json")
+    print("config_path", config_path)
     if output_dir is not None:
         config_name = os.path.join(output_dir, "config.json")
         parent = Path(output_dir).parent
@@ -254,6 +260,7 @@ if __name__ == "__main__":
     # output_dir = make_id_prop()
     # output_dir="."
     args = parser.parse_args(sys.argv[1:])
+    print("args.config_path", args.config_path)
     predict(
         output_dir=args.output_dir,
         pred_csv=args.pred_csv,
@@ -263,5 +270,6 @@ if __name__ == "__main__":
         formula=args.formula,
         config_path=args.config_path,
         prop_val=args.prop_val,
+        background_subs=args.background_subs,
         # config_name=args.config_name,
     )
