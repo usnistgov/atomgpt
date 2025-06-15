@@ -305,6 +305,71 @@ class STEMDatasetGenerator:
         else:
             return data(self.dataset_name)
 
+    def generate_dataset_from_csv(self, id_prop_path, miller_index="(0 0 1)"):
+        with open(id_prop_path, "r") as f:
+            reader = csv.reader(f)
+            dt = [row for row in reader]
+        for i in tqdm(dt, total=len(dt)):
+            info = {}
+            pos_path = os.path.join(id_prop_path, i[0])
+            atoms = Atoms.from_poscar(pos_path)
+            pil_image = Image.open(i[1]).convert("L")
+
+            poscar_string = self.get_crystal_string_t(atoms)
+
+            question = (
+                "The chemical formula is "
+                + atoms.composition.reduced_formula
+                # "The chemical elements are "
+                # + str(
+                #    atoms.composition.search_string.replace(
+                #        "-", " ,"
+                #    )
+                # )
+                + ". Generate atomic structure description with lattice lengths, angles, coordinates, and atom types. Also predict the Miller index."
+            )
+            explanation = (
+                f"\n{poscar_string}"
+                + ". The miller index is ("
+                + str(" ".join(map(str, miller_index)))
+                + "). "
+            )
+
+            dataset.append(
+                {
+                    "id": i[0],
+                    "messages": [
+                        {
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": question,
+                                    # "index": None,
+                                },
+                                {
+                                    "type": "image",
+                                    "text": None,
+                                    # "index": 0,
+                                },
+                            ],
+                            "role": "user",
+                        },
+                        {
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": explanation,
+                                    # "index": None,
+                                }
+                            ],
+                            "role": "assistant",
+                        },
+                    ],
+                    "images": [pil_image],
+                }
+            )
+        return dataset
+
     def generate_dataset(self, input_dataset):
         dataset = []
 
