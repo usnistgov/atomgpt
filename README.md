@@ -1,5 +1,9 @@
 # AtomGPT : Atomistic Generative Pre-trained Transformer for Forward and Inverse Materials Design
 
+
+⚠️ This repository is no longer maintained.
+For the latest updates and continued development, please visit: https://github.com/atomgptlab/atomgpt
+
 # Table of Contents
 * [Introduction](#intro)
 * [Installation](#install)
